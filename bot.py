@@ -2230,7 +2230,7 @@ print(f"Can write to Account: {os.access('Account', os.W_OK)}")
 #======================== Set Bot Commands =====================#
 if __name__ == '__main__':
     set_bot_commands()
-    print("Bot is running...")
+    print("Bot is Ready to Hustle...")
     while True:
         try:
             bot.polling(none_stop=True)
