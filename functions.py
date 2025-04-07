@@ -1,11 +1,15 @@
 from pymongo import MongoClient
 from pymongo.errors import AutoReconnect
 import time
+import json
 import re
+import os
+from dotenv import load_dotenv
 
 # MongoDB connection setup
-client = MongoClient("mongodb+srv://ramybeginning:ALLAHAKBAr@232956@cluster0.ja2zly9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")  # Replace with your MongoDB URI
-db = client["bot_database"]  # Replace with your database name
+load_dotenv()
+client = MongoClient(os.getenv("MONGO_URI"))  # Load MongoDB connection string from .env file
+db = client["Cluster0"]  # Replace with your database name
 users_collection = db["users"]
 bans_collection = db["bans"]
 
@@ -147,6 +151,52 @@ def getData(user_id):
         print("Reconnecting to MongoDB...")
         time.sleep(2)
         return getData(user_id)  # Retry
+    
+def addRefCount(user_id):
+    """Increment the referral count for the user."""
+    if isExists(user_id):
+        file_path = os.path.join("Account", f'{user_id}.json')
+        with open(file_path, 'r+') as file:
+            data = json.load(file)
+            # Increment the total_refs count
+            data['total_refs'] = data.get('total_refs', 0) + 1  # Default to 0 if not found
+            file.seek(0)
+            json.dump(data, file, indent=4)
+            file.truncate()
+        return True
+    return False
+
+def setWelcomeStaus(user_id):
+    """Set the referral information for the user."""
+    if isExists(user_id):
+
+        file_path = os.path.join("Account", f'{user_id}.json')
+        with open(file_path, 'r+') as file:
+            data = json.load(file)
+            data['welcome_bonus'] = 1
+            file.seek(0)
+            json.dump(data, file, indent=4)
+            file.truncate()
+        return True
+    return False
+
+def setReferredStatus(user_id):
+    """Set the referral information for the user."""
+    if isExists(user_id):
+
+        file_path = os.path.join("Account", f'{user_id}.json')
+        with open(file_path, 'r+') as file:
+            data = json.load(file)
+            data['referred'] = 1
+            file.seek(0)
+            json.dump(data, file, indent=4)
+            file.truncate()
+        return True
+    return False
+
+def track_exists(user_id):
+    """Check if the referral user exists."""
+    return isExists(user_id)
 
 print("functions.py loaded with MongoDB integration.")
 
