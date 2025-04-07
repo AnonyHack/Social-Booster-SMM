@@ -6,6 +6,8 @@ import os
 import json
 import traceback
 import logging
+from flask import Flask
+import threading
 from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from functions import (insertUser, track_exists, addBalance, cutBalance, getData,
                        addRefCount, isExists, setWelcomeStaus, setReferredStatus, updateUser, 
@@ -2228,12 +2230,30 @@ print(f"Files in Account: {os.listdir('Account')}")
 print(f"Can write to Account: {os.access('Account', os.W_OK)}")
 
 #======================== Set Bot Commands =====================#
+from flask import Flask
+import threading
+
+# Create simple health check server
+app = Flask(__name__)
+
+@app.route('/')
+def health_check():
+    return "Bot is running", 200
+
+def run_flask():
+    app.run(host='0.0.0.0', port=8000)
+
 if __name__ == '__main__':
-    set_bot_commands()
-    print("Bot is Ready to Hustle...")
+    # Start Flask server in a separate thread
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+    
+    # Start your bot
+    print("Bot starting...")
     while True:
         try:
             bot.polling(none_stop=True)
         except Exception as e:
-            print(f"Bot polling failed: {e}")
+            print(f"Bot error: {e}")
             time.sleep(10)
