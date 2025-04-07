@@ -8,21 +8,30 @@ import traceback
 import logging
 from flask import Flask
 import threading
+from dotenv import load_dotenv  # Add this import
+from pymongo import MongoClient  # Import MongoClient
 from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
-from functions import (insertUser, track_exists, addBalance, cutBalance, getData,
+from functions import (insertUser, track_exists, addBalance, cutBalance, getData, getData,
                        addRefCount, isExists, setWelcomeStaus, setReferredStatus, updateUser, 
                        ban_user, unban_user, get_all_users, is_banned, get_banned_users, 
                        get_top_users, get_user_count, get_active_users, get_total_orders, 
-                       get_total_deposits, get_top_referrer, is_valid_tiktok_link,  get_user_orders_stats) # Import your functions from functions.py
+                       get_total_deposits, get_top_referrer, is_valid_tiktok_link, get_user_orders_stats) # Import your functions from functions.py
 
 if not os.path.exists('Account'):
     os.makedirs('Account')
 
-bot_token = "7668069068:AAGKv0jZjb2hhGPdjKzLOYFpA3kOtGzY8h0"
-SmmPanelApi = "76dfaf950208ee730acd16f3e836a60977bcb48eeb231dacbed122aa82f96087"
-SmmPanelApiUrl = "https://shakergainske.com/api/v2"
+# Load environment variables from .env file
+load_dotenv()
+
+# =============== Bot Configuration =============== #
+bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+SmmPanelApi = os.getenv("SMM_PANEL_API_KEY")
+SmmPanelApiUrl = os.getenv("SMM_PANEL_API_URL")
+admin_user_id = int(os.getenv("ADMIN_USER_ID"))  # Convert to integer
+client = MongoClient(os.getenv("MONGODB_URI"))
+
+# Initialize bot
 bot = telebot.TeleBot(bot_token)
-admin_user_id = 5962658076
 welcome_bonus = 100
 ref_bonus = 50
 min_view = 1000
