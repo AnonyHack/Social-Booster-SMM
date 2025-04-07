@@ -2242,7 +2242,7 @@ print(f"Can write to Account: {os.access('Account', os.W_OK)}")
 from flask import Flask
 import threading
 
-# Create simple health check server
+# -------------------- Flask Server -------------------- #
 app = Flask(__name__)
 
 @app.route('/')
@@ -2250,19 +2250,21 @@ def health_check():
     return "Bot is running", 200
 
 def run_flask():
+    print("Flask server started on port 8000")
     app.run(host='0.0.0.0', port=8000)
 
-if __name__ == '__main__':
-    # Start Flask server in a separate thread
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
+# Start Flask immediately (no need for __main__)
+flask_thread = threading.Thread(target=run_flask)
+flask_thread.daemon = True
+flask_thread.start()
+
     
-    # Start your bot
-    print("Bot starting...")
+# -------------------- Bot Startup -------------------- #
+if __name__ == '__main__':
+    print("Telegram bot starting...")
     while True:
         try:
-            bot.polling(none_stop=True)
+            bot.polling(none_stop=True, skip_pending=True)
         except Exception as e:
-            print(f"Bot error: {e}")
+            print(f"Bot crashed: {e}. Restarting in 10s...")
             time.sleep(10)
