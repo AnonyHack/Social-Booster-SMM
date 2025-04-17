@@ -861,7 +861,6 @@ def process_tiktok_quantity(message, service):
         
     except ValueError:
         bot.reply_to(message, "❌ Please enter a valid number", reply_markup=tiktok_services_markup)
-
 def process_tiktok_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
@@ -869,12 +868,10 @@ def process_tiktok_link(message, service, quantity, cost):
     
     link = message.text.strip()
     
-    # Basic TikTok link validation
     if not re.match(r'^https?://(www\.)?tiktok\.com/', link):
         bot.reply_to(message, "❌ Invalid TikTok link format", reply_markup=tiktok_services_markup)
         return
     
-    # Submit to SMM panel
     try:
         response = requests.post(
             SmmPanelApiUrl,
@@ -888,14 +885,11 @@ def process_tiktok_link(message, service, quantity, cost):
             timeout=30
         )
         result = response.json()
-        print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
             
-            # Prepare complete order data
             order_data = {
                 'service': service['name'],
                 'service_type': 'tiktok',
@@ -908,12 +902,14 @@ def process_tiktok_link(message, service, quantity, cost):
                 'timestamp': time.time(),
                 'username': message.from_user.username or str(message.from_user.id)
             }
+            add_order(str(message.from_user.id), order_data)
             
-            # Add to order history
-            if not add_order(str(message.from_user.id), order_data):
-                raise Exception("Failed to record order in database")
+            # Update user stats
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            data['orders_count'] = data.get('orders_count', 0) + 1
+            updateUser(user_id, data)
             
-            # Send confirmation to user
             bot.reply_to(
                 message,
                 f"""✅ {service['name']} Order Submitted!
@@ -927,12 +923,10 @@ def process_tiktok_link(message, service, quantity, cost):
                 disable_web_page_preview=True
             )
             
-            # Send notification to payment channel
-            print(f"Payment Channel: {payment_channel}")  # Debug print
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New Tiktok Order:
+                    f"""📢 New TikTok Order:
                     
 👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
 🆔 ID: {message.from_user.id}
@@ -945,7 +939,7 @@ def process_tiktok_link(message, service, quantity, cost):
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
-            
+                
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
             raise Exception(error_msg)
@@ -958,11 +952,18 @@ def process_tiktok_link(message, service, quantity, cost):
         )
     except Exception as e:
         print(f"Error submitting {service['name']} order: {str(e)}")
-        bot.reply_to(
-            message,
-            f"❌ Failed to submit {service['name']} order. Please try again later.",
-            reply_markup=main_markup
-        )
+        if 'result' not in locals() or not result.get('order'):
+            bot.reply_to(
+                message,
+                f"❌ Failed to submit {service['name']} order. Please try again later.",
+                reply_markup=main_markup
+            )
+        else:
+            bot.reply_to(
+                message,
+                f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
+                reply_markup=main_markup
+            )
 #======================== End of TikTok Orders ========================#
 
 #======================== Send Orders for Instagram =====================#
@@ -1076,12 +1077,10 @@ def process_instagram_link(message, service, quantity, cost):
     
     link = message.text.strip()
     
-    # Basic Instagram link validation
     if not re.match(r'^https?://(www\.)?instagram\.com/', link):
         bot.reply_to(message, "❌ Invalid Instagram link format", reply_markup=instagram_services_markup)
         return
     
-    # Submit to SMM panel
     try:
         response = requests.post(
             SmmPanelApiUrl,
@@ -1095,14 +1094,11 @@ def process_instagram_link(message, service, quantity, cost):
             timeout=30
         )
         result = response.json()
-        print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
             
-            # Prepare complete order data
             order_data = {
                 'service': service['name'],
                 'service_type': 'instagram',
@@ -1115,12 +1111,14 @@ def process_instagram_link(message, service, quantity, cost):
                 'timestamp': time.time(),
                 'username': message.from_user.username or str(message.from_user.id)
             }
+            add_order(str(message.from_user.id), order_data)
             
-            # Add to order history
-            if not add_order(str(message.from_user.id), order_data):
-                raise Exception("Failed to record order in database")
+            # Update user stats
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            data['orders_count'] = data.get('orders_count', 0) + 1
+            updateUser(user_id, data)
             
-            # Send confirmation to user
             bot.reply_to(
                 message,
                 f"""✅ {service['name']} Order Submitted!
@@ -1134,8 +1132,6 @@ def process_instagram_link(message, service, quantity, cost):
                 disable_web_page_preview=True
             )
             
-            # Send notification to payment channel
-            print(f"Payment Channel: {payment_channel}")  # Debug print
             try:
                 bot.send_message(
                     payment_channel,
@@ -1152,7 +1148,7 @@ def process_instagram_link(message, service, quantity, cost):
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
-            
+                
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
             raise Exception(error_msg)
@@ -1165,12 +1161,18 @@ def process_instagram_link(message, service, quantity, cost):
         )
     except Exception as e:
         print(f"Error submitting {service['name']} order: {str(e)}")
-        bot.reply_to(
-            message,
-            f"❌ Failed to submit {service['name']} order. Please try again later.",
-            reply_markup=main_markup
-        )
-
+        if 'result' not in locals() or not result.get('order'):
+            bot.reply_to(
+                message,
+                f"❌ Failed to submit {service['name']} order. Please try again later.",
+                reply_markup=main_markup
+            )
+        else:
+            bot.reply_to(
+                message,
+                f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
+                reply_markup=main_markup
+            )
 #======================== End of Instagram Orders ===========================#
 
 #======================== Send Orders for Youtube =====================#
@@ -1284,12 +1286,10 @@ def process_youtube_link(message, service, quantity, cost):
     
     link = message.text.strip()
     
-    # Basic YouTube link validation
     if not re.match(r'^https?://(www\.)?youtube\.com/', link):
         bot.reply_to(message, "❌ Invalid YouTube link format", reply_markup=youtube_services_markup)
         return
     
-    # Submit to SMM panel
     try:
         response = requests.post(
             SmmPanelApiUrl,
@@ -1303,14 +1303,11 @@ def process_youtube_link(message, service, quantity, cost):
             timeout=30
         )
         result = response.json()
-        print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
             
-            # Prepare complete order data
             order_data = {
                 'service': service['name'],
                 'service_type': 'youtube',
@@ -1323,12 +1320,14 @@ def process_youtube_link(message, service, quantity, cost):
                 'timestamp': time.time(),
                 'username': message.from_user.username or str(message.from_user.id)
             }
+            add_order(str(message.from_user.id), order_data)
             
-            # Add to order history
-            if not add_order(str(message.from_user.id), order_data):
-                raise Exception("Failed to record order in database")
+            # Update user stats
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            data['orders_count'] = data.get('orders_count', 0) + 1
+            updateUser(user_id, data)
             
-            # Send confirmation to user
             bot.reply_to(
                 message,
                 f"""✅ {service['name']} Order Submitted!
@@ -1342,12 +1341,10 @@ def process_youtube_link(message, service, quantity, cost):
                 disable_web_page_preview=True
             )
             
-            # Send notification to payment channel
-            print(f"Payment Channel: {payment_channel}")  # Debug print
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New Youtube Order:
+                    f"""📢 New YouTube Order:
                     
 👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
 🆔 ID: {message.from_user.id}
@@ -1360,7 +1357,7 @@ def process_youtube_link(message, service, quantity, cost):
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
-            
+                
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
             raise Exception(error_msg)
@@ -1373,11 +1370,18 @@ def process_youtube_link(message, service, quantity, cost):
         )
     except Exception as e:
         print(f"Error submitting {service['name']} order: {str(e)}")
-        bot.reply_to(
-            message,
-            f"❌ Failed to submit {service['name']} order. Please try again later.",
-            reply_markup=main_markup
-        )
+        if 'result' not in locals() or not result.get('order'):
+            bot.reply_to(
+                message,
+                f"❌ Failed to submit {service['name']} order. Please try again later.",
+                reply_markup=main_markup
+            )
+        else:
+            bot.reply_to(
+                message,
+                f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
+                reply_markup=main_markup
+            )
 #======================== End of Youtube Orders =====================#
 
 #======================== Send Orders for Facebook =====================#
@@ -1500,12 +1504,10 @@ def process_facebook_link(message, service, quantity, cost):
     
     link = message.text.strip()
     
-    # Basic Facebook link validation
     if not re.match(r'^https?://(www\.)?facebook\.com/', link):
         bot.reply_to(message, "❌ Invalid Facebook link format", reply_markup=facebook_services_markup)
         return
     
-    # Submit to SMM panel
     try:
         response = requests.post(
             SmmPanelApiUrl,
@@ -1519,14 +1521,11 @@ def process_facebook_link(message, service, quantity, cost):
             timeout=30
         )
         result = response.json()
-        print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
             
-            # Prepare complete order data
             order_data = {
                 'service': service['name'],
                 'service_type': 'facebook',
@@ -1539,12 +1538,14 @@ def process_facebook_link(message, service, quantity, cost):
                 'timestamp': time.time(),
                 'username': message.from_user.username or str(message.from_user.id)
             }
+            add_order(str(message.from_user.id), order_data)
             
-            # Add to order history
-            if not add_order(str(message.from_user.id), order_data):
-                raise Exception("Failed to record order in database")
+            # Update user stats
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            data['orders_count'] = data.get('orders_count', 0) + 1
+            updateUser(user_id, data)
             
-            # Send confirmation to user
             bot.reply_to(
                 message,
                 f"""✅ {service['name']} Order Submitted!
@@ -1558,8 +1559,6 @@ def process_facebook_link(message, service, quantity, cost):
                 disable_web_page_preview=True
             )
             
-            # Send notification to payment channel
-            print(f"Payment Channel: {payment_channel}")  # Debug print
             try:
                 bot.send_message(
                     payment_channel,
@@ -1576,7 +1575,7 @@ def process_facebook_link(message, service, quantity, cost):
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
-            
+                
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
             raise Exception(error_msg)
@@ -1589,12 +1588,18 @@ def process_facebook_link(message, service, quantity, cost):
         )
     except Exception as e:
         print(f"Error submitting {service['name']} order: {str(e)}")
-        bot.reply_to(
-            message,
-            f"❌ Failed to submit {service['name']} order. Please try again later.",
-            reply_markup=main_markup
-        )
-        # Send notification to payment channel  
+        if 'result' not in locals() or not result.get('order'):
+            bot.reply_to(
+                message,
+                f"❌ Failed to submit {service['name']} order. Please try again later.",
+                reply_markup=main_markup
+            )
+        else:
+            bot.reply_to(
+                message,
+                f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
+                reply_markup=main_markup
+            )
 #======================== End of Facebook Orders =====================# 
 
 #======================== Send Orders for Whastapp =====================#
@@ -1699,12 +1704,10 @@ def process_whatsapp_link(message, service, quantity, cost):
     
     link = message.text.strip()
     
-    # Basic WhatsApp link validation
     if not re.match(r'^https?://(chat\.whatsapp\.com|wa\.me)/', link):
         bot.reply_to(message, "❌ Invalid WhatsApp link format", reply_markup=whatsapp_services_markup)
         return
     
-    # Submit to SMM panel
     try:
         response = requests.post(
             SmmPanelApiUrl,
@@ -1718,17 +1721,14 @@ def process_whatsapp_link(message, service, quantity, cost):
             timeout=30
         )
         result = response.json()
-        print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
             
-            # Prepare complete order data
             order_data = {
                 'service': service['name'],
-                'service_type': 'whastapp',
+                'service_type': 'whatsapp',
                 'service_id': service['service_id'],
                 'quantity': quantity,
                 'cost': cost,
@@ -1738,12 +1738,14 @@ def process_whatsapp_link(message, service, quantity, cost):
                 'timestamp': time.time(),
                 'username': message.from_user.username or str(message.from_user.id)
             }
+            add_order(str(message.from_user.id), order_data)
             
-            # Add to order history
-            if not add_order(str(message.from_user.id), order_data):
-                raise Exception("Failed to record order in database")
+            # Update user stats
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            data['orders_count'] = data.get('orders_count', 0) + 1
+            updateUser(user_id, data)
             
-            # Send confirmation to user
             bot.reply_to(
                 message,
                 f"""✅ {service['name']} Order Submitted!
@@ -1757,12 +1759,10 @@ def process_whatsapp_link(message, service, quantity, cost):
                 disable_web_page_preview=True
             )
             
-            # Send notification to payment channel
-            print(f"Payment Channel: {payment_channel}")  # Debug print
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New Whastapp Order:
+                    f"""📢 New WhatsApp Order:
                     
 👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
 🆔 ID: {message.from_user.id}
@@ -1775,7 +1775,7 @@ def process_whatsapp_link(message, service, quantity, cost):
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
-            
+                
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
             raise Exception(error_msg)
@@ -1788,12 +1788,18 @@ def process_whatsapp_link(message, service, quantity, cost):
         )
     except Exception as e:
         print(f"Error submitting {service['name']} order: {str(e)}")
-        bot.reply_to(
-            message,
-            f"❌ Failed to submit {service['name']} order. Please try again later.",
-            reply_markup=main_markup
-        )
-
+        if 'result' not in locals() or not result.get('order'):
+            bot.reply_to(
+                message,
+                f"❌ Failed to submit {service['name']} order. Please try again later.",
+                reply_markup=main_markup
+            )
+        else:
+            bot.reply_to(
+                message,
+                f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
+                reply_markup=main_markup
+            )
 #======================== End of Whastapp Orders =====================#
 
 #=================== The back button handler =========================================
