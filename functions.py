@@ -177,19 +177,20 @@ def addRefCount(user_id):
 def add_order(user_id, order_data):
     """Add a new order to user's history."""
     try:
-        user_id = str(user_id)
-        order_data['user_id'] = user_id
+        order_data['user_id'] = str(user_id)
         if 'timestamp' not in order_data:
             order_data['timestamp'] = time.time()
         if 'status' not in order_data:
             order_data['status'] = 'pending'
         
+        # Insert into orders collection
         result = orders_collection.insert_one(order_data)
         
-        # Also update the user's orders count
+        # Update user's order count (create field if doesn't exist)
         users_collection.update_one(
-            {"user_id": user_id},
-            {"$inc": {"orders_count": 1}}
+            {"user_id": str(user_id)},
+            {"$inc": {"orders_count": 1}},
+            upsert=True
         )
         
         return result.inserted_id is not None
@@ -222,10 +223,7 @@ def get_user_orders_stats(user_id):
     }
     
     try:
-        # First get total count
-        stats['total'] = orders_collection.count_documents({"user_id": str(user_id)})
-        
-        # Then get counts by status
+        # Get counts for each status
         pipeline = [
             {"$match": {"user_id": str(user_id)}},
             {"$group": {
@@ -240,7 +238,10 @@ def get_user_orders_stats(user_id):
             status = result["_id"].lower()
             if status in stats:
                 stats[status] = result["count"]
-                
+        
+        # Calculate total as sum of all statuses
+        stats['total'] = sum(stats.values())
+        
     except PyMongoError as e:
         logger.error(f"Error getting order stats for {user_id}: {e}")
     
@@ -349,12 +350,13 @@ def get_total_orders():
         return 0
 
 def get_total_deposits():
-    """Get total deposits made by admin"""
+    """Get total coins added by admin (not affected by spending)"""
     try:
+        # Track deposits separately in user document
         result = users_collection.aggregate([{
             "$group": {
                 "_id": None,
-                "total": {"$sum": "$balance"}
+                "total": {"$sum": "$total_deposits"}
             }
         }])
         return next(result, {"total": 0})["total"]
