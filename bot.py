@@ -379,7 +379,7 @@ def send_welcome(message):
         setReferredStatus(user_id)
 
     # Send welcome image with caption
-    welcome_image_url = "https://envs.sh/50r.jpg"  # Replace with your image URL
+    welcome_image_url = "https://t.me/smmserviceslogs/2"  # Replace with your image URL
     welcome_caption = f"""
 🎉 <b>Welcome {first_name} to View Booster Bot!</b> 🎉
 
