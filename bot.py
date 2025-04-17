@@ -649,7 +649,6 @@ def process_telegram_link(message, service, quantity, cost):
         bot.reply_to(message, "❌ Invalid Telegram link format", reply_markup=telegram_services_markup)
         return
     
-    
     # Submit to SMM panel
     try:
         response = requests.post(
@@ -686,8 +685,7 @@ def process_telegram_link(message, service, quantity, cost):
             }
             
             # Add to order history
-            if not add_order(str(message.from_user.id), order_data):
-                raise Exception("Failed to record order in database")
+            add_order(str(message.from_user.id), order_data)
             
             # Send confirmation to user
             bot.reply_to(
@@ -703,8 +701,15 @@ def process_telegram_link(message, service, quantity, cost):
                 disable_web_page_preview=True
             )
             
+            # Update orders count
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            if 'orders_count' not in data:
+                data['orders_count'] = 0
+            data['orders_count'] += 1
+            updateUser(user_id, data)
+            
             # Send notification to payment channel
-            print(f"Payment Channel: {payment_channel}")  # Debug print
             try:
                 bot.send_message(
                     payment_channel,
@@ -721,6 +726,7 @@ def process_telegram_link(message, service, quantity, cost):
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
+                # Don't fail the order if notification fails
             
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
@@ -734,11 +740,20 @@ def process_telegram_link(message, service, quantity, cost):
         )
     except Exception as e:
         print(f"Error submitting {service['name']} order: {str(e)}")
-        bot.reply_to(
-            message,
-            f"❌ Failed to submit {service['name']} order. Please try again later.",
-            reply_markup=main_markup
-        )
+        # Only show error if we're not sure the order was submitted
+        if 'result' not in locals() or not result.get('order'):
+            bot.reply_to(
+                message,
+                f"❌ Failed to submit {service['name']} order. Please try again later.",
+                reply_markup=main_markup
+            )
+        else:
+            # If we have an order ID, the order was likely submitted
+            bot.reply_to(
+                message,
+                f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
+                reply_markup=main_markup
+            )
 #========================= Telegram Orders End =========================#
 
 #========================= Order for Tiktok =========================#
