@@ -737,7 +737,7 @@ def process_telegram_link(message, service, quantity, cost):
             message,
             f"❌ Failed to submit {service['name']} order. Please try again later.",
             reply_markup=main_markup
-        ), quantity, cost):
+        ),
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
         return
