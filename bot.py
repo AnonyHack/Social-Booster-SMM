@@ -333,11 +333,12 @@ print(updateUser)
 def send_welcome(message):
     user_id = str(message.from_user.id)
     first_name = message.from_user.first_name
+    username = f"@{message.from_user.username}" if message.from_user.username else "No Username"
     ref_by = message.text.split()[1] if len(message.text.split()) > 1 and message.text.split()[1].isdigit() else None
 
-   # Check if the user has joined all required channels
+    # Check channel membership
     if not check_membership_and_prompt(user_id, message):
-        return  # Stop execution until the user joins
+        return
 
     # Referral system logic
     if ref_by and int(ref_by) != int(user_id) and track_exists(ref_by):
@@ -367,7 +368,6 @@ def send_welcome(message):
     # Welcome bonus logic
     userData = getData(user_id)
     if userData['welcome_bonus'] == 0:
-        bot.send_message(user_id, f"+{welcome_bonus} coins as welcome bonus.")
         addBalance(user_id, welcome_bonus)
         setWelcomeStaus(user_id)
 
@@ -378,15 +378,47 @@ def send_welcome(message):
         addBalance(data['ref_by'], ref_bonus)
         setReferredStatus(user_id)
 
-    # Send the main menu
-    bot.reply_to(
-        message,
-        """With view booster bot there's just a few steps to increase the views of your Telegram posts.
+    # Send welcome image with caption
+    welcome_image_url = "https://example.com/path/to/your/welcome-image.jpg"  # Replace with your image URL
+    welcome_caption = f"""
+🎉 <b>Welcome {first_name} to View Booster Bot!</b> 🎉
 
-👇🏻 To continue choose an item""",
-        reply_markup=main_markup
-    )
+🆔 <b>User ID:</b> <code>{user_id}</code>
+👤 <b>Username:</b> {username}
+💰 <b>Welcome Bonus:</b> +{welcome_bonus} coins
 
+With our bot, you can boost your Telegram posts with just a few simple steps!
+
+👇 <b>Choose an option below to get started:</b>
+"""
+
+    try:
+        # Send photo with caption
+        bot.send_photo(
+            chat_id=user_id,
+            photo=welcome_image_url,
+            caption=welcome_caption,
+            parse_mode='HTML',
+            reply_markup=main_markup
+        )
+        
+        # Send welcome bonus message separately if applicable
+        if userData['welcome_bonus'] == 0:
+            bot.send_message(
+                user_id,
+                f"🎁 <b>You received +{welcome_bonus} coins as welcome bonus!</b>",
+                parse_mode='HTML'
+            )
+            
+    except Exception as e:
+        print(f"Error sending welcome message: {e}")
+        # Fallback to text message if image fails
+        bot.send_message(
+            user_id,
+            welcome_caption,
+            parse_mode='HTML',
+            reply_markup=main_markup
+        )
 #====================== My Account =====================#
 @bot.message_handler(func=lambda message: message.text == "👤 My Account")
 def my_account(message):
@@ -2209,13 +2241,14 @@ def health():
 def run_bot():
     set_bot_commands()
     print("Bot is running...")
-  while True:
-    try:
-        bot.polling(none_stop=True)
-    except Exception as e:
-        print(f"Bot polling failed: {e}")
-        time.sleep(10)
-        send_startup_message(is_restart=True)
+    while True:
+        try:
+            bot.polling(none_stop=True)
+        except Exception as e:
+            print(f"Bot polling failed: {e}")
+            time.sleep(10)
+            send_startup_message(is_restart=True)
+
 # ==================== MAIN EXECUTION ==================== #
 if __name__ == '__main__':
     import threading
