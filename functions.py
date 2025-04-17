@@ -37,6 +37,9 @@ def insertUser(user_id, data):
     """Insert user data if user doesn't exist."""
     try:
         user_id = str(user_id)
+        # Ensure balance is stored as float, not string
+        if 'balance' in data:
+            data['balance'] = float(data['balance'])
         data['user_id'] = user_id
         result = users_collection.insert_one(data)
         return result.inserted_id is not None
@@ -48,6 +51,9 @@ def getData(user_id):
     """Retrieve all user data."""
     try:
         user_data = users_collection.find_one({"user_id": str(user_id)}, {'_id': 0})
+        if user_data and 'balance' in user_data:
+            # Ensure balance is returned as float
+            user_data['balance'] = float(user_data['balance'])
         return user_data or None
     except PyMongoError as e:
         logger.error(f"Error getting user data {user_id}: {e}")
@@ -71,13 +77,27 @@ def addBalance(user_id, amount):
     """Add balance to the user account."""
     try:
         user_id = str(user_id)
+        amount = float(amount)  # Ensure amount is float
+        
+        # First ensure the user exists and balance is numeric
+        user = users_collection.find_one({"user_id": user_id})
+        if not user:
+            return False
+            
+        # Convert existing balance to float if it's a string
+        if isinstance(user.get('balance'), str):
+            users_collection.update_one(
+                {"user_id": user_id},
+                {"$set": {"balance": float(user['balance'])}}
+            )
+        
+        # Now perform the increment
         result = users_collection.update_one(
             {"user_id": user_id},
-            {"$inc": {"balance": float(amount)}},
-            upsert=True
+            {"$inc": {"balance": amount}}
         )
         return result.modified_count > 0
-    except PyMongoError as e:
+    except (PyMongoError, ValueError) as e:
         logger.error(f"Error adding balance for {user_id}: {e}")
         return False
 
@@ -85,15 +105,29 @@ def cutBalance(user_id, amount):
     """Deduct balance from the user account."""
     try:
         user_id = str(user_id)
-        user = getData(user_id)
-        if user and float(user.get('balance', 0)) >= float(amount):
+        amount = float(amount)
+        
+        # First ensure the user exists and balance is numeric
+        user = users_collection.find_one({"user_id": user_id})
+        if not user:
+            return False
+            
+        # Convert existing balance to float if it's a string
+        if isinstance(user.get('balance'), str):
+            users_collection.update_one(
+                {"user_id": user_id},
+                {"$set": {"balance": float(user['balance'])}}
+            )
+        
+        # Check sufficient balance and perform deduction
+        if float(user.get('balance', 0)) >= amount:
             result = users_collection.update_one(
                 {"user_id": user_id},
-                {"$inc": {"balance": -float(amount)}}
+                {"$inc": {"balance": -amount}}
             )
             return result.modified_count > 0
         return False
-    except PyMongoError as e:
+    except (PyMongoError, ValueError) as e:
         logger.error(f"Error cutting balance for {user_id}: {e}")
         return False
 
