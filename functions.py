@@ -74,52 +74,37 @@ def updateUser(user_id, data):
         return False
 
 def addBalance(user_id, amount):
-    """Add balance to the user account."""
+    """Add balance to the user account and track deposits"""
     try:
         user_id = str(user_id)
-        amount = float(amount)  # Ensure amount is float
+        amount = float(amount)
         
-        # First ensure the user exists and balance is numeric
-        user = users_collection.find_one({"user_id": user_id})
-        if not user:
-            return False
-            
-        # Convert existing balance to float if it's a string
-        if isinstance(user.get('balance'), str):
-            users_collection.update_one(
-                {"user_id": user_id},
-                {"$set": {"balance": float(user['balance'])}}
-            )
-        
-        # Now perform the increment
+        # Update both balance and total_deposits
         result = users_collection.update_one(
             {"user_id": user_id},
-            {"$inc": {"balance": amount}}
+            {
+                "$inc": {
+                    "balance": amount,
+                    "total_deposits": amount  # Track deposits separately
+                }
+            },
+            upsert=True
         )
-        return result.modified_count > 0
+        return result.modified_count > 0 or result.upserted_id is not None
     except (PyMongoError, ValueError) as e:
         logger.error(f"Error adding balance for {user_id}: {e}")
         return False
 
 def cutBalance(user_id, amount):
-    """Deduct balance from the user account."""
+    """Deduct balance from the user account (doesn't affect total_deposits)"""
     try:
         user_id = str(user_id)
         amount = float(amount)
         
-        # First ensure the user exists and balance is numeric
         user = users_collection.find_one({"user_id": user_id})
         if not user:
             return False
             
-        # Convert existing balance to float if it's a string
-        if isinstance(user.get('balance'), str):
-            users_collection.update_one(
-                {"user_id": user_id},
-                {"$set": {"balance": float(user['balance'])}}
-            )
-        
-        # Check sufficient balance and perform deduction
         if float(user.get('balance', 0)) >= amount:
             result = users_collection.update_one(
                 {"user_id": user_id},
