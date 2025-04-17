@@ -1,202 +1,345 @@
-from pymongo import MongoClient
-from pymongo.errors import AutoReconnect
-import time
-import json
-import re
 import os
+import json
+import time
+from pymongo import MongoClient
+from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
+import logging
 
-# MongoDB connection setup
+# Load environment variables
 load_dotenv()
-client = MongoClient(os.getenv("MONGO_URI"))  # Load MongoDB connection string from .env file
-db = client["Cluster0"]  # Replace with your database name
-users_collection = db["users"]
-bans_collection = db["bans"]
+MONGO_URI = os.getenv("MONGODB_URI")
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize MongoDB connection
+try:
+    client = MongoClient(MONGO_URI)
+    db = client.get_database("view_booster_bot")
+    users_collection = db.users
+    orders_collection = db.orders
+    logger.info("Connected to MongoDB successfully")
+except PyMongoError as e:
+    logger.error(f"Failed to connect to MongoDB: {e}")
+    raise
 
 def isExists(user_id):
-    """Check if the user exists in the database."""
-    return users_collection.find_one({"user_id": user_id}) is not None
+    """Check if the user exists in database."""
+    try:
+        return users_collection.count_documents({"user_id": str(user_id)}) > 0
+    except PyMongoError as e:
+        logger.error(f"Error checking user existence {user_id}: {e}")
+        return False
 
 def insertUser(user_id, data):
-    """Insert user data if the user does not exist."""
-    if not isExists(user_id):
-        data["user_id"] = user_id
-        users_collection.insert_one(data)
-        return True
-    return False
+    """Insert user data if user doesn't exist."""
+    try:
+        user_id = str(user_id)
+        data['user_id'] = user_id
+        result = users_collection.insert_one(data)
+        return result.inserted_id is not None
+    except PyMongoError as e:
+        logger.error(f"Error inserting user {user_id}: {e}")
+        return False
 
 def getData(user_id):
     """Retrieve all user data."""
-    return users_collection.find_one({"user_id": user_id})
+    try:
+        user_data = users_collection.find_one({"user_id": str(user_id)}, {'_id': 0})
+        return user_data or None
+    except PyMongoError as e:
+        logger.error(f"Error getting user data {user_id}: {e}")
+        return None
 
 def updateUser(user_id, data):
     """Update user data in the database."""
-    result = users_collection.update_one({"user_id": user_id}, {"$set": data})
-    return result.modified_count > 0
-
-def addBalance(user_id, amount):
-    """Add balance to the user's account."""
-    result = users_collection.update_one(
-        {"user_id": user_id},
-        {"$inc": {"balance": amount, "total_deposits": amount}, "$set": {"last_activity": time.time()}}
-    )
-    return result.modified_count > 0
-
-def cutBalance(user_id, amount):
-    """Deduct balance from the user's account."""
-    user = getData(user_id)
-    if user and user.get("balance", 0) >= amount:
+    try:
+        user_id = str(user_id)
         result = users_collection.update_one(
             {"user_id": user_id},
-            {"$inc": {"balance": -amount}}
+            {"$set": data},
+            upsert=True
+        )
+        return result.modified_count > 0 or result.upserted_id is not None
+    except PyMongoError as e:
+        logger.error(f"Error updating user {user_id}: {e}")
+        return False
+
+def addBalance(user_id, amount):
+    """Add balance to the user account."""
+    try:
+        user_id = str(user_id)
+        result = users_collection.update_one(
+            {"user_id": user_id},
+            {"$inc": {"balance": float(amount)}},
+            upsert=True
         )
         return result.modified_count > 0
-    return False
+    except PyMongoError as e:
+        logger.error(f"Error adding balance for {user_id}: {e}")
+        return False
 
-def ban_user(user_id):
-    """Ban a user by adding a record to the bans collection."""
-    bans_collection.insert_one({"user_id": user_id, "banned_at": time.time()})
-
-def unban_user(user_id):
-    """Unban a user by removing the record from the bans collection."""
-    bans_collection.delete_one({"user_id": user_id})
-
-def is_banned(user_id):
-    """Check if a user is banned."""
-    return bans_collection.find_one({"user_id": user_id}) is not None
-
-def get_all_users():
-    """Get a list of all user IDs."""
-    return [user["user_id"] for user in users_collection.find({}, {"user_id": 1})]
-
-def get_user_count():
-    """Get the total number of users."""
-    return users_collection.count_documents({})
-
-def get_banned_users():
-    """Get a list of all banned user IDs."""
-    return [ban["user_id"] for ban in bans_collection.find({}, {"user_id": 1})]
-
-def get_user_orders_stats(user_id):
-    """Get order statistics for a specific user."""
-    user = getData(user_id)
-    if not user or "orders" not in user:
-        return {"total": 0, "completed": 0, "pending": 0, "failed": 0}
-    
-    stats = {"total": len(user["orders"]), "completed": 0, "pending": 0, "failed": 0}
-    for order in user["orders"]:
-        if order["status"] == "completed":
-            stats["completed"] += 1
-        elif order["status"] == "pending":
-            stats["pending"] += 1
-        elif order["status"] == "failed":
-            stats["failed"] += 1
-    return stats
-
-def add_order(user_id, order_data):
-    """Add a new order to the user's history."""
-    result = users_collection.update_one(
-        {"user_id": user_id},
-        {"$push": {"orders": order_data}}
-    )
-    return result.modified_count > 0
-
-def get_top_users(limit=10):
-    """Get top users by order count."""
-    users = users_collection.find({"orders_count": {"$exists": True}}, {"user_id": 1, "orders_count": 1})
-    sorted_users = sorted(users, key=lambda x: x["orders_count"], reverse=True)
-    return sorted_users[:limit]
-
-def get_active_users(days=7):
-    """Get the count of users active in the last X days."""
-    cutoff_time = time.time() - (days * 24 * 60 * 60)
-    return users_collection.count_documents({"last_activity": {"$gte": cutoff_time}})
-
-def get_total_orders():
-    """Get the total number of orders processed."""
-    return sum(user.get("orders_count", 0) for user in users_collection.find({}, {"orders_count": 1}))
-
-def get_total_deposits():
-    """Get the total deposits made by all users."""
-    return sum(user.get("total_deposits", 0) for user in users_collection.find({}, {"total_deposits": 1}))
-
-def get_top_referrer():
-    """Get the user with the most referrals."""
-    top_referrer = users_collection.find_one(sort=[("total_refs", -1)], projection={"user_id": 1, "username": 1, "total_refs": 1})
-    if top_referrer:
-        return {"user_id": top_referrer["user_id"], "username": top_referrer.get("username"), "count": top_referrer["total_refs"]}
-    return {"user_id": None, "username": None, "count": 0}
-
-def is_valid_tiktok_username(username):
-    """Check if the TikTok username is valid"""
-    pattern = r'^[a-zA-Z0-9._]{2,24}$'  # Adjusted regex for TikTok usernames
-    return re.match(pattern, username) is not None
-
-def is_valid_tiktok_link(link):
-    """Check if the TikTok link is in any valid format"""
-    patterns = [
-        r'^https?://(www\.|m\.)?tiktok\.com/@[\w\.-]+/video/\d+',  # Standard video links
-        r'^https?://vm\.tiktok\.com/[\w]+/?',  # vm.tiktok.com short links
-        r'^https?://(www\.)?tiktok\.com/t/[\w]+/?',  # t/ short links
-        r'^https?://(www\.)?tiktok\.com/[\w]+/?',  # Other short links
-        r'^https?://(www\.)?tiktok\.com/.+/photo/\d+'  # Photo posts
-    ]
-    link = link.strip().split('?')[0]  # Remove URL parameters
-    return any(re.match(pattern, link) for pattern in patterns)
-
-def getData(user_id):
+def cutBalance(user_id, amount):
+    """Deduct balance from the user account."""
     try:
-        return users_collection.find_one({"user_id": user_id})
-    except AutoReconnect:
-        print("Reconnecting to MongoDB...")
-        time.sleep(2)
-        return getData(user_id)  # Retry
-    
-def addRefCount(user_id):
-    """Increment the referral count for the user."""
-    if isExists(user_id):
-        file_path = os.path.join("Account", f'{user_id}.json')
-        with open(file_path, 'r+') as file:
-            data = json.load(file)
-            # Increment the total_refs count
-            data['total_refs'] = data.get('total_refs', 0) + 1  # Default to 0 if not found
-            file.seek(0)
-            json.dump(data, file, indent=4)
-            file.truncate()
-        return True
-    return False
-
-def setWelcomeStaus(user_id):
-    """Set the referral information for the user."""
-    if isExists(user_id):
-
-        file_path = os.path.join("Account", f'{user_id}.json')
-        with open(file_path, 'r+') as file:
-            data = json.load(file)
-            data['welcome_bonus'] = 1
-            file.seek(0)
-            json.dump(data, file, indent=4)
-            file.truncate()
-        return True
-    return False
-
-def setReferredStatus(user_id):
-    """Set the referral information for the user."""
-    if isExists(user_id):
-
-        file_path = os.path.join("Account", f'{user_id}.json')
-        with open(file_path, 'r+') as file:
-            data = json.load(file)
-            data['referred'] = 1
-            file.seek(0)
-            json.dump(data, file, indent=4)
-            file.truncate()
-        return True
-    return False
+        user_id = str(user_id)
+        user = getData(user_id)
+        if user and float(user.get('balance', 0)) >= float(amount):
+            result = users_collection.update_one(
+                {"user_id": user_id},
+                {"$inc": {"balance": -float(amount)}}
+            )
+            return result.modified_count > 0
+        return False
+    except PyMongoError as e:
+        logger.error(f"Error cutting balance for {user_id}: {e}")
+        return False
 
 def track_exists(user_id):
     """Check if the referral user exists."""
     return isExists(user_id)
 
-print("functions.py loaded with MongoDB integration.")
+def setWelcomeStaus(user_id):
+    """Set the welcome bonus status for the user."""
+    try:
+        user_id = str(user_id)
+        result = users_collection.update_one(
+            {"user_id": user_id},
+            {"$set": {"welcome_bonus": 1}}
+        )
+        return result.modified_count > 0
+    except PyMongoError as e:
+        logger.error(f"Error setting welcome status for {user_id}: {e}")
+        return False
 
+def setReferredStatus(user_id):
+    """Set the referral status for the user."""
+    try:
+        user_id = str(user_id)
+        result = users_collection.update_one(
+            {"user_id": user_id},
+            {"$set": {"referred": 1}}
+        )
+        return result.modified_count > 0
+    except PyMongoError as e:
+        logger.error(f"Error setting referred status for {user_id}: {e}")
+        return False
+
+def addRefCount(user_id):
+    """Increment the referral count for the user."""
+    try:
+        user_id = str(user_id)
+        result = users_collection.update_one(
+            {"user_id": user_id},
+            {"$inc": {"total_refs": 1}}
+        )
+        return result.modified_count > 0
+    except PyMongoError as e:
+        logger.error(f"Error adding referral count for {user_id}: {e}")
+        return False
+
+def add_order(user_id, order_data):
+    """Add a new order to user's history."""
+    try:
+        user_id = str(user_id)
+        order_data['user_id'] = user_id
+        if 'timestamp' not in order_data:
+            order_data['timestamp'] = time.time()
+        if 'status' not in order_data:
+            order_data['status'] = 'pending'
+        
+        result = orders_collection.insert_one(order_data)
+        
+        # Also update the user's orders count
+        users_collection.update_one(
+            {"user_id": user_id},
+            {"$inc": {"orders_count": 1}}
+        )
+        
+        return result.inserted_id is not None
+    except PyMongoError as e:
+        logger.error(f"Error adding order for {user_id}: {e}")
+        return False
+
+def update_order_status(user_id, order_id, new_status):
+    """Update status of a specific order."""
+    try:
+        result = orders_collection.update_one(
+            {"user_id": str(user_id), "order_id": order_id},
+            {"$set": {
+                "status": new_status,
+                "status_update_time": time.time()
+            }}
+        )
+        return result.modified_count > 0
+    except PyMongoError as e:
+        logger.error(f"Error updating order status {order_id}: {e}")
+        return False
+
+def get_user_orders_stats(user_id):
+    """Get order statistics for a specific user."""
+    stats = {
+        'total': 0,
+        'completed': 0,
+        'pending': 0,
+        'failed': 0
+    }
+    
+    try:
+        pipeline = [
+            {"$match": {"user_id": str(user_id)}},
+            {"$group": {
+                "_id": "$status",
+                "count": {"$sum": 1}
+            }}
+        ]
+        
+        results = list(orders_collection.aggregate(pipeline))
+        
+        for result in results:
+            status = result["_id"].lower()
+            if status in stats:
+                stats[status] = result["count"]
+            stats["total"] += result["count"]
+            
+    except PyMongoError as e:
+        logger.error(f"Error getting order stats for {user_id}: {e}")
+    
+    return stats
+
+# Admin functions
+def get_all_users():
+    """Get list of all user IDs"""
+    try:
+        return [user['user_id'] for user in users_collection.find({}, {'user_id': 1, '_id': 0})]
+    except PyMongoError as e:
+        logger.error(f"Error getting all users: {e}")
+        return []
+
+def get_user_count():
+    """Get total number of users"""
+    try:
+        return users_collection.count_documents({})
+    except PyMongoError as e:
+        logger.error(f"Error getting user count: {e}")
+        return 0
+
+def ban_user(user_id):
+    """Ban a user by setting banned flag"""
+    try:
+        user_id = str(user_id)
+        result = users_collection.update_one(
+            {"user_id": user_id},
+            {"$set": {"banned": True}},
+            upsert=True
+        )
+        return result.modified_count > 0 or result.upserted_id is not None
+    except PyMongoError as e:
+        logger.error(f"Error banning user {user_id}: {e}")
+        return False
+
+def unban_user(user_id):
+    """Unban a user by removing banned flag"""
+    try:
+        user_id = str(user_id)
+        result = users_collection.update_one(
+            {"user_id": user_id},
+            {"$set": {"banned": False}}
+        )
+        return result.modified_count > 0
+    except PyMongoError as e:
+        logger.error(f"Error unbanning user {user_id}: {e}")
+        return False
+
+def is_banned(user_id):
+    """Check if user is banned"""
+    try:
+        user = users_collection.find_one(
+            {"user_id": str(user_id)},
+            {"banned": 1}
+        )
+        return user and user.get("banned", False)
+    except PyMongoError as e:
+        logger.error(f"Error checking ban status for {user_id}: {e}")
+        return False
+
+def get_banned_users():
+    """Get list of all banned user IDs"""
+    try:
+        return [user['user_id'] for user in users_collection.find(
+            {"banned": True},
+            {'user_id': 1, '_id': 0}
+        )]
+    except PyMongoError as e:
+        logger.error(f"Error getting banned users: {e}")
+        return []
+
+def get_top_users(limit=10):
+    """Get top users by order count"""
+    try:
+        pipeline = [
+            {"$group": {
+                "_id": "$user_id",
+                "count": {"$sum": 1}
+            }},
+            {"$sort": {"count": -1}},
+            {"$limit": limit}
+        ]
+        return [(str(item["_id"]), item["count"]) for item in orders_collection.aggregate(pipeline)]
+    except PyMongoError as e:
+        logger.error(f"Error getting top users: {e}")
+        return []
+
+def get_active_users(days=7):
+    """Get count of users active in last X days"""
+    try:
+        cutoff = time.time() - (days * 24 * 60 * 60)
+        return users_collection.count_documents({
+            "last_activity": {"$gte": cutoff}
+        })
+    except PyMongoError as e:
+        logger.error(f"Error getting active users: {e}")
+        return 0
+
+def get_total_orders():
+    """Get total orders processed"""
+    try:
+        return orders_collection.count_documents({})
+    except PyMongoError as e:
+        logger.error(f"Error getting total orders: {e}")
+        return 0
+
+def get_total_deposits():
+    """Get total deposits made by admin"""
+    try:
+        result = users_collection.aggregate([
+            {"$group": {
+                "_id": None,
+                "total": {"$sum": "$total_deposits"}
+            }}
+        ])
+        return next(result, {"total": 0})["total"]
+    except PyMongoError as e:
+        logger.error(f"Error getting total deposits: {e}")
+        return 0
+
+def get_top_referrer():
+    """Get user with most referrals"""
+    try:
+        result = users_collection.find_one(
+            {},
+            {"user_id": 1, "username": 1, "total_refs": 1},
+            sort=[("total_refs", -1)]
+        )
+        return {
+            'user_id': result.get('user_id'),
+            'username': result.get('username'),
+            'count': result.get('total_refs', 0)
+        } if result else {'user_id': None, 'username': None, 'count': 0}
+    except PyMongoError as e:
+        logger.error(f"Error getting top referrer: {e}")
+        return {'user_id': None, 'username': None, 'count': 0}
+
+print("functions.py loaded with MongoDB support")
