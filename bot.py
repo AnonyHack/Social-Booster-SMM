@@ -637,7 +637,7 @@ def process_telegram_quantity(message, service):
     except ValueError:
         bot.reply_to(message, "❌ Please enter a valid number", reply_markup=telegram_services_markup)
 
-def process_telegram_link(message, servicedef process_telegram_link(message, service, quantity, cost):
+def process_telegram_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
         return
