@@ -423,8 +423,6 @@ With our bot, you can boost your Telegram posts with just a few simple steps!
 @bot.message_handler(func=lambda message: message.text == "👤 My Account")
 def my_account(message):
     user_id = str(message.chat.id)
-    bot_username = bot.get_me().username
-    referral_link = f"https://t.me/{bot_username}?start={user_id}"
     data = getData(user_id)
     
     if not data:
@@ -432,22 +430,52 @@ def my_account(message):
         return
     
     # Update last activity and username
-    data = getData(user_id)
     data['last_activity'] = time.time()
     data['username'] = message.from_user.username
     updateUser(user_id, data)
-        
-    total_refs = data['total_refs']
-    balance = data['balance']
-    msg = f"""<b><u>My Account</u></b>
+    
+    # Get current time and date
+    from datetime import datetime
+    now = datetime.now()
+    current_time = now.strftime("%I:%M %p")
+    current_date = now.strftime("%Y-%m-%d")
+    
+    # Get user profile photos
+    photos = bot.get_user_profile_photos(message.from_user.id, limit=1)
+    
+    # Format the message
+    caption = f"""
+<b><u>My Account</u></b>
 
-🆔 User id: {user_id}
-👤 Username: @{message.chat.username}
-🗣 Invited users: {total_refs}
-🔗 Referral link: {referral_link}
+🆔 User id: <code>{user_id}</code>
+👤 Username: @{message.from_user.username if message.from_user.username else "N/A"}
+🗣 Invited users: {data.get('total_refs', 0)}
+⏰ Time: {current_time}
+📅 Date: {current_date}
 
-👁‍🗨 Balance: <code>{balance}</code> Views"""
-    bot.reply_to(message, msg, parse_mode='html')
+👁‍🗨 Balance: <code>{data['balance']}</code> Views
+"""
+    
+    if photos.photos:
+        # User has profile photo - get the largest available size
+        photo_file_id = photos.photos[0][-1].file_id
+        try:
+            bot.send_photo(
+                chat_id=user_id,
+                photo=photo_file_id,
+                caption=caption,
+                parse_mode='HTML'
+            )
+            return
+        except Exception as e:
+            print(f"Error sending profile photo: {e}")
+    
+    # Fallback if no profile photo or error
+    bot.send_message(
+        chat_id=user_id,
+        text=caption,
+        parse_mode='HTML'
+    )
 
 @bot.message_handler(func=lambda message: message.text == "🗣 Invite Friends")
 def invite_friends(message):
@@ -491,7 +519,7 @@ Estimating views speed is difficult because the speed can vary depending on the 
 <b><u>•Is it possible to transfer balance to other users?</u></b>
 Yes, if your balance is more than 10k and you want to transfer all of them, you can send a request to support.
 
-🆘 In case you have any problem, contact @KsCoder"""
+🆘 In case you have any problem, contact @SocialBoosterAdmin"""
 
     bot.reply_to(message, msg, parse_mode="html")
 
@@ -510,27 +538,22 @@ def pricing_command(message):
 ➎ 📦 1700K views for 50$ (0.03$ per K)
 ➏ 📦 5000K views for 100$ (0.02$ per K) </b>
 
-💰 Pay with Bitcoin, USDT, BSC, BUSD,  ... 👉🏻 @KsCoder
+💰 Pay with Bitcoin, USDT, BSC, BUSD,  ... 👉🏻 @SocialBoosterAdmin
 
-💳️ Pay with Paypal, Paytm, WebMoney, Perfect Money, Payeer ... 👉🏻 @KsCoder
-
-<b><u>🎁 Bonus:</u></b>
-Cryptocurrency: 10%
-Payeer and Perfect Money: 5%
-Other methods: 0%
+💳️ Pay with Paypal, 🇺🇬 Mobile Money, WebMoney, ... 👉🏻 @SocialBoosterAdmin
 
 <b>🆔 Your id:</b> <code>{user_id}</code>
 """
 
     markup = InlineKeyboardMarkup()
-    button1 = InlineKeyboardButton("💲 PayPal", url="https://t.me/KsCoder")
-    button2 = InlineKeyboardButton("💳 Perfect Money",
-                                   url="https://t.me/KsCoder")
-    button6 = InlineKeyboardButton("💳 Webmoney", url="https://t.me/KsCoder")
+    button1 = InlineKeyboardButton("💲 PayPal", url="https://t.me/SocialBoosterAdmin")
+    button2 = InlineKeyboardButton("💳 Mobile Money",
+                                   url="https://t.me/SocialBoosterAdmin")
+    button6 = InlineKeyboardButton("💳 Webmoney", url="https://t.me/SocialBoosterAdmin")
     button3 = InlineKeyboardButton("💎 Bitcoin, Litecoin, USDT...",
-                                   url="https://t.me/KsCoder")
-    button4 = InlineKeyboardButton("💸 Paytm", url="https://t.me/KsCoder")
-    button5 = InlineKeyboardButton("💰 Paytm", url="https://t.me/KsCoder")
+                                   url="https://t.me/SocialBoosterAdmin")
+    button4 = InlineKeyboardButton("💸 Paytm", url="https://t.me/SocialBoosterAdmin")
+    button5 = InlineKeyboardButton("💰 Paytm", url="https://t.me/SocialBoosterAdmin")
 
     markup.add(button1)
     markup.add(button2, button6)
