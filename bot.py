@@ -2158,21 +2158,43 @@ print(f"Files in Account: {os.listdir('Account')}")
 print(f"Can write to Account: {os.access('Account', os.W_OK)}")
 
 #======================== Set Bot Commands =====================#
-# Create a Flask app
+# ==================== FLASK INTEGRATION ==================== #
+
+# Create minimal Flask app
 web_app = Flask(__name__)
 
-@web_app.route("/")
+@web_app.route('/')
 def home():
-    return "Bot is running!"
+    return "Telegram Bot is running!", 200
 
-# Start the bot
-print("✅ Bot is running...")
-app.start()
+@web_app.route('/health')
+def health():
+    return "OK", 200
 
-# Run the web server
-if __name__ == "__main__":
-    web_app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
+# ==================== BOT POLLING ==================== #
+def run_bot():
+    set_bot_commands()
+    print("Bot is running...")
+    while True:
+        try:
+            bot.polling(none_stop=True)
+        except Exception as e:
+            print(f"Bot polling failed: {e}")
+            time.sleep(10)
 
-# Keep the process alive
-while True:
-    time.sleep(1)
+# ==================== MAIN EXECUTION ==================== #
+if __name__ == '__main__':
+    import threading
+    
+    # Start bot in background thread
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.daemon = True
+    bot_thread.start()
+    
+    # Start Flask web server in main thread
+    web_app.run(
+        host='0.0.0.0',
+        port=int(os.getenv('PORT', '10000')),
+        debug=False,
+        use_reloader=False
+    )
