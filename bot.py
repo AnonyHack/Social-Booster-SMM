@@ -637,7 +637,7 @@ def process_telegram_quantity(message, service):
     except ValueError:
         bot.reply_to(message, "❌ Please enter a valid number", reply_markup=telegram_services_markup)
 
-def process_telegram_link(message, service, quantity, cost):
+def process_telegram_link(message, servicedef process_telegram_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
         return
@@ -649,7 +649,7 @@ def process_telegram_link(message, service, quantity, cost):
         bot.reply_to(message, "❌ Invalid Telegram link format", reply_markup=telegram_services_markup)
         return
     
-    # Submit to SMM panel (similar to your original view_link function)
+    # Submit to SMM panel
     try:
         response = requests.post(
             SmmPanelApiUrl,
@@ -663,11 +663,30 @@ def process_telegram_link(message, service, quantity, cost):
             timeout=30
         )
         result = response.json()
+        print(f"SMM Panel Response: {result}")  # Debug print
         
-        if result and result.get('order'):  # More flexible check
-            # Deduct balance
+        if result and result.get('order'):
+            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
+            
+            # Prepare complete order data
+            order_data = {
+                'service': service['name'],
+                'service_type': 'telegram',
+                'service_id': service['service_id'],
+                'quantity': quantity,
+                'cost': cost,
+                'link': link,
+                'order_id': str(result['order']),
+                'status': 'pending',
+                'timestamp': time.time(),
+                'username': message.from_user.username or str(message.from_user.id)
+            }
+            
+            # Add to order history
+            if not add_order(str(message.from_user.id), order_data):
+                raise Exception("Failed to record order in database")
             
             # Send confirmation to user
             bot.reply_to(
@@ -683,13 +702,14 @@ def process_telegram_link(message, service, quantity, cost):
                 disable_web_page_preview=True
             )
             
-            # Send notification to channel
+            # Send notification to payment channel
+            print(f"Payment Channel: {payment_channel}")  # Debug print
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New {service['name']} Order:
+                    f"""📢 New Telegram Order:
                     
-👤 User: {message.from_user.first_name} (@{message.from_user.username})
+👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
 🆔 ID: {message.from_user.id}
 📦 Service: {service['name']}
 🔢 Quantity: {quantity}
@@ -700,19 +720,106 @@ def process_telegram_link(message, service, quantity, cost):
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
-                # Still continue with the order
             
-            # Add to order history
+        else:
+            error_msg = result.get('error', 'Unknown error from SMM panel')
+            raise Exception(error_msg)
+            
+    except requests.Timeout:
+        bot.reply_to(
+            message,
+            "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
+            reply_markup=main_markup
+        )
+    except Exception as e:
+        print(f"Error submitting {service['name']} order: {str(e)}")
+        bot.reply_to(
+            message,
+            f"❌ Failed to submit {service['name']} order. Please try again later.",
+            reply_markup=main_markup
+        ), quantity, cost):
+    if message.text == "✘ Cancel":
+        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        return
+    
+    link = message.text.strip()
+    
+    # Validate link format (basic check)
+    if not re.match(r'^https?://t\.me/', link):
+        bot.reply_to(message, "❌ Invalid Telegram link format", reply_markup=telegram_services_markup)
+        return
+    
+    # Submit to SMM panel
+    try:
+        response = requests.post(
+            SmmPanelApiUrl,
+            data={
+                'key': SmmPanelApi,
+                'action': 'add',
+                'service': service['service_id'],
+                'link': link,
+                'quantity': quantity
+            },
+            timeout=30
+        )
+        result = response.json()
+        print(f"SMM Panel Response: {result}")  # Debug print
+        
+        if result and result.get('order'):
+            # Deduct balance (using cutBalance which doesn't affect total deposits)
+            if not cutBalance(str(message.from_user.id), cost):
+                raise Exception("Failed to deduct balance")
+            
+            # Prepare complete order data
             order_data = {
                 'service': service['name'],
+                'service_type': 'telegram',
+                'service_id': service['service_id'],
                 'quantity': quantity,
                 'cost': cost,
                 'link': link,
                 'order_id': str(result['order']),
                 'status': 'pending',
-                'timestamp': time.time()
+                'timestamp': time.time(),
+                'username': message.from_user.username or str(message.from_user.id)
             }
-            add_order(str(message.from_user.id), order_data)
+            
+            # Add to order history
+            if not add_order(str(message.from_user.id), order_data):
+                raise Exception("Failed to record order in database")
+            
+            # Send confirmation to user
+            bot.reply_to(
+                message,
+                f"""✅ {service['name']} Order Submitted!
+                
+📦 Service: {service['name']}
+🔢 Quantity: {quantity}
+💰 Cost: {cost} coins
+📎 Link: {link}
+🆔 Order ID: {result['order']}""",
+                reply_markup=main_markup,
+                disable_web_page_preview=True
+            )
+            
+            # Send notification to payment channel
+            print(f"Payment Channel: {payment_channel}")  # Debug print
+            try:
+                bot.send_message(
+                    payment_channel,
+                    f"""📢 New Telegram Order:
+                    
+👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
+🆔 ID: {message.from_user.id}
+📦 Service: {service['name']}
+🔢 Quantity: {quantity}
+💰 Cost: {cost} coins
+📎 Link: {link}
+🆔 Order ID: {result['order']}""",
+                    disable_web_page_preview=True
+                )
+            except Exception as e:
+                print(f"Failed to send to payment channel: {e}")
             
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
@@ -731,7 +838,6 @@ def process_telegram_link(message, service, quantity, cost):
             f"❌ Failed to submit {service['name']} order. Please try again later.",
             reply_markup=main_markup
         )
-
 #========================= Telegram Orders End =========================#
 
 #========================= Order for Tiktok =========================#
@@ -869,9 +975,27 @@ def process_tiktok_link(message, service, quantity, cost):
         print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance
+            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
+            
+            # Prepare complete order data
+            order_data = {
+                'service': service['name'],
+                'service_type': 'tiktok',
+                'service_id': service['service_id'],
+                'quantity': quantity,
+                'cost': cost,
+                'link': link,
+                'order_id': str(result['order']),
+                'status': 'pending',
+                'timestamp': time.time(),
+                'username': message.from_user.username or str(message.from_user.id)
+            }
+            
+            # Add to order history
+            if not add_order(str(message.from_user.id), order_data):
+                raise Exception("Failed to record order in database")
             
             # Send confirmation to user
             bot.reply_to(
@@ -892,11 +1016,11 @@ def process_tiktok_link(message, service, quantity, cost):
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New TikTok Order:
+                    f"""📢 New Tiktok Order:
                     
-📦 Service: {service['name']}
-👤 User: {message.from_user.first_name} (@{message.from_user.username})
+👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
 🆔 ID: {message.from_user.id}
+📦 Service: {service['name']}
 🔢 Quantity: {quantity}
 💰 Cost: {cost} coins
 📎 Link: {link}
@@ -905,18 +1029,6 @@ def process_tiktok_link(message, service, quantity, cost):
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
-            
-            # Add to order history
-            order_data = {
-                'service': service['name'],
-                'quantity': quantity,
-                'cost': cost,
-                'link': link,
-                'order_id': str(result['order']),
-                'status': 'pending',
-                'timestamp': time.time()
-            }
-            add_order(str(message.from_user.id), order_data)
             
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
@@ -929,10 +1041,10 @@ def process_tiktok_link(message, service, quantity, cost):
             reply_markup=main_markup
         )
     except Exception as e:
-        print(f"Error submitting TikTok order: {str(e)}")
+        print(f"Error submitting {service['name']} order: {str(e)}")
         bot.reply_to(
             message,
-            f"❌ Failed to submit {service['name']} order. Error: {str(e)}",
+            f"❌ Failed to submit {service['name']} order. Please try again later.",
             reply_markup=main_markup
         )
 #======================== End of TikTok Orders ========================#
@@ -1070,9 +1182,27 @@ def process_instagram_link(message, service, quantity, cost):
         print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance
+            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
+            
+            # Prepare complete order data
+            order_data = {
+                'service': service['name'],
+                'service_type': 'instagram',
+                'service_id': service['service_id'],
+                'quantity': quantity,
+                'cost': cost,
+                'link': link,
+                'order_id': str(result['order']),
+                'status': 'pending',
+                'timestamp': time.time(),
+                'username': message.from_user.username or str(message.from_user.id)
+            }
+            
+            # Add to order history
+            if not add_order(str(message.from_user.id), order_data):
+                raise Exception("Failed to record order in database")
             
             # Send confirmation to user
             bot.reply_to(
@@ -1095,9 +1225,9 @@ def process_instagram_link(message, service, quantity, cost):
                     payment_channel,
                     f"""📢 New Instagram Order:
                     
-📦 Service: {service['name']}
-👤 User: {message.from_user.first_name} (@{message.from_user.username})
+👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
 🆔 ID: {message.from_user.id}
+📦 Service: {service['name']}
 🔢 Quantity: {quantity}
 💰 Cost: {cost} coins
 📎 Link: {link}
@@ -1107,27 +1237,23 @@ def process_instagram_link(message, service, quantity, cost):
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
             
-            # Add to order history
-            order_data = {
-                'service': service['name'],
-                'quantity': quantity,
-                'cost': cost,
-                'link': link,
-                'order_id': str(result['order']),
-                'status': 'pending',
-                'timestamp': time.time()
-            }
-            add_order(str(message.from_user.id), order_data)
-            
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
             raise Exception(error_msg)
             
     except requests.Timeout:
-        bot.reply_to(message, "⚠️ Order processing is taking longer than expected.", reply_markup=main_markup)
+        bot.reply_to(
+            message,
+            "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
+            reply_markup=main_markup
+        )
     except Exception as e:
-        print(f"Error submitting Instagram order: {str(e)}")
-        bot.reply_to(message, f"❌ Failed to submit order. Error: {str(e)}", reply_markup=main_markup)
+        print(f"Error submitting {service['name']} order: {str(e)}")
+        bot.reply_to(
+            message,
+            f"❌ Failed to submit {service['name']} order. Please try again later.",
+            reply_markup=main_markup
+        )
 
 #======================== End of Instagram Orders ===========================#
 
@@ -1264,9 +1390,27 @@ def process_youtube_link(message, service, quantity, cost):
         print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance
+            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
+            
+            # Prepare complete order data
+            order_data = {
+                'service': service['name'],
+                'service_type': 'youtube',
+                'service_id': service['service_id'],
+                'quantity': quantity,
+                'cost': cost,
+                'link': link,
+                'order_id': str(result['order']),
+                'status': 'pending',
+                'timestamp': time.time(),
+                'username': message.from_user.username or str(message.from_user.id)
+            }
+            
+            # Add to order history
+            if not add_order(str(message.from_user.id), order_data):
+                raise Exception("Failed to record order in database")
             
             # Send confirmation to user
             bot.reply_to(
@@ -1287,11 +1431,11 @@ def process_youtube_link(message, service, quantity, cost):
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New YouTube Order:
+                    f"""📢 New Youtube Order:
                     
-📦 Service: {service['name']}
-👤 User: {message.from_user.first_name} (@{message.from_user.username})
+👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
 🆔 ID: {message.from_user.id}
+📦 Service: {service['name']}
 🔢 Quantity: {quantity}
 💰 Cost: {cost} coins
 📎 Link: {link}
@@ -1301,28 +1445,23 @@ def process_youtube_link(message, service, quantity, cost):
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
             
-            # Add to order history
-            order_data = {
-                'service': service['name'],
-                'quantity': quantity,
-                'cost': cost,
-                'link': link,
-                'order_id': str(result['order']),
-                'status': 'pending',
-                'timestamp': time.time()
-            }
-            add_order(str(message.from_user.id), order_data)
-            
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
             raise Exception(error_msg)
             
     except requests.Timeout:
-        bot.reply_to(message, "⚠️ Order processing is taking longer than expected.", reply_markup=main_markup)
+        bot.reply_to(
+            message,
+            "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
+            reply_markup=main_markup
+        )
     except Exception as e:
-        print(f"Error submitting YouTube order: {str(e)}")
-        bot.reply_to(message, f"❌ Failed to submit order. Error: {str(e)}", reply_markup=main_markup)
-
+        print(f"Error submitting {service['name']} order: {str(e)}")
+        bot.reply_to(
+            message,
+            f"❌ Failed to submit {service['name']} order. Please try again later.",
+            reply_markup=main_markup
+        )
 #======================== End of Youtube Orders =====================#
 
 #======================== Send Orders for Facebook =====================#
@@ -1467,9 +1606,27 @@ def process_facebook_link(message, service, quantity, cost):
         print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance
+            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
+            
+            # Prepare complete order data
+            order_data = {
+                'service': service['name'],
+                'service_type': 'facebook',
+                'service_id': service['service_id'],
+                'quantity': quantity,
+                'cost': cost,
+                'link': link,
+                'order_id': str(result['order']),
+                'status': 'pending',
+                'timestamp': time.time(),
+                'username': message.from_user.username or str(message.from_user.id)
+            }
+            
+            # Add to order history
+            if not add_order(str(message.from_user.id), order_data):
+                raise Exception("Failed to record order in database")
             
             # Send confirmation to user
             bot.reply_to(
@@ -1492,9 +1649,9 @@ def process_facebook_link(message, service, quantity, cost):
                     payment_channel,
                     f"""📢 New Facebook Order:
                     
-📦 Service: {service['name']}
-👤 User: {message.from_user.first_name} (@{message.from_user.username})
+👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
 🆔 ID: {message.from_user.id}
+📦 Service: {service['name']}
 🔢 Quantity: {quantity}
 💰 Cost: {cost} coins
 📎 Link: {link}
@@ -1504,27 +1661,23 @@ def process_facebook_link(message, service, quantity, cost):
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
             
-            # Add to order history
-            order_data = {
-                'service': service['name'],
-                'quantity': quantity,
-                'cost': cost,
-                'link': link,
-                'order_id': str(result['order']),
-                'status': 'pending',
-                'timestamp': time.time()
-            }
-            add_order(str(message.from_user.id), order_data)
-            
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
             raise Exception(error_msg)
             
     except requests.Timeout:
-        bot.reply_to(message, "⚠️ Order processing is taking longer than expected.", reply_markup=main_markup)
+        bot.reply_to(
+            message,
+            "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
+            reply_markup=main_markup
+        )
     except Exception as e:
-        print(f"Error submitting Facebook order: {str(e)}")
-        bot.reply_to(message, f"❌ Failed to submit order. Error: {str(e)}", reply_markup=main_markup)
+        print(f"Error submitting {service['name']} order: {str(e)}")
+        bot.reply_to(
+            message,
+            f"❌ Failed to submit {service['name']} order. Please try again later.",
+            reply_markup=main_markup
+        )
         # Send notification to payment channel  
 #======================== End of Facebook Orders =====================# 
 
@@ -1652,9 +1805,27 @@ def process_whatsapp_link(message, service, quantity, cost):
         print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance
+            # Deduct balance (using cutBalance which doesn't affect total deposits)
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
+            
+            # Prepare complete order data
+            order_data = {
+                'service': service['name'],
+                'service_type': 'whastapp',
+                'service_id': service['service_id'],
+                'quantity': quantity,
+                'cost': cost,
+                'link': link,
+                'order_id': str(result['order']),
+                'status': 'pending',
+                'timestamp': time.time(),
+                'username': message.from_user.username or str(message.from_user.id)
+            }
+            
+            # Add to order history
+            if not add_order(str(message.from_user.id), order_data):
+                raise Exception("Failed to record order in database")
             
             # Send confirmation to user
             bot.reply_to(
@@ -1675,11 +1846,11 @@ def process_whatsapp_link(message, service, quantity, cost):
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New WhatsApp Order:
+                    f"""📢 New Whastapp Order:
                     
-📦 Service: {service['name']}
-👤 User: {message.from_user.first_name} (@{message.from_user.username})
+👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
 🆔 ID: {message.from_user.id}
+📦 Service: {service['name']}
 🔢 Quantity: {quantity}
 💰 Cost: {cost} coins
 📎 Link: {link}
@@ -1689,27 +1860,23 @@ def process_whatsapp_link(message, service, quantity, cost):
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
             
-            # Add to order history
-            order_data = {
-                'service': service['name'],
-                'quantity': quantity,
-                'cost': cost,
-                'link': link,
-                'order_id': str(result['order']),
-                'status': 'pending',
-                'timestamp': time.time()
-            }
-            add_order(str(message.from_user.id), order_data)
-            
         else:
             error_msg = result.get('error', 'Unknown error from SMM panel')
             raise Exception(error_msg)
             
     except requests.Timeout:
-        bot.reply_to(message, "⚠️ Order processing is taking longer than expected.", reply_markup=main_markup)
+        bot.reply_to(
+            message,
+            "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
+            reply_markup=main_markup
+        )
     except Exception as e:
-        print(f"Error submitting WhatsApp order: {str(e)}")
-        bot.reply_to(message, f"❌ Failed to submit order. Error: {str(e)}", reply_markup=main_markup)
+        print(f"Error submitting {service['name']} order: {str(e)}")
+        bot.reply_to(
+            message,
+            f"❌ Failed to submit {service['name']} order. Please try again later.",
+            reply_markup=main_markup
+        )
 
 #======================== End of Whastapp Orders =====================#
 
