@@ -190,7 +190,7 @@ def add_order(user_id, order_data):
         return False
 #========== Channels =================#
 required_channels = ["Megahubbots"] #"Freeairtimehub", #"Freenethubchannel"]  # Channel usernames without "@"
-payment_channel = "@Reactionchanneltest"  # Channel for payment notifications
+payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
     """Check if a user is a member of all required channels."""
