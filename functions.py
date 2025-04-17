@@ -219,16 +219,26 @@ def get_user_orders_stats(user_id):
         
         results = list(orders_collection.aggregate(pipeline))
         
+        # Initialize all counts to 0 first
+        stats = {
+            'total': 0,
+            'completed': 0,
+            'pending': 0,
+            'failed': 0
+        }
+        
+        # Update counts based on aggregation results
         for result in results:
             status = result["_id"].lower()
             if status in stats:
                 stats[status] = result["count"]
         
-        # Calculate total as sum of all statuses
-        stats['total'] = sum(stats.values())
+        # Calculate total as sum of all status counts
+        stats['total'] = stats['completed'] + stats['pending'] + stats['failed']
         
-    except PyMongoError as e:
+    except Exception as e:  # Changed from PyMongoError to Exception for broader coverage
         logger.error(f"Error getting order stats for {user_id}: {e}")
+        # Return default stats with all zeros if there's an error
     
     return stats
 
