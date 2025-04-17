@@ -6,6 +6,7 @@ import os
 import json
 import traceback
 import logging
+from flask import Flask
 from dotenv import load_dotenv
 from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from functions import (insertUser, track_exists, addBalance, cutBalance, getData,
@@ -2157,12 +2158,21 @@ print(f"Files in Account: {os.listdir('Account')}")
 print(f"Can write to Account: {os.access('Account', os.W_OK)}")
 
 #======================== Set Bot Commands =====================#
-if __name__ == '__main__':
-    set_bot_commands()
-    print("Bot is running...")
-    while True:
-        try:
-            bot.polling(none_stop=True)
-        except Exception as e:
-            print(f"Bot polling failed: {e}")
-            time.sleep(10)
+# Create a Flask app
+web_app = Flask(__name__)
+
+@web_app.route("/")
+def home():
+    return "Bot is running!"
+
+# Start the bot
+print("✅ Bot is running...")
+app.start()
+
+# Run the web server
+if __name__ == "__main__":
+    web_app.run(host="0.0.0.0", port=int(os.getenv("PORT", "10000")))
+
+# Keep the process alive
+while True:
+    time.sleep(1)
