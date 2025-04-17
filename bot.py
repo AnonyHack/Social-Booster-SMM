@@ -332,7 +332,7 @@ def send_welcome(message):
 
 🆔 <b>User ID:</b> <code>{user_id}</code>
 👤 <b>Username:</b> {username}
-💰 <b>Welcome Bonus:</b> +{welcome_bonus} coins
+🎁 <b>Welcome Bonus:</b> +{welcome_bonus} coins
 
 With our bot, you can boost your Telegram posts with just a few simple steps!
 
@@ -2061,29 +2061,32 @@ def back_to_main(message):
 @bot.message_handler(func=lambda m: m.text == "📊 Analytics" and m.from_user.id == admin_user_id)
 def show_analytics(message):
     """Show comprehensive bot analytics"""
-    total_users = get_user_count()
-    active_users = get_active_users(7)
-    total_orders = get_total_orders()
-    total_deposits = get_total_deposits()
-    top_referrer = get_top_referrer()
-    
-    # Format top referrer display
-    if top_referrer['username']:
-        referrer_display = f"@{top_referrer['username']} ({top_referrer['count']} invites)"
-    elif top_referrer['user_id']:
-        referrer_display = f"User {top_referrer['user_id']} ({top_referrer['count']} invites)"
-    else:
-        referrer_display = "No referrals yet"
-    
-    msg = f"""📊 <b>Bot Analytics</b>
-    
+    try:
+        total_users = get_user_count()
+        active_users = get_active_users(7)
+        total_orders = get_total_orders()
+        total_deposits = get_total_deposits()
+        top_referrer = get_top_referrer()
+        
+        # Format top referrer display
+        if top_referrer['user_id']:
+            username = f"@{top_referrer['username']}" if top_referrer['username'] else f"User {top_referrer['user_id']}"
+            referrer_display = f"{username} ({top_referrer['count']} invites)"
+        else:
+            referrer_display = "No referrals yet"
+        
+        msg = f"""📊 <b>Bot Analytics</b>
+        
 👤 <b>Total Users:</b> {total_users}
 🔥 <b>Active Users (7 Days):</b> {active_users}
-🚀 <b>Orders Processed:</b> {total_orders}
-💰 <b>Total Deposits:</b> {total_deposits:.2f} coins
+🚀 <b>Total Orders Processed:</b> {total_orders}
+💰 <b>Total System Balance:</b> {total_deposits:.2f} coins
 🎯 <b>Top Referrer:</b> {referrer_display}"""
-    
-    bot.reply_to(message, msg, parse_mode='HTML')
+        
+        bot.reply_to(message, msg, parse_mode='HTML')
+    except Exception as e:
+        print(f"Error showing analytics: {e}")
+        bot.reply_to(message, "❌ Failed to load analytics. Please try again later.")
 
 # Broadcast Command
 @bot.message_handler(func=lambda m: m.text == "📢 Broadcast" and m.from_user.id == admin_user_id)
