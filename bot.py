@@ -2080,7 +2080,7 @@ def show_analytics(message):
 👤 <b>Total Users:</b> {total_users}
 🔥 <b>Active Users (7 Days):</b> {active_users}
 🚀 <b>Total Orders Processed:</b> {total_orders}
-💰 <b>Total System Balance:</b> {total_deposits:.2f} coins
+💰 <b>Total Deposits:</b> {total_deposits:.2f} coins
 🎯 <b>Top Referrer:</b> {referrer_display}"""
         
         bot.reply_to(message, msg, parse_mode='HTML')
