@@ -191,63 +191,10 @@ def add_order(user_id, order_data):
     except Exception as e:
         print(f"Error adding order: {e}")
         return False
-#========== Channels =================#
-required_channels = ["Megahubbots"] #"Freeairtimehub", #"Freenethubchannel"]  # Channel usernames without "@"
-payment_channel = "@smmserviceslogs"  # Channel for payment notifications
-
-def is_user_member(user_id):
-    """Check if a user is a member of all required channels."""
-    for channel in required_channels:
-        try:
-            chat_member = bot.get_chat_member(chat_id=f"@{channel}", user_id=user_id)
-            if chat_member.status not in ["member", "administrator", "creator"]:
-                return False  # User is NOT a member
-        except Exception as e:
-            print(f"Error checking channel membership for {channel}: {e}")
-            return False  # Assume not a member if an error occurs
-    return True  # User is a member of all channels
-
-
-def check_membership_and_prompt(user_id, message):
-    """Check if the user is a member of all required channels and prompt them to join if not."""
-    if not is_user_member(user_id):
-        bot.reply_to(
-            message,
-            "🚨 *To use this bot, you must join the required channels first!* 🚨\n\n"
-            "Click the buttons below to join, then press *'✅ I Joined'*. ",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("MAIN CHANNEL", url="https://t.me/Megahubbots")],
-                [InlineKeyboardButton("✅ I Joined", callback_data="verify_membership")]
-            ])
-        )
-        return False  # User is not a member
-    return True  # User is a member
-
-@bot.callback_query_handler(func=lambda call: call.data == "verify_membership")
-def verify_membership(call):
-    user_id = call.from_user.id
-
-    if is_user_member(user_id):
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="✅ You are verified! You can now use the bot."
-        )
-        send_welcome(call.message)  # Restart the welcome process
-    else:
-        bot.answer_callback_query(
-            callback_query_id=call.id,
-            text="❌ You haven't joined all the required channels yet!",
-            show_alert=True
-        )
-#==============================================#
-
-############################ END OF NEW FEATURES #############################
 #======================= Channel Membership Check =======================#
 #========== Channels =================#
 required_channels = ["Megahubbots"] #"Freeairtimehub", #"Freenethubchannel"]  # Channel usernames without "@"
-payment_channel = ["@Reactionchanneltest"]  # Channel for payment notifications
+payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
     """Check if a user is a member of all required channels."""
@@ -712,13 +659,15 @@ def process_telegram_link(message, service, quantity, cost):
                 'service': service['service_id'],
                 'link': link,
                 'quantity': quantity
-            }
+            },
+            timeout=30
         )
         result = response.json()
         
-        if result and 'order' in result:
+        if result and result.get('order'):  # More flexible check
             # Deduct balance
-            cutBalance(str(message.from_user.id), cost)
+            if not cutBalance(str(message.from_user.id), cost):
+                raise Exception("Failed to deduct balance")
             
             # Send confirmation to user
             bot.reply_to(
@@ -735,10 +684,11 @@ def process_telegram_link(message, service, quantity, cost):
             )
             
             # Send notification to channel
-            bot.send_message(
-                payment_channel,
-                f"""📢 New {service['name']} Order:
-                
+            try:
+                bot.send_message(
+                    payment_channel,
+                    f"""📢 New {service['name']} Order:
+                    
 👤 User: {message.from_user.first_name} (@{message.from_user.username})
 🆔 ID: {message.from_user.id}
 📦 Service: {service['name']}
@@ -746,11 +696,34 @@ def process_telegram_link(message, service, quantity, cost):
 💰 Cost: {cost} coins
 📎 Link: {link}
 🆔 Order ID: {result['order']}""",
-                disable_web_page_preview=True
-            )
-        else:
-            raise Exception(result.get('error', 'Unknown error'))
+                    disable_web_page_preview=True
+                )
+            except Exception as e:
+                print(f"Failed to send to payment channel: {e}")
+                # Still continue with the order
             
+            # Add to order history
+            order_data = {
+                'service': service['name'],
+                'quantity': quantity,
+                'cost': cost,
+                'link': link,
+                'order_id': str(result['order']),
+                'status': 'pending',
+                'timestamp': time.time()
+            }
+            add_order(str(message.from_user.id), order_data)
+            
+        else:
+            error_msg = result.get('error', 'Unknown error from SMM panel')
+            raise Exception(error_msg)
+            
+    except requests.Timeout:
+        bot.reply_to(
+            message,
+            "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
+            reply_markup=main_markup
+        )
     except Exception as e:
         print(f"Error submitting {service['name']} order: {str(e)}")
         bot.reply_to(
