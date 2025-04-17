@@ -6,6 +6,7 @@ import os
 import json
 import traceback
 import logging
+import threading
 from flask import Flask
 from dotenv import load_dotenv
 from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
@@ -2158,6 +2159,40 @@ print(f"Files in Account: {os.listdir('Account')}")
 print(f"Can write to Account: {os.access('Account', os.W_OK)}")
 
 #======================== Set Bot Commands =====================#
+from datetime import datetime
+import pytz
+
+def get_formatted_datetime():
+    """Get current datetime in Asia/Kolkata timezone"""
+    tz = pytz.timezone('Asia/Kolkata')
+    now = datetime.now(tz)
+    return {
+        'date': now.strftime('%Y-%m-%d'),
+        'time': now.strftime('%I:%M:%S %p'),
+        'timezone': 'Asia/Kolkata'
+    }
+
+def send_startup_message(is_restart=False):
+    """Send bot status message to logs channel"""
+    try:
+        dt = get_formatted_datetime()
+        status = "Rᴇsᴛᴀʀᴛᴇᴅ" if is_restart else "Sᴛᴀʀᴛᴇᴅ"
+        
+        message = f"""
+🚀 <b>Bᴏᴛ {status}</b> !
+
+📅 Dᴀᴛᴇ : {dt['date']}
+⏰ Tɪᴍᴇ : {dt['time']}
+🌐 Tɪᴍᴇᴢᴏɴᴇ : {dt['timezone']}
+🛠️ Bᴜɪʟᴅ Sᴛᴀᴛᴜs: v2.7.1 [ Sᴛᴀʙʟᴇ ]
+"""
+        bot.send_message(
+            chat_id=payment_channel,  # Or your specific logs channel ID
+            text=message,
+            parse_mode='HTML'
+        )
+    except Exception as e:
+        print(f"Error sending startup message: {e}")
 # ==================== FLASK INTEGRATION ==================== #
 
 # Create minimal Flask app
@@ -2175,13 +2210,13 @@ def health():
 def run_bot():
     set_bot_commands()
     print("Bot is running...")
-    while True:
-        try:
-            bot.polling(none_stop=True)
-        except Exception as e:
-            print(f"Bot polling failed: {e}")
-            time.sleep(10)
-
+  while True:
+    try:
+        bot.polling(none_stop=True)
+    except Exception as e:
+        print(f"Bot polling failed: {e}")
+        time.sleep(10)
+        send_startup_message(is_restart=True)
 # ==================== MAIN EXECUTION ==================== #
 if __name__ == '__main__':
     import threading
