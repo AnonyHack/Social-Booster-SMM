@@ -222,6 +222,10 @@ def get_user_orders_stats(user_id):
     }
     
     try:
+        # First get total count
+        stats['total'] = orders_collection.count_documents({"user_id": str(user_id)})
+        
+        # Then get counts by status
         pipeline = [
             {"$match": {"user_id": str(user_id)}},
             {"$group": {
@@ -236,8 +240,7 @@ def get_user_orders_stats(user_id):
             status = result["_id"].lower()
             if status in stats:
                 stats[status] = result["count"]
-            stats["total"] += result["count"]
-            
+                
     except PyMongoError as e:
         logger.error(f"Error getting order stats for {user_id}: {e}")
     
@@ -348,12 +351,12 @@ def get_total_orders():
 def get_total_deposits():
     """Get total deposits made by admin"""
     try:
-        result = users_collection.aggregate([
-            {"$group": {
+        result = users_collection.aggregate([{
+            "$group": {
                 "_id": None,
-                "total": {"$sum": "$total_deposits"}
-            }}
-        ])
+                "total": {"$sum": "$balance"}
+            }
+        }])
         return next(result, {"total": 0})["total"]
     except PyMongoError as e:
         logger.error(f"Error getting total deposits: {e}")
@@ -363,15 +366,17 @@ def get_top_referrer():
     """Get user with most referrals"""
     try:
         result = users_collection.find_one(
-            {},
+            {"total_refs": {"$gt": 0}},
             {"user_id": 1, "username": 1, "total_refs": 1},
             sort=[("total_refs", -1)]
         )
-        return {
-            'user_id': result.get('user_id'),
-            'username': result.get('username'),
-            'count': result.get('total_refs', 0)
-        } if result else {'user_id': None, 'username': None, 'count': 0}
+        if result:
+            return {
+                'user_id': result.get('user_id'),
+                'username': result.get('username', 'N/A'),
+                'count': result.get('total_refs', 0)
+            }
+        return {'user_id': None, 'username': None, 'count': 0}
     except PyMongoError as e:
         logger.error(f"Error getting top referrer: {e}")
         return {'user_id': None, 'username': None, 'count': 0}
