@@ -7,6 +7,8 @@ import json
 import traceback
 import logging
 import threading
+from datetime import datetime
+import pytz
 from flask import Flask
 from dotenv import load_dotenv
 from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
@@ -2159,9 +2161,6 @@ print(f"Files in Account: {os.listdir('Account')}")
 print(f"Can write to Account: {os.access('Account', os.W_OK)}")
 
 #======================== Set Bot Commands =====================#
-from datetime import datetime
-import pytz
-
 def get_formatted_datetime():
     """Get current datetime in Asia/Kolkata timezone"""
     tz = pytz.timezone('Asia/Kolkata')
