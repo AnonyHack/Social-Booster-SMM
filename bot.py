@@ -53,6 +53,7 @@ main_markup.add(button1, button2)
 main_markup.add(button3, button4)
 main_markup.add(button5, button6)
 main_markup.add(button7)
+main_markup.add(button8)
 
 # Admin keyboard markup
 admin_markup = ReplyKeyboardMarkup(resize_keyboard=True)
