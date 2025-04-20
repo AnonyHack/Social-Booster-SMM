@@ -1972,15 +1972,15 @@ def show_analytics(message):
         print(f"Error showing analytics: {e}")
         bot.reply_to(message, "❌ Failed to load analytics. Please try again later.")
 
-# Broadcast Command
+# =========================== Broadcast Command ================= #
 @bot.message_handler(func=lambda m: m.text == "📢 Broadcast" and m.from_user.id == admin_user_id)
 def broadcast_start(message):
-    """Start broadcast process"""
-    msg = bot.reply_to(message, "📢 Enter the message you want to broadcast to all users:")
+    """Start normal broadcast process (unpinned)"""
+    msg = bot.reply_to(message, "📢 Enter the message you want to broadcast to all users (this won't be pinned):")
     bot.register_next_step_handler(msg, process_broadcast)
 
 def process_broadcast(message):
-    """Send message to all users"""
+    """Process and send the broadcast message (unpinned)"""
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Broadcast cancelled.", reply_markup=admin_markup)
         return
@@ -1993,7 +1993,12 @@ def process_broadcast(message):
     
     for user_id in users:
         try:
-            bot.send_message(user_id, f"📢 Announcement:\n\n{message.text}")
+            if message.content_type == 'text':
+                bot.send_message(user_id, message.text, parse_mode="Markdown")
+            elif message.content_type == 'photo':
+                bot.send_photo(user_id, message.photo[-1].file_id, caption=message.caption)
+            elif message.content_type == 'document':
+                bot.send_document(user_id, message.document.file_id, caption=message.caption)
             success += 1
         except Exception as e:
             print(f"Failed to send to {user_id}: {e}")
@@ -2114,41 +2119,50 @@ def show_leaderboard(message):
     bot.reply_to(message, "\n".join(leaderboard), reply_markup=main_markup)
 
 #======================= Function to Pin Annoucement Messages ====================#
-pinned_messages = {}  # Global dictionary to store pinned messages
-
 @bot.message_handler(func=lambda m: m.text == "📌 Pin Message" and m.from_user.id == admin_user_id)
 def pin_message_start(message):
     """Start pin message process"""
-    msg = bot.reply_to(message, "📌 Send the message you want to pin for all users (text, photo, or document):")
+    msg = bot.reply_to(message, 
+                      "📌 Send the message you want to pin in all user chats:\n"
+                      "(This will pin the message at the top of each user's chat with the bot)\n\n"
+                      "Type '✘ Cancel' to abort.")
     bot.register_next_step_handler(msg, process_pin_message)
 
 def process_pin_message(message):
-    """Process and store the pinned message"""
+    """Process and send the pinned message to all users"""
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Pin cancelled.", reply_markup=admin_markup)
         return
     
-    # Store the message content based on type
-    if message.content_type == 'text':
-        pinned_messages['text'] = message.text
-    elif message.content_type == 'photo':
-        pinned_messages['photo'] = message.photo[-1].file_id
-        pinned_messages['caption'] = message.caption
-    elif message.content_type == 'document':
-        pinned_messages['document'] = message.document.file_id
-        pinned_messages['caption'] = message.caption
+    users = get_all_users()
+    success = 0
+    failed = 0
     
-    bot.reply_to(message, "✅ Message pinned successfully!", reply_markup=admin_markup)
-
-# Add this to send pinned message to new users in the welcome function
-def send_pinned_message(chat_id):
-    """Send the pinned message to a user"""
-    if 'text' in pinned_messages:
-        bot.send_message(chat_id, f"📌 Pinned Message:\n\n{pinned_messages['text']}")
-    elif 'photo' in pinned_messages:
-        bot.send_photo(chat_id, pinned_messages['photo'], caption=pinned_messages.get('caption', ''))
-    elif 'document' in pinned_messages:
-        bot.send_document(chat_id, pinned_messages['document'], caption=pinned_messages.get('caption', ''))
+    bot.reply_to(message, "⏳ Starting to pin messages in user chats...", reply_markup=admin_markup)
+    
+    for user_id in users:
+        try:
+            # Send and pin the message based on content type
+            if message.content_type == 'text':
+                sent_msg = bot.send_message(user_id, message.text, parse_mode="Markdown")
+            elif message.content_type == 'photo':
+                sent_msg = bot.send_photo(user_id, message.photo[-1].file_id, caption=message.caption)
+            elif message.content_type == 'document':
+                sent_msg = bot.send_document(user_id, message.document.file_id, caption=message.caption)
+            
+            # Pin the message in the user's chat
+            bot.pin_chat_message(user_id, sent_msg.message_id)
+            success += 1
+        except Exception as e:
+            print(f"Failed to pin message for {user_id}: {e}")
+            failed += 1
+        time.sleep(0.1)  # Rate limiting
+    
+    bot.reply_to(message, 
+                 f"📌 Pinning Complete:\n"
+                 f"✅ Successfully pinned in {success} chats\n"
+                 f"❌ Failed in {failed} chats",
+                 reply_markup=admin_markup)
 
 #========================== Add this handler for the /policy command =================#
 @bot.message_handler(commands=['policy'])
