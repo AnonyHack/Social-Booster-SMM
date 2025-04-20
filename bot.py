@@ -2413,7 +2413,7 @@ def send_startup_message(is_restart=False):
 📅 Dᴀᴛᴇ : {dt['date']}
 ⏰ Tɪᴍᴇ : {dt['time']}
 🌐 Tɪᴍᴇᴢᴏɴᴇ : {dt['timezone']}
-🛠️ Bᴜɪʟᴅ Sᴛᴀᴛᴜs: v2.7.1 [ Sᴛᴀʙʟᴇ ]
+🛠️ Bᴜɪʟᴅ Sᴛᴀᴛᴜs: v2 [ Sᴛᴀʙʟᴇ ]
 """
         bot.send_message(
             chat_id=payment_channel,  # Or your specific logs channel ID
