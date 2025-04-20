@@ -165,31 +165,22 @@ whatsapp_services_markup.row(
 whatsapp_services_markup.add(KeyboardButton("↩️ Go Back"))
 
 ############################ END OF NEW FEATURES #############################
+# Replace the existing add_order function in bot.py with this:
 def add_order(user_id, order_data):
-    """Add a new order to user's history"""
+    """Add a new order to user's history using MongoDB"""
     try:
-        filepath = os.path.join('Account', f'{user_id}.json')
-        if os.path.exists(filepath):
-            with open(filepath, 'r') as f:
-                data = json.load(f)
-            
-            if 'orders' not in data:
-                data['orders'] = []
-            
-            # Add timestamp and status if not provided
-            if 'timestamp' not in order_data:
-                order_data['timestamp'] = time.time()
-            if 'status' not in order_data:
-                order_data['status'] = 'pending'
-            
-            data['orders'].append(order_data)
-            
-            with open(filepath, 'w') as f:
-                json.dump(data, f)
-            return True
-        return False
+        # Ensure the order_data has required fields
+        order_data['user_id'] = str(user_id)
+        if 'timestamp' not in order_data:
+            order_data['timestamp'] = time.time()
+        if 'status' not in order_data:
+            order_data['status'] = 'pending'
+        
+        # Add to MongoDB
+        from functions import add_order as mongo_add_order
+        return mongo_add_order(user_id, order_data)
     except Exception as e:
-        print(f"Error adding order: {e}")
+        print(f"Error adding order to MongoDB: {e}")
         return False
 #======================= Channel Membership Check =======================#
 #========== Channels =================#
@@ -512,20 +503,48 @@ def pricing_command(message):
 #======================= Order Statistics =======================#
 @bot.message_handler(func=lambda message: message.text == "📊 Order Statistics")
 def show_order_stats(message):
-    """Show order statistics for the user"""
+    """Show comprehensive order statistics for the user"""
     user_id = str(message.from_user.id)
-    stats = get_user_orders_stats(user_id)
     
-    msg = f"""📊 <b>Your Order Statistics</b>
-    
-🔄 <b>Total Orders Placed:</b> {stats['total']}
-✅ <b>Completed Orders:</b> {stats['completed']}
-⏳ <b>Pending Orders:</b> {stats['pending']}
-❌ <b>Failed Orders:</b> {stats['failed']}
-    
-<i>Note: Status updates may take some time to reflect</i>"""
-    
-    bot.reply_to(message, msg, parse_mode='HTML')
+    try:
+        # Get basic stats
+        stats = get_user_orders_stats(user_id)
+        
+        # Get recent orders (last 5)
+        recent_orders = []
+        try:
+            from functions import orders_collection
+            recent_orders = list(orders_collection.find(
+                {"user_id": user_id},
+                {"service": 1, "quantity": 1, "status": 1, "timestamp": 1, "_id": 0}
+            ).sort("timestamp", -1).limit(5))
+        except Exception as e:
+            print(f"Error getting recent orders: {e}")
+        
+        # Format the message
+        msg = f"""📊 <b>Your Order Statistics</b>
+        
+🔄 <b>Total Orders:</b> {stats['total']}
+✅ <b>Completed:</b> {stats['completed']}
+⏳ <b>Pending:</b> {stats['pending']}
+❌ <b>Failed:</b> {stats['failed']}
+
+<b>Recent Orders:</b>"""
+        
+        if recent_orders:
+            for i, order in enumerate(recent_orders, 1):
+                timestamp = datetime.fromtimestamp(order.get('timestamp', time.time())).strftime('%Y-%m-%d %H:%M')
+                msg += f"\n{i}. {order.get('service', 'N/A')} - {order.get('quantity', '?')} (Status: {order.get('status', 'unknown')}) @ {timestamp}"
+        else:
+            msg += "\nNo recent orders found"
+            
+        msg += "\n\n<i>Note: Status updates may take some time to reflect</i>"
+        
+        bot.reply_to(message, msg, parse_mode='HTML')
+        
+    except Exception as e:
+        print(f"Error showing order stats: {e}")
+        bot.reply_to(message, "❌ Could not retrieve order statistics. Please try again later.")
 #======================= Send Orders for Telegram =======================#
 @bot.message_handler(func=lambda message: message.text == "📱 Order Telegram")
 def order_telegram_menu(message):
