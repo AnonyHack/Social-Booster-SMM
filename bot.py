@@ -2223,20 +2223,16 @@ def server_status(message):
 ━━━━━━━━━━━━━━
 💻 <b>System</b>: {uname.system} {uname.release}
 ⏱ <b>Uptime</b>: {datetime.now() - boot_time}
-━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🧠 <b>CPU</b>: {psutil.cpu_percent()}% usage
 💾 <b>Memory</b>: {mem.used/1024/1024:.1f}MB / {mem.total/1024/1024:.1f}MB
 🗄 <b>Disk</b>: {disk.used/1024/1024:.1f}MB / {disk.total/1024/1024:.1f}MB
-━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 <b>MongoDB Stats</b>
 📦 Data Size: {mongo_stats['dataSize']/1024/1024:.1f}MB
 🗃 Storage: {mongo_stats['storageSize']/1024/1024:.1f}MB
 📂 Collections: {mongo_stats['collections']}
-━━━━━━━━━━━━━━
-👥 <b>Bot Stats</b>
-👤 Users: {get_user_count()}
-📦 Orders: {get_total_orders()}
-💰 Deposits: {get_total_deposits()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         """
         bot.reply_to(message, status, parse_mode="HTML")
     except Exception as e:
