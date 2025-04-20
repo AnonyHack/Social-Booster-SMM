@@ -5,3 +5,5 @@ pymongo==4.5.0
 flask==3.0.0
 gunicorn
 pytz
+psutil
+
