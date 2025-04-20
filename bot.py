@@ -57,23 +57,13 @@ main_markup.add(button8)
 
 # Admin keyboard markup
 admin_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-admin_markup.row(
-    KeyboardButton("➕ Add Coins"),
-    KeyboardButton("➖ Remove Coins")
-)
-admin_markup.row(
-    KeyboardButton("📊 Analytics"),
-    KeyboardButton("📢 Broadcast")
-)
-admin_markup.row(
-    KeyboardButton("⛔ Ban User"),
-    KeyboardButton("✅ Unban User")
-)
-admin_markup.row(
-    KeyboardButton("📋 List Banned"),
-    KeyboardButton("📌 Pin Message")
-)
-admin_markup.add(KeyboardButton("🔙 Main Menu"))
+admin_markup.row("➕ Add Coins", "➖ Remove Coins")
+admin_markup.row("📊 Analytics", "📢 Broadcast")
+admin_markup.row("⛔ Ban User", "✅ Unban User")
+admin_markup.row("📋 List Banned", "👤 User Info")  # New
+admin_markup.row("🖥 Server Status", "📤 Export Data")  # New
+admin_markup.row("📦 Order Manager", "🔧 Maintenance")  # New
+admin_markup.row("🔙 Main Menu")
 #======================= Send Orders main menu =======================#
 send_orders_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 send_orders_markup.row(
@@ -2163,6 +2153,176 @@ def process_pin_message(message):
                  f"✅ Successfully pinned in {success} chats\n"
                  f"❌ Failed in {failed} chats",
                  reply_markup=admin_markup)
+
+
+#================= Check User Info by ID ===================================#
+@bot.message_handler(func=lambda m: m.text == "👤 User Info" and m.from_user.id == admin_user_id)
+def user_info_start(message):
+    msg = bot.reply_to(message, "Enter user ID or username (@username):")
+    bot.register_next_step_handler(msg, process_user_info)
+
+def process_user_info(message):
+    query = message.text.strip()
+    try:
+        if query.startswith('@'):
+            user = bot.get_chat(query)
+        else:
+            user = bot.get_chat(query)
+        
+        user_data = getData(user.id) or {}
+        
+        info = f"""
+🔍 *User Information*:
+🆔 ID: `{user.id}`
+👤 Name: {user.first_name} {user.last_name or ''}
+📛 Username: @{user.username or 'N/A'}
+📅 Joined: {user_data.get('join_date', 'N/A')}
+💰 Balance: {user_data.get('balance', 0)}
+📊 Orders: {user_data.get('orders_count', 0)}
+👥 Referrals: {user_data.get('total_refs', 0)}
+🔨 Status: {"BANNED ⛔" if is_banned(user.id) else "ACTIVE ✅"}
+        """
+        bot.reply_to(message, info, parse_mode="Markdown")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error: {str(e)}")
+
+#============================== Server Status Command ===============================#
+@bot.message_handler(func=lambda m: m.text == "🖥 Server Status" and m.from_user.id == admin_user_id)
+def server_status(message):
+    
+    
+    # System info
+    uname = platform.uname()
+    boot_time = datetime.fromtimestamp(psutil.boot_time())
+    
+    # Memory info
+    mem = psutil.virtual_memory()
+    
+    # Disk info
+    disk = psutil.disk_usage('/')
+    
+    status = f"""
+🖥 *System Status*
+---
+💻 *System*: {uname.system} {uname.release}
+⏱ *Uptime*: {datetime.now() - boot_time}
+---
+🧠 *CPU*: {psutil.cpu_percent()}% usage
+💾 *Memory*: {mem.used/1024/1024:.1f}MB / {mem.total/1024/1024:.1f}MB
+🗄 *Disk*: {disk.used/1024/1024:.1f}MB / {disk.total/1024/1024:.1f}MB
+---
+📊 *Bot Stats*
+👥 Users: {get_user_count()}
+📦 Orders: {get_total_orders()}
+💰 Deposits: {get_total_deposits()}
+        """
+    bot.reply_to(message, status, parse_mode="Markdown")
+
+#========================== Export User Data (CSV) =================#
+@bot.message_handler(func=lambda m: m.text == "📤 Export Data" and m.from_user.id == admin_user_id)
+def export_data(message):
+    try:
+        from functions import users_collection
+        import csv
+        from io import StringIO
+        
+        users = users_collection.find({})
+        
+        # Create CSV in memory
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow(['ID', 'Username', 'Balance', 'Join Date', 'Referrals', 'Status'])
+        
+        # Write data
+        for user in users:
+            writer.writerow([
+                user.get('user_id', ''),
+                f"@{user.get('username', '')}" if user.get('username') else '',
+                user.get('balance', 0),
+                user.get('join_date', ''),
+                user.get('total_refs', 0),
+                'BANNED' if user.get('banned', False) else 'ACTIVE'
+            ])
+        
+        # Send file
+        output.seek(0)
+        bot.send_document(
+            message.chat.id,
+            ('users_export.csv', output.getvalue()),
+            caption="📊 User data export"
+        )
+    except Exception as e:
+        bot.reply_to(message, f"❌ Export failed: {str(e)}")
+
+#============================= Maintenance Mode Toggle =============================#
+maintenance_mode = False
+
+@bot.message_handler(func=lambda m: m.text == "🔧 Maintenance" and m.from_user.id == admin_user_id)
+def toggle_maintenance(message):
+    global maintenance_mode
+    maintenance_mode = not maintenance_mode
+    
+    status = "ENABLED 🔴" if maintenance_mode else "DISABLED 🟢"
+    bot.reply_to(message, f"Maintenance mode: {status}")
+    
+    # Broadcast if enabled
+    if maintenance_mode:
+        bot.send_message(
+            admin_user_id,
+            "⚠️ Send maintenance message to users:",
+            reply_markup=ForceReply()
+        )
+
+@bot.message_handler(func=lambda m: maintenance_mode and m.reply_to_message and 
+                     "maintenance message" in m.reply_to_message.text and 
+                     m.from_user.id == admin_user_id)
+def send_maintenance_notice(message):
+    users = get_all_users()
+    for user_id in users:
+        try:
+            bot.send_message(user_id, f"⚠️ Maintenance Notice:\n{message.text}")
+        except:
+            continue
+        time.sleep(0.1)
+
+#============================ Order Management Commands =============================#
+@bot.message_handler(func=lambda m: m.text == "📦 Order Manager" and m.from_user.id == admin_user_id)
+def order_manager(message):
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add("🔄 Check Order", "❌ Cancel Order", "🔙 Admin Menu")
+    bot.reply_to(message, "Order management:", reply_markup=markup)
+
+@bot.message_handler(func=lambda m: m.text == "🔄 Check Order" and m.from_user.id == admin_user_id)
+def check_order_start(message):
+    msg = bot.reply_to(message, "Enter Order ID:")
+    bot.register_next_step_handler(msg, process_check_order)
+
+def process_check_order(message):
+    order_id = message.text.strip()
+    try:
+        from functions import orders_collection
+        order = orders_collection.find_one({"order_id": order_id})
+        
+        if order:
+            status = f"""
+📦 *Order #{order_id}*
+---
+👤 User: {order.get('username', 'N/A')} ({order.get('user_id', 'N/A')})
+🛒 Service: {order.get('service', 'N/A')}
+🔗 Link: {order.get('link', 'N/A')}
+📊 Quantity: {order.get('quantity', 'N/A')}
+💰 Cost: {order.get('cost', 'N/A')}
+🔄 Status: {order.get('status', 'N/A')}
+⏱ Date: {order.get('timestamp', 'N/A')}
+            """
+            bot.reply_to(message, status, parse_mode="Markdown")
+        else:
+            bot.reply_to(message, "❌ Order not found")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error: {str(e)}")
+
 
 #========================== Add this handler for the /policy command =================#
 @bot.message_handler(commands=['policy'])
