@@ -58,11 +58,12 @@ main_markup.add(button8)
 # Admin keyboard markup
 admin_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 admin_markup.row("➕ Add Coins", "➖ Remove Coins")
-admin_markup.row("📊 Analytics", "📢 Broadcast")
+admin_markup.row("📌 Pin Message", "📢 Broadcast")
 admin_markup.row("⛔ Ban User", "✅ Unban User")
 admin_markup.row("📋 List Banned", "👤 User Info")  # New
 admin_markup.row("🖥 Server Status", "📤 Export Data")  # New
-admin_markup.row("📦 Order Manager", "🔧 Maintenance")  # New
+admin_markup.row("📦 Order Manager", "📊 Analytics")  # New
+admin_markup.row("🔧 Maintenance")
 admin_markup.row("🔙 Main Menu")
 #======================= Send Orders main menu =======================#
 send_orders_markup = ReplyKeyboardMarkup(resize_keyboard=True)
