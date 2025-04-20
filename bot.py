@@ -9,6 +9,7 @@ import logging
 import threading
 from datetime import datetime
 import pytz
+from functools import wraps
 from flask import Flask
 from dotenv import load_dotenv
 from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
@@ -68,6 +69,10 @@ admin_markup.row(
 )
 admin_markup.row(
     KeyboardButton("📋 List Banned"),
+    KeyboardButton("🏆 Leaderboard")
+)
+admin_markup.row(
+    KeyboardButton("📌 Pin Message"),
     KeyboardButton("🏆 Leaderboard")
 )
 admin_markup.add(KeyboardButton("🔙 Main Menu"))
@@ -234,7 +239,18 @@ def verify_membership(call):
             show_alert=True
         )
 #==============================================#
-#==============================================#
+#========================= utility function to check bans =================#
+def check_ban(func):
+    """Decorator to check if user is banned before processing any command"""
+    @wraps(func)
+    def wrapped(message, *args, **kwargs):
+        user_id = str(message.from_user.id)
+        if is_banned(user_id):
+            bot.reply_to(message, "⛔ You have been banned from using this bot.")
+            return
+        return func(message, *args, **kwargs)
+    return wrapped
+#================== Send Orders Button ============================#
 @bot.message_handler(func=lambda message: message.text == "📤 Send Orders")
 def send_orders_menu(message):
     user_id = message.from_user.id
@@ -266,8 +282,10 @@ def set_bot_commands():
         print(f"Error setting bot commands: {e}")
 # imports the updateUser function from functions.py
 print(updateUser) 
-
+  
+#======================= Start Command =======================#
 @bot.message_handler(commands=['start'])
+@check_ban
 def send_welcome(message):
     user_id = str(message.from_user.id)
     first_name = message.from_user.first_name
@@ -416,6 +434,7 @@ def my_account(message):
     )
 
 @bot.message_handler(func=lambda message: message.text == "🗣 Invite Friends")
+@check_ban
 def invite_friends(message):
     user_id = str(message.chat.id)
     bot_username = bot.get_me().username
@@ -502,6 +521,7 @@ def pricing_command(message):
 
 #======================= Order Statistics =======================#
 @bot.message_handler(func=lambda message: message.text == "📊 Order Statistics")
+@check_ban
 def show_order_stats(message):
     """Show comprehensive order statistics for the user"""
     user_id = str(message.from_user.id)
@@ -1846,249 +1866,6 @@ def handle_back_buttons(message):
         # Cancel goes straight to main menu
         bot.reply_to(message, "Operation cancelled.", reply_markup=main_markup)
 
-#=========== Main Commands ======================#
-markup = ReplyKeyboardMarkup(resize_keyboard=True)
-button1 = KeyboardButton("👁‍🗨 Order View")
-button2 = KeyboardButton("👤 My Account")
-button3 = KeyboardButton("💳 Pricing")
-button4 = KeyboardButton("🗣 Invite Friends")
-button5 = KeyboardButton("📜 Help")
-button6 = KeyboardButton("🛠 Admin Panel")  # New admin button
-markup.add(button1)
-markup.add(button2, button3)
-markup.add(button4, button5)
-markup.add(button6)  # Add admin button to the menu
-
-
-def view_amount(message):
-  user_id = message.from_user.id
-  if message.text == "✘ Cancel":
-    bot.reply_to(message,
-                 "Operation successfully canceled.",
-                 reply_markup=markup)
-    return
-
-  amount = message.text
-  data = getData(str(user_id))
-  bal = data['balance']
-
-  if not amount.isdigit():
-    bot.send_message(user_id,
-                     "📛 Invalid value. Enter only numeric value.",
-                     parse_mode="Markdown",
-                     reply_markup=markup)
-    return
-  if int(amount) < min_view:
-    bot.send_message(user_id,
-                     f"❌ Minimum - {min_view} Views",
-                     parse_mode="Markdown",
-                     reply_markup=markup)
-    return
-  if float(amount) > float(bal):
-    bot.send_message(user_id,
-                     "❌ You can't purchase more views than your balance",
-                     parse_mode="Markdown",
-                     reply_markup=markup)
-    return
-
-  bot.reply_to(message, "Enter the Link to Recieve Views")
-  bot.register_next_step_handler(message, view_link, amount)
-
-
-def is_valid_link(link):
-  pattern = r'^https?://t\.me/[a-zA-Z0-9_]{5,}/\d+$'
-  return re.match(pattern, link) is not None
-
-
-def send_order_to_smm_panel(link, amount):
-  """ Send the order to the SMM panel and return the result """
-  try:
-    response = requests.post(url=SmmPanelApiUrl,
-                             data={
-                                 'key': SmmPanelApi,
-                                 'action': 'add',
-                                 'service': '10576',
-                                 'link': link,
-                                 'quantity': amount
-                             })
-    return response.json()
-  except requests.RequestException as e:
-    print(f"An error occurred while sending order to SMM panel: {e}")
-    return None
-
-
-def view_link(message, amount):
-  user_id = message.from_user.id
-  link = message.text
-  if message.text == "✘ Cancel":
-    bot.reply_to(message,
-                 "Operation successfully canceled.",
-                 reply_markup=markup)
-    return
-  # Replace this with your actual validation for a Telegram post link
-  if not is_valid_link(link):
-    bot.send_message(
-        user_id,
-        "❌ Invalid link provided. Please provide a valid Telegram post link.",
-        parse_mode="Markdown",
-        reply_markup=markup)
-    return
-
-  # Call the SMM panel API
-  try:
-    result = send_order_to_smm_panel(link, amount)
-  except:
-    bot.send_message(user_id,
-                     "*🤔 Something went wrong please try again later!*",
-                     parse_mode="markdown",
-                     reply_markup=markup)
-    return
-
-  if result is None or 'order' not in result or result['order'] is None:
-    bot.send_message(user_id,
-                     "*🤔 Something went wrong please try again later!*",
-                     parse_mode="markdown",
-                     reply_markup=markup)
-    if 'error' in result:
-      bot.send_message(user_id, result['error'])
-    return
-
-  oid = result['order']
-  # Here, you should have your own method to retrieve the user's current balance and save the new balance
-  cutBalance(user_id, float(amount))
-
-  # Send confirmation message to the user
-  bot.send_message(user_id,
-                   (f"*✅ Your Order Has Been Submitted and Processing\n\n"
-                    f"Order Details :\n"
-                    f"ℹ️ Order ID :* `{oid}`\n"
-                    f"*🔗 Link : {link}*\n"
-                    f"💰 *Order Price :* `{amount} Coins`\n"
-                    f"👀 *Tg Post Views  :* `{amount} Views`\n\n"
-                    f"😊 *Thanks for ordering*"),
-                   parse_mode="markdown",
-                   reply_markup=markup,
-                   disable_web_page_preview=True)
-
-  # Send notification to the channel about the new order
-  bot.send_message(payment_channel,
-                   (f"*✅ New Views Order*\n\n"
-                    f"*ℹ️ Order ID =* `{oid}`\n"
-                    f"*⚡ Status* = `Processing...`\n"
-                    f"*👤 User =* {message.from_user.first_name}\n"
-                    f"*🆔️ User ID *= `{user_id}`\n"
-                    f"*👀 TG Post Views =* `{amount} Views`\n"
-                    f"*💰 Order Price :* `{amount} Coins`\n"
-                    f"*🔗 Link = {link}*\n\n"
-                    f"*🤖 Bot = @{bot.get_me().username}*"),
-                   parse_mode="markdown",
-                   disable_web_page_preview=True)
-
-
-@bot.message_handler(commands=['addcoins'])
-def add_coins(message):
-    if message.from_user.id != admin_user_id:
-        bot.reply_to(message, "❌ You are not authorized to use this command.")
-        return
-
-    try:
-        args = message.text.split()
-        if len(args) != 3:
-            bot.reply_to(message, "⚠️ Usage: /addcoins <user_id> <amount>")
-            return
-
-        user_id = args[1]  # Keep as string to match file naming
-        try:
-            amount = float(args[2])
-        except ValueError:
-            bot.reply_to(message, "⚠️ Amount must be a number")
-            return
-
-        # Ensure the user exists
-        if not isExists(user_id):
-            initial_data = {
-                "user_id": user_id,
-                "balance": "0.00",  # Note the string format
-                "ref_by": "none",
-                "referred": 0,
-                "welcome_bonus": 0,
-                "total_refs": 0,
-            }
-            insertUser(user_id, initial_data)
-
-        if addBalance(user_id, amount):
-            bot.reply_to(message, f"✅ Successfully added {amount} coins to user {user_id}.")
-            # Send confirmation to the user if possible
-            try:
-                bot.send_message(user_id, f"📢 Admin has added {amount} coins to your account!")
-            except:
-                pass
-        else:
-            bot.reply_to(message, f"❌ Failed to add coins to user {user_id}.")
-    except Exception as e:
-        bot.reply_to(message, f"⚠️ Error: {str(e)}")
-
-@bot.message_handler(commands=['removecoins'])
-def remove_coins(message):
-    print(f"\nDEBUG: Received removecoins command: {message.text}")  # Log the command
-    
-    if message.from_user.id != admin_user_id:
-        error_msg = "❌ You are not authorized to use this command."
-        print(f"DEBUG: Unauthorized access attempt by {message.from_user.id}")
-        bot.reply_to(message, error_msg)
-        return
-
-    try:
-        args = message.text.split()
-        if len(args) != 3:
-            error_msg = "⚠️ Usage: /removecoins <user_id> <amount>"
-            print(f"DEBUG: Invalid arguments: {args}")
-            bot.reply_to(message, error_msg)
-            return
-
-        user_id = args[1]
-        try:
-            amount = float(args[2])
-            print(f"DEBUG: Parsed user_id: {user_id}, amount: {amount}")
-        except ValueError:
-            error_msg = "⚠️ Amount must be a number"
-            print(f"DEBUG: Invalid amount format: {args[2]}")
-            bot.reply_to(message, error_msg)
-            return
-
-        # Check if user exists
-        user_exists = isExists(user_id)
-        print(f"DEBUG: User {user_id} exists: {user_exists}")
-        
-        if not user_exists:
-            bot.reply_to(message, f"❌ User {user_id} does not exist.")
-            return
-
-        # Get current balance for debugging
-        user_data = getData(user_id)
-        current_balance = float(user_data['balance'])
-        print(f"DEBUG: Current balance: {current_balance}, Amount to remove: {amount}")
-
-        if cutBalance(user_id, amount):
-            success_msg = f"✅ Successfully removed {amount} coins from user {user_id}."
-            print(f"DEBUG: {success_msg}")
-            bot.reply_to(message, success_msg)
-            
-            # Verify the new balance
-            updated_data = getData(user_id)
-            print(f"DEBUG: New balance: {updated_data['balance']}")
-        else:
-            error_msg = f"❌ Failed to remove coins. User {user_id} may have insufficient balance."
-            print(f"DEBUG: {error_msg}")
-            bot.reply_to(message, error_msg)
-            
-    except Exception as e:
-        error_msg = f"⚠️ Error: {str(e)}"
-        print(f"DEBUG: Exception occurred: {error_msg}")
-        print(f"Full traceback:\n{traceback.format_exc()}")  # Add this at top of file: import traceback
-        bot.reply_to(message, error_msg)
-
-
 # ================= ADMIN COMMANDS ================== #
 @bot.message_handler(commands=['addcoins', 'removecoins'])
 def handle_admin_commands(message):
@@ -2229,8 +2006,8 @@ def process_broadcast(message):
 📤 Sent: {success}
 ❌ Failed: {failed}""", reply_markup=admin_markup)
 
-# Ban User Command
-@bot.message_handler(func=lambda m: m.text == "⛔ Ban User" and m.from_user.id == admin_user_id)
+#====================== Ban User Command ================================#
+@bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id == admin_user_id)
 def ban_user_start(message):
     """Start ban user process"""
     msg = bot.reply_to(message, "Enter user ID to ban:")
@@ -2336,6 +2113,65 @@ def show_leaderboard(message):
             leaderboard.append(f"{i}. User {user_id}: {count} orders")
     
     bot.reply_to(message, "\n".join(leaderboard), reply_markup=main_markup)
+
+#======================= Function to Pin Annoucement Messages ====================#
+pinned_messages = {}  # Global dictionary to store pinned messages
+
+@bot.message_handler(func=lambda m: m.text == "📌 Pin Message" and m.from_user.id == admin_user_id)
+def pin_message_start(message):
+    """Start pin message process"""
+    msg = bot.reply_to(message, "📌 Send the message you want to pin for all users (text, photo, or document):")
+    bot.register_next_step_handler(msg, process_pin_message)
+
+def process_pin_message(message):
+    """Process and store the pinned message"""
+    if message.text == "✘ Cancel":
+        bot.reply_to(message, "❌ Pin cancelled.", reply_markup=admin_markup)
+        return
+    
+    # Store the message content based on type
+    if message.content_type == 'text':
+        pinned_messages['text'] = message.text
+    elif message.content_type == 'photo':
+        pinned_messages['photo'] = message.photo[-1].file_id
+        pinned_messages['caption'] = message.caption
+    elif message.content_type == 'document':
+        pinned_messages['document'] = message.document.file_id
+        pinned_messages['caption'] = message.caption
+    
+    bot.reply_to(message, "✅ Message pinned successfully!", reply_markup=admin_markup)
+
+# Add this to send pinned message to new users in the welcome function
+def send_pinned_message(chat_id):
+    """Send the pinned message to a user"""
+    if 'text' in pinned_messages:
+        bot.send_message(chat_id, f"📌 Pinned Message:\n\n{pinned_messages['text']}")
+    elif 'photo' in pinned_messages:
+        bot.send_photo(chat_id, pinned_messages['photo'], caption=pinned_messages.get('caption', ''))
+    elif 'document' in pinned_messages:
+        bot.send_document(chat_id, pinned_messages['document'], caption=pinned_messages.get('caption', ''))
+
+#========================== Add this handler for the /policy command =================#
+@bot.message_handler(commands=['policy'])
+def policy_command(message):
+    """Show the bot's usage policy"""
+    policy_text = """
+📜 *Bot Usage Policy* 📜
+
+1. **Prohibited Content**: Do not use this bot to promote illegal content, spam, or harassment.
+
+2. **Fair Use**: Abuse of the bot's services may result in account suspension.
+
+3. **Refunds**: All purchases are final. No refunds will be issued for completed orders.
+
+4. **Privacy**: We respect your privacy. Your data will not be shared with third parties.
+
+5. **Compliance**: Users must comply with all Telegram Terms of Service.
+
+Violations of these policies may result in permanent bans.
+"""
+    bot.reply_to(message, policy_text, parse_mode="Markdown")
+
 
 #======================= Function to periodically check order status ====================#
 def check_pending_orders():
