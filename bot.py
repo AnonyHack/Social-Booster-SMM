@@ -228,14 +228,22 @@ def verify_membership(call):
         )
 #==============================================#
 #========================= utility function to check bans =================#
+# Enhanced check_ban decorator to include maintenance check
 def check_ban(func):
-    """Decorator to check if user is banned before processing any command"""
     @wraps(func)
     def wrapped(message, *args, **kwargs):
         user_id = str(message.from_user.id)
+        
+        # Check maintenance mode
+        if maintenance_mode and user_id != str(admin_user_id):
+            bot.reply_to(message, maintenance_message)
+            return
+            
+        # Check ban status
         if is_banned(user_id):
             bot.reply_to(message, "⛔ You have been banned from using this bot.")
             return
+            
         return func(message, *args, **kwargs)
     return wrapped
 #================== Send Orders Button ============================#
@@ -2166,57 +2174,73 @@ def process_user_info(message):
     try:
         if query.startswith('@'):
             user = bot.get_chat(query)
+            user_id = user.id
         else:
-            user = bot.get_chat(query)
+            user_id = int(query)
+            user = bot.get_chat(user_id)
         
-        user_data = getData(user.id) or {}
+        user_data = getData(user_id) or {}
         
         info = f"""
-🔍 *User Information*:
-🆔 ID: `{user.id}`
+🔍 <b>User Information</b>:
+🆔 ID: <code>{user_id}</code>
 👤 Name: {user.first_name} {user.last_name or ''}
-📛 Username: @{user.username or 'N/A'}
-📅 Joined: {user_data.get('join_date', 'N/A')}
+📛 Username: @{user.username if user.username else 'N/A'}
 💰 Balance: {user_data.get('balance', 0)}
 📊 Orders: {user_data.get('orders_count', 0)}
 👥 Referrals: {user_data.get('total_refs', 0)}
-🔨 Status: {"BANNED ⛔" if is_banned(user.id) else "ACTIVE ✅"}
+🔨 Status: {"BANNED ⛔" if is_banned(user_id) else "ACTIVE ✅"}
         """
-        bot.reply_to(message, info, parse_mode="Markdown")
+        bot.reply_to(message, info, parse_mode="HTML")
+    except ValueError:
+        bot.reply_to(message, "❌ Invalid user ID. Must be numeric.")
     except Exception as e:
         bot.reply_to(message, f"❌ Error: {str(e)}")
 
 #============================== Server Status Command ===============================#
 @bot.message_handler(func=lambda m: m.text == "🖥 Server Status" and m.from_user.id == admin_user_id)
 def server_status(message):
-    
-    
-    # System info
-    uname = platform.uname()
-    boot_time = datetime.fromtimestamp(psutil.boot_time())
-    
-    # Memory info
-    mem = psutil.virtual_memory()
-    
-    # Disk info
-    disk = psutil.disk_usage('/')
-    
-    status = f"""
-🖥 *System Status*
----
-💻 *System*: {uname.system} {uname.release}
-⏱ *Uptime*: {datetime.now() - boot_time}
----
-🧠 *CPU*: {psutil.cpu_percent()}% usage
-💾 *Memory*: {mem.used/1024/1024:.1f}MB / {mem.total/1024/1024:.1f}MB
-🗄 *Disk*: {disk.used/1024/1024:.1f}MB / {disk.total/1024/1024:.1f}MB
----
-📊 *Bot Stats*
-👥 Users: {get_user_count()}
+    try:
+        import psutil, platform
+        from datetime import datetime
+        from functions import db
+        
+        # System info
+        uname = platform.uname()
+        boot_time = datetime.fromtimestamp(psutil.boot_time())
+        
+        # Memory info
+        mem = psutil.virtual_memory()
+        
+        # Disk info
+        disk = psutil.disk_usage('/')
+        
+        # MongoDB stats
+        mongo_stats = db.command("dbstats")
+        
+        status = f"""
+🖥 <b>System Status</b>
+━━━━━━━━━━━━━━
+💻 <b>System</b>: {uname.system} {uname.release}
+⏱ <b>Uptime</b>: {datetime.now() - boot_time}
+━━━━━━━━━━━━━━
+🧠 <b>CPU</b>: {psutil.cpu_percent()}% usage
+💾 <b>Memory</b>: {mem.used/1024/1024:.1f}MB / {mem.total/1024/1024:.1f}MB
+🗄 <b>Disk</b>: {disk.used/1024/1024:.1f}MB / {disk.total/1024/1024:.1f}MB
+━━━━━━━━━━━━━━
+📊 <b>MongoDB Stats</b>
+📦 Data Size: {mongo_stats['dataSize']/1024/1024:.1f}MB
+🗃 Storage: {mongo_stats['storageSize']/1024/1024:.1f}MB
+📂 Collections: {mongo_stats['collections']}
+━━━━━━━━━━━━━━
+👥 <b>Bot Stats</b>
+👤 Users: {get_user_count()}
 📦 Orders: {get_total_orders()}
 💰 Deposits: {get_total_deposits()}
         """
-    bot.reply_to(message, status, parse_mode="Markdown")
+        bot.reply_to(message, status, parse_mode="HTML")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error getting status: {str(e)}")
 
 #========================== Export User Data (CSV) =================#
 @bot.message_handler(func=lambda m: m.text == "📤 Export Data" and m.from_user.id == admin_user_id)
@@ -2256,45 +2280,52 @@ def export_data(message):
     except Exception as e:
         bot.reply_to(message, f"❌ Export failed: {str(e)}")
 
-#============================= Maintenance Mode Toggle =============================#
-maintenance_mode = False
+#======================= Maintenance Mode command ==================================#
 
+# Add this at the top with other global variables
+maintenance_mode = False
+maintenance_message = "🚧 The bot is currently under maintenance. Please try again later."
+
+# Maintenance toggle command
 @bot.message_handler(func=lambda m: m.text == "🔧 Maintenance" and m.from_user.id == admin_user_id)
 def toggle_maintenance(message):
-    global maintenance_mode
-    maintenance_mode = not maintenance_mode
+    global maintenance_mode, maintenance_message
     
-    status = "ENABLED 🔴" if maintenance_mode else "DISABLED 🟢"
-    bot.reply_to(message, f"Maintenance mode: {status}")
-    
-    # Broadcast if enabled
     if maintenance_mode:
-        bot.send_message(
-            admin_user_id,
-            "⚠️ Send maintenance message to users:",
-            reply_markup=ForceReply()
-        )
+        maintenance_mode = False
+        bot.reply_to(message, "✅ Maintenance mode DISABLED")
+    else:
+        msg = bot.reply_to(message, "✍️ Enter maintenance message to send to users:")
+        bot.register_next_step_handler(msg, set_maintenance_message)
 
-@bot.message_handler(func=lambda m: maintenance_mode and m.reply_to_message and 
-                     "maintenance message" in m.reply_to_message.text and 
-                     m.from_user.id == admin_user_id)
-def send_maintenance_notice(message):
+def set_maintenance_message(message):
+    global maintenance_mode, maintenance_message
+    maintenance_message = message.text
+    maintenance_mode = True
+    
+    # Send to all users
     users = get_all_users()
+    sent = 0
     for user_id in users:
         try:
-            bot.send_message(user_id, f"⚠️ Maintenance Notice:\n{message.text}")
+            bot.send_message(user_id, f"⚠️ Maintenance Notice:\n{maintenance_message}")
+            sent += 1
+            time.sleep(0.1)
         except:
             continue
-        time.sleep(0.1)
+    
+    bot.reply_to(message, f"🔧 Maintenance mode ENABLED\nMessage sent to {sent} users")
+
+def auto_disable_maintenance():
+    global maintenance_mode
+    time.sleep(3600)  # 1 hour
+    maintenance_mode = False
+
+# Then in set_maintenance_message():
+threading.Thread(target=auto_disable_maintenance).start()
 
 #============================ Order Management Commands =============================#
 @bot.message_handler(func=lambda m: m.text == "📦 Order Manager" and m.from_user.id == admin_user_id)
-def order_manager(message):
-    markup = ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add("🔄 Check Order", "❌ Cancel Order", "🔙 Admin Menu")
-    bot.reply_to(message, "Order management:", reply_markup=markup)
-
-@bot.message_handler(func=lambda m: m.text == "🔄 Check Order" and m.from_user.id == admin_user_id)
 def check_order_start(message):
     msg = bot.reply_to(message, "Enter Order ID:")
     bot.register_next_step_handler(msg, process_check_order)
@@ -2306,18 +2337,19 @@ def process_check_order(message):
         order = orders_collection.find_one({"order_id": order_id})
         
         if order:
+            status_time = datetime.fromtimestamp(order.get('timestamp', time.time())).strftime('%Y-%m-%d %H:%M')
             status = f"""
-📦 *Order #{order_id}*
----
-👤 User: {order.get('username', 'N/A')} ({order.get('user_id', 'N/A')})
+📦 <b>Order #{order_id}</b>
+━━━━━━━━━━━━━━
+👤 User: {order.get('username', 'N/A')} (<code>{order.get('user_id', 'N/A')}</code>)
 🛒 Service: {order.get('service', 'N/A')}
 🔗 Link: {order.get('link', 'N/A')}
 📊 Quantity: {order.get('quantity', 'N/A')}
 💰 Cost: {order.get('cost', 'N/A')}
 🔄 Status: {order.get('status', 'N/A')}
-⏱ Date: {order.get('timestamp', 'N/A')}
+⏱ Date: {status_time}
             """
-            bot.reply_to(message, status, parse_mode="Markdown")
+            bot.reply_to(message, status, parse_mode="HTML", disable_web_page_preview=True)
         else:
             bot.reply_to(message, "❌ Order not found")
     except Exception as e:
