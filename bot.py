@@ -45,8 +45,9 @@ button2 = KeyboardButton("👤 My Account")
 button3 = KeyboardButton("💳 Pricing")
 button4 = KeyboardButton("📊 Order Statistics")
 button5 = KeyboardButton("🗣 Invite Friends")
-button6 = KeyboardButton("📜 Help")
-button7 = KeyboardButton("🛠 Admin Panel")
+button6 = KeyboardButton("🏆 Leaderboard")
+button7 = KeyboardButton("📜 Help")
+button8 = KeyboardButton("🛠 Admin Panel")
 
 main_markup.add(button1, button2)
 main_markup.add(button3, button4)
@@ -69,11 +70,7 @@ admin_markup.row(
 )
 admin_markup.row(
     KeyboardButton("📋 List Banned"),
-    KeyboardButton("🏆 Leaderboard")
-)
-admin_markup.row(
-    KeyboardButton("📌 Pin Message"),
-    KeyboardButton("🏆 Leaderboard")
+    KeyboardButton("📌 Pin Message")
 )
 admin_markup.add(KeyboardButton("🔙 Main Menu"))
 #======================= Send Orders main menu =======================#
@@ -252,6 +249,7 @@ def check_ban(func):
     return wrapped
 #================== Send Orders Button ============================#
 @bot.message_handler(func=lambda message: message.text == "📤 Send Orders")
+@check_ban
 def send_orders_menu(message):
     user_id = message.from_user.id
 
