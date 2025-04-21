@@ -183,7 +183,7 @@ def add_order(user_id, order_data):
         return False
 #==================================== Channel Membership Check =======================#
 #================================== Force Join Method =======================================#
-required_channels = ["Megahubbots", "Freenethubz", "Freenethubchannel"]  # Channel usernames without "@"
+required_channels = ["Megahubbots", "Freenethubz", "Freenethubchannel", "smmserviceslogs"]  # Channel usernames without "@"
 payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
@@ -208,7 +208,10 @@ def check_membership_and_prompt(user_id, message):
           "Cʟɪᴄᴋ Tʜᴇ Bᴜᴛᴛᴏɴꜱ Bᴇʟᴏᴡ Tᴏ Jᴏɪɴ, Tʜᴇɴ Pʀᴇꜱꜱ *'✅ I Joined'*. ",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("MAIN CHANNEL", url="https://t.me/Megahubbots")],
+                [InlineKeyboardButton("UPDATE CHANNEL", url="https://t.me/Megahubbots")],
+                [InlineKeyboardButton("PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
+                [InlineKeyboardButton("BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
+                [InlineKeyboardButton("LOGS CHANNEL", url="https://t.me/smmserviceslogs")],
                 [InlineKeyboardButton("✅ I Joined", callback_data="verify_membership")]
             ])
         )
