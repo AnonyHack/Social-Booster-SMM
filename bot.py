@@ -337,7 +337,7 @@ def send_welcome(message):
         setReferredStatus(user_id)
 
     # Send welcome image with caption
-    welcome_image_url = "https://t.me/c/2681833322/2453"  # Replace with your image URL
+    welcome_image_url = "https://t.me/smmserviceslogs/20"  # Replace with your image URL
     welcome_caption = f"""
 🎉 <b>Welcome {first_name} !</b> 🎉
 
