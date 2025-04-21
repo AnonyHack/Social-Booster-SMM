@@ -203,8 +203,8 @@ def check_membership_and_prompt(user_id, message):
     if not is_user_member(user_id):
         bot.reply_to(
             message,
-            "🚨 *To use this bot, you must join the required channels first!* 🚨\n\n"
-            "Click the buttons below to join, then press *'✅ I Joined'*. ",
+            "🚨 *Tᴏ Uꜱᴇ Tʜɪꜱ Bᴏᴛ, Yᴏᴜ Mᴜꜱᴛ Jᴏɪɴ Tʜᴇ RᴇQᴜɪʀᴇᴅ Cʜᴀɴɴᴇʟꜱ Fɪʀꜱᴛ!* 🚨\ɴ\ɴ"
+          "Cʟɪᴄᴋ Tʜᴇ Bᴜᴛᴛᴏɴꜱ Bᴇʟᴏᴡ Tᴏ Jᴏɪɴ, Tʜᴇɴ Pʀᴇꜱꜱ *'✅ I Joined'*. ",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("MAIN CHANNEL", url="https://t.me/Megahubbots")],
@@ -222,13 +222,13 @@ def verify_membership(call):
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="✅ You are verified! You can now use the bot."
+            text="✅ 𝐘𝐨𝐮 𝐚𝐫𝐞 𝐯𝐞𝐫𝐢𝐟𝐢𝐞𝐝! 𝐘𝐨𝐮 𝐜𝐚𝐧 𝐧𝐨𝐰 𝐮𝐬𝐞 𝐭𝐡𝐞 𝐛𝐨𝐭."
         )
         send_welcome(call.message)  # Restart the welcome process
     else:
         bot.answer_callback_query(
             callback_query_id=call.id,
-            text="❌ You haven't joined all the required channels yet!",
+            text="❌ Y̶o̶u̶ ̶h̶a̶v̶e̶n̶'̶t̶ ̶j̶o̶i̶n̶e̶d̶ ̶a̶l̶l̶ ̶t̶h̶e̶ ̶r̶e̶q̶u̶i̶r̶e̶d̶ ̶c̶h̶a̶n̶n̶e̶l̶s̶ ̶y̶e̶t̶!",
             show_alert=True
         )
 #==============================================#
@@ -246,7 +246,7 @@ def check_ban(func):
             
         # Check ban status
         if is_banned(user_id):
-            bot.reply_to(message, "⛔ You have been banned from using this bot.")
+            bot.reply_to(message, "⛔ ❝𝐘𝐨𝐮 𝐡𝐚𝐯𝐞 𝐛𝐞𝐞𝐧 𝐛𝐚𝐧𝐧𝐞𝐝 𝐟𝐫𝐨𝐦 𝐮𝐬𝐢𝐧𝐠 𝐭𝐡𝐢𝐬 𝐛𝐨𝐭❞.")
             return
             
         return func(message, *args, **kwargs)
@@ -269,7 +269,7 @@ def send_orders_menu(message):
     
     # If the user is a member, show the Send Orders menu
     """Handle the main Send Orders menu"""
-    bot.reply_to(message, "📤 Select platform to send orders:", reply_markup=send_orders_markup)
+    bot.reply_to(message, "📤 Sᴇʟᴇᴄᴛ Pʟᴀᴛꜰᴏʀᴍ Tᴏ Sᴇɴᴅ Oʀᴅᴇʀꜱ:", reply_markup=send_orders_markup)
 
 
 def set_bot_commands():
@@ -337,16 +337,16 @@ def send_welcome(message):
         setReferredStatus(user_id)
 
     # Send welcome image with caption
-    welcome_image_url = "https://t.me/smmserviceslogs/2"  # Replace with your image URL
+    welcome_image_url = "https://t.me/c/2681833322/2453"  # Replace with your image URL
     welcome_caption = f"""
 🎉 <b>Welcome {first_name} !</b> 🎉
 
 🆔 <b>User ID:</b> <code>`{user_id}`</code>
 👤 <b>Username:</b> {username}
 
-With our bot, you can boost your Telegram posts with just a few simple steps!
+Wɪᴛʜ Oᴜʀ Bᴏᴛ, Yᴏᴜ Cᴀɴ Bᴏᴏꜱᴛ Yᴏᴜʀ Sᴏᴄɪᴀʟ Mᴇᴅɪᴀ Aᴄᴄᴏᴜɴᴛꜱ & Pᴏꜱᴛꜱ Wɪᴛʜ Jᴜꜱᴛ A Fᴇᴡ Sɪᴍᴘʟᴇ Sᴛᴇᴘꜱ!
 
-👇 <b>Choose an option below to get started:</b>
+👇 <b>Cʜᴏᴏꜱᴇ Aɴ Oᴘᴛɪᴏɴ Bᴇʟᴏᴡ Tᴏ Gᴇᴛ Sᴛᴀʀᴛᴇᴅ:</b>
 """
 
     try:
@@ -363,7 +363,7 @@ With our bot, you can boost your Telegram posts with just a few simple steps!
         if userData['welcome_bonus'] == 0:
             bot.send_message(
                 user_id,
-                f"🎁 <b>You received +{welcome_bonus} coins as welcome bonus!</b>",
+                f"🎁 <b>Yᴏᴜ Rᴇᴄᴇɪᴠᴇᴅ +{welcome_bonus} Cᴏɪɴꜱ Sꜱ Wᴇʟᴄᴏᴍᴇ Bᴏɴᴜꜱ!</b>",
                 parse_mode='HTML'
             )
             
@@ -404,13 +404,13 @@ def my_account(message):
     caption = f"""
 <b><u>My Account</u></b>
 
-🆔 User id: <code>`{user_id}`</code>
-👤 Username: @{message.from_user.username if message.from_user.username else "N/A"}
-🗣 Invited users: {data.get('total_refs', 0)}
-⏰ Time: {current_time}
-📅 Date: {current_date}
+🆔 Uꜱᴇʀ Iᴅ: <code>`{user_id}`</code>
+👤 Uꜱᴇʀɴᴀᴍᴇ: @{message.from_user.username if message.from_user.username else "N/A"}
+🗣 Iɴᴠɪᴛᴇᴅ Uꜱᴇʀꜱ: {data.get('total_refs', 0)}
+⏰ Tɪᴍᴇ: {current_time}
+📅 Dᴀᴛᴇ: {current_date}
 
-👁‍🗨 Balance: <code>{data['balance']}</code> Coins
+🪙 Bᴀʟᴀɴᴄᴇ: <code>{data['balance']}</code> Cᴏɪɴꜱ
 """
     
     if photos.photos:
@@ -658,11 +658,11 @@ def handle_telegram_order(message):
     
     msg = f"""📊 Order {service['name']}:
     
-📌 Min: {service['min']}
-📌 Max: {service['max']}
-💰 Price: {service['price']} coins/{service['unit']}
-🔗 Link Hint: {service['link_hint']}
-💎 Quality: {service['quality']}
+📌 Mɪɴɪᴍᴜᴍ: {service['min']}
+📌 Mᴀxɪᴍᴜᴍ: {service['max']}
+💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
+🔗 Lɪɴᴋ Hɪɴᴛ: {service['link_hint']}
+💎 Qᴜᴀʟɪᴛʏ: {service['quality']}
 
 
 Enter quantity:"""
@@ -896,11 +896,11 @@ def handle_tiktok_order(message):
     
     msg = f"""📊 Order {service['name']}:
     
-📌 Min: {service['min']}
-📌 Max: {service['max']}
-💰 Price: {service['price']} coins/{service['unit']}
-🔗 Link Hint: {service['link_hint']}
-💎 Quality: {service['quality']}
+📌 Mɪɴɪᴍᴜᴍ: {service['min']}
+📌 Mᴀxɪᴍᴜᴍ: {service['max']}
+💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
+🔗 Lɪɴᴋ Hɪɴᴛ: {service['link_hint']}
+💎 Qᴜᴀʟɪᴛʏ: {service['quality']}
 
 Enter quantity:"""
     
@@ -1115,11 +1115,11 @@ def handle_instagram_order(message):
     
     msg = f"""📊 Order {service['name']}:
     
-📌 Min: {service['min']}
-📌 Max: {service['max']}
-💰 Price: {service['price']} coins/{service['unit']}
-🔗 Link Hint: {service['link_hint']}
-💎 Quality: {service['quality']}
+📌 Mɪɴɪᴍᴜᴍ: {service['min']}
+📌 Mᴀxɪᴍᴜᴍ: {service['max']}
+💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
+🔗 Lɪɴᴋ Hɪɴᴛ: {service['link_hint']}
+💎 Qᴜᴀʟɪᴛʏ: {service['quality']}
 
 Enter quantity:"""
     
@@ -1332,11 +1332,11 @@ def handle_youtube_order(message):
     
     msg = f"""📊 Order {service['name']}:
     
-📌 Min: {service['min']}
-📌 Max: {service['max']}
-💰 Price: {service['price']} coins/{service['unit']}
-🔗 Link Hint: {service['link_hint']}
-💎 Quality: {service['quality']}
+📌 Mɪɴɪᴍᴜᴍ: {service['min']}
+📌 Mᴀxɪᴍᴜᴍ: {service['max']}
+💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
+🔗 Lɪɴᴋ Hɪɴᴛ: {service['link_hint']}
+💎 Qᴜᴀʟɪᴛʏ: {service['quality']}
 
 Enter quantity:"""
     
@@ -1559,11 +1559,11 @@ def handle_facebook_order(message):
     
     msg = f"""📊 Order {service['name']}:
     
-📌 Min: {service['min']}
-📌 Max: {service['max']}
-💰 Price: {service['price']} coins/{service['unit']}
-🔗 Link Hint: {service['link_hint']}
-💎 Quality: {service['quality']}
+📌 Mɪɴɪᴍᴜᴍ: {service['min']}
+📌 Mᴀxɪᴍᴜᴍ: {service['max']}
+💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
+🔗 Lɪɴᴋ Hɪɴᴛ: {service['link_hint']}
+💎 Qᴜᴀʟɪᴛʏ: {service['quality']}
 
 Enter quantity:"""
     
@@ -1766,11 +1766,11 @@ def handle_whatsapp_order(message):
     
     msg = f"""📊 Order {service['name']}:
     
-📌 Min: {service['min']}
-📌 Max: {service['max']}
-💰 Price: {service['price']} coins/{service['unit']}
-🔗 Link Hint: {service['link_hint']}
-💎 Quality: {service['quality']}
+📌 Mɪɴɪᴍᴜᴍ: {service['min']}
+📌 Mᴀxɪᴍᴜᴍ: {service['max']}
+💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
+🔗 Lɪɴᴋ Hɪɴᴛ: {service['link_hint']}
+💎 Qᴜᴀʟɪᴛʏ: {service['quality']}
 
 Enter quantity:"""
     
@@ -1936,29 +1936,29 @@ def handle_back_buttons(message):
     if message.text == "↩️ Go Back":
         # Determine where to go back based on context
         if message.text in ["👀 Order Views", "❤️ Order Reactions", "👥 Order Members"]:
-            bot.reply_to(message, "Returning to Telegram services...", reply_markup=telegram_services_markup)
+            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Tᴇʟᴇɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=telegram_services_markup)
         elif message.text in ["👀 Order TikTok Views", "❤️ Order Likes", "👥 Order Followers"]:
-            bot.reply_to(message, "Returning to TikTok services...", reply_markup=tiktok_services_markup)
+            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Tɪᴋᴛᴏᴋ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=tiktok_services_markup)
         elif message.text in ["🎥 Insta Vid Views", "❤️ Insta Likes", "👥 Insta Followers"]:
-            bot.reply_to(message, "Returning to Instagram services...", reply_markup=instagram_services_markup)
+            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Iɴꜱᴛᴀɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=instagram_services_markup)
         elif message.text in ["▶️ YT Views", "👍 YT Likes", "👥 YT Subscribers"]:
-            bot.reply_to(message, "Returning to YouTube services...", reply_markup=youtube_services_markup)
+            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Yᴏᴜᴛᴜʙᴇ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=youtube_services_markup)
         elif message.text in ["👤 Profile Followers", "📄 Page Followers", "🎥 Video/Reel Views", "❤️ Post Likes"]:
-            bot.reply_to(message, "Returning to Facebook services...", reply_markup=facebook_services_markup)
+            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Fᴀᴄᴇʙᴏᴏᴋ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=facebook_services_markup)
         elif message.text in ["👥 Channel Members", "😀 Channel EmojiReaction"]:
-            bot.reply_to(message, "Returning to WhatsApp services...", reply_markup=whatsapp_services_markup)
+            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Wʜᴀꜱᴛᴀᴘᴘ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=whatsapp_services_markup)
         else:
             # Default back to Send Orders menu
-            bot.reply_to(message, "Returning to order options...", reply_markup=send_orders_markup)
+            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Oʀᴅᴇʀ Oᴘᴛɪᴏɴꜱ...", reply_markup=send_orders_markup)
     else:
         # Cancel goes straight to main menu
-        bot.reply_to(message, "Operation cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "Oᴘᴇʀᴀᴛɪᴏɴ Cᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
 
 # ================= ADMIN COMMANDS ================== #
 @bot.message_handler(commands=['addcoins', 'removecoins'])
 def handle_admin_commands(message):
     if message.from_user.id != admin_user_ids:
-        bot.reply_to(message, "❌ You are not authorized to use this command.")
+        bot.reply_to(message, "❌ Y̶o̶u̶ ̶a̶r̶e̶ ̶n̶o̶t̶ ̶a̶u̶t̶h̶o̶r̶i̶z̶e̶d̶ ̶t̶o̶ ̶u̶s̶e̶ ̶t̶h̶i̶s̶ ̶c̶o̶m̶m̶a̶n̶d̶.")
         return
     
     try:
@@ -1971,7 +1971,7 @@ def handle_admin_commands(message):
         try:
             amount = float(args[2])
         except ValueError:
-            bot.reply_to(message, "⚠️ Amount must be a number")
+            bot.reply_to(message, "⚠️ Aᴍᴏᴜɴᴛ Mᴜꜱᴛ Bᴇ ᴀ Nᴜᴍʙᴇʀ")
             return
             
         if args[0] == '/addcoins':
@@ -1989,7 +1989,7 @@ def handle_admin_commands(message):
             if addBalance(user_id, amount):
                 bot.reply_to(message, f"✅ Added {amount} coins to user {user_id}")
                 try:
-                    bot.send_message(user_id, f"📢 Admin added {amount} coins to your account!")
+                    bot.send_message(user_id, f"📢 Aᴅᴍɪɴ Aᴅᴅᴇᴅ {amount} Cᴏɪɴꜱ Tᴏ Yᴏᴜʀ Aᴄᴄᴏᴜɴᴛ!")
                 except:
                     pass
             else:
@@ -1999,7 +1999,7 @@ def handle_admin_commands(message):
             if cutBalance(user_id, amount):
                 bot.reply_to(message, f"✅ Removed {amount} coins from user {user_id}")
                 try:
-                    bot.send_message(user_id, f"📢 Admin removed {amount} coins from your account!")
+                    bot.send_message(user_id, f"📢 Aᴅᴍɪɴ Rᴇᴍᴏᴠᴇᴅ {amount} Cᴏɪɴꜱ Fʀᴏᴍ Yᴏᴜʀ Aᴄᴄᴏᴜɴᴛ!")
                 except:
                     pass
             else:
@@ -2012,7 +2012,7 @@ def handle_admin_commands(message):
 @bot.message_handler(func=lambda message: message.text == "🛠 Admin Panel")
 def admin_panel(message):
     if message.from_user.id != admin_user_ids:
-        bot.reply_to(message, "❌ You are not authorized to access this panel.")
+        bot.reply_to(message, "❌ Y̶o̶u̶ ̶a̶r̶e̶ ̶n̶o̶t̶ ̶a̶u̶t̶h̶o̶r̶i̶z̶e̶d̶ ̶t̶o̶ ̶a̶c̶c̶e̶s̶s̶ ̶t̶h̶i̶s̶ ̶p̶a̶n̶e̶l̶.")
         return
     
     bot.reply_to(message, "🛠 Admin Panel:", reply_markup=admin_markup)
@@ -2027,7 +2027,7 @@ def admin_actions(message):
 
 @bot.message_handler(func=lambda message: message.text == "🔙 Main Menu")
 def back_to_main(message):
-    bot.reply_to(message, "Returning to main menu...", reply_markup=main_markup)
+    bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Mᴀɪɴ Mᴇɴᴜ...", reply_markup=main_markup)
 
 #========== New Commands ==============#
 # Admin Stats Command
@@ -2050,11 +2050,11 @@ def show_analytics(message):
         
         msg = f"""📊 <b>Bot Analytics</b>
         
-👤 <b>Total Users:</b> {total_users}
-🔥 <b>Active Users (7 Days):</b> {active_users}
-🚀 <b>Total Orders Processed:</b> {total_orders}
-💰 <b>Total Deposits:</b> {total_deposits:.2f} coins
-🎯 <b>Top Referrer:</b> {referrer_display}"""
+👤 <b>Tᴏᴛᴀʟ Uꜱᴇʀꜱ:</b> {total_users}
+🔥 <b>Aᴄᴛɪᴠᴇ Uꜱᴇʀꜱ (7 Days):</b> {active_users}
+🚀 <b>Tᴏᴛᴀʟ Oʀᴅᴇʀꜱ Pʀᴏᴄᴇꜱꜱᴇᴅ:</b> {total_orders}
+💰 <b>Tᴏᴛᴀʟ Dᴇᴘᴏꜱɪᴛꜱ:</b> {total_deposits:.2f} coins
+🎯 <b>Tᴏᴘ Rᴇꜰᴇʀʀᴇʀ:</b> {referrer_display}"""
         
         bot.reply_to(message, msg, parse_mode='HTML')
     except Exception as e:
@@ -2062,10 +2062,10 @@ def show_analytics(message):
         bot.reply_to(message, "❌ Failed to load analytics. Please try again later.")
 
 # =========================== Broadcast Command ================= #
-@bot.message_handler(func=lambda m: m.text == "📢 Broadcast" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "📤 Broadcast" and m.from_user.id == admin_user_ids)
 def broadcast_start(message):
     """Start normal broadcast process (unpinned)"""
-    msg = bot.reply_to(message, "📢 Enter the message you want to broadcast to all users (this won't be pinned):")
+    msg = bot.reply_to(message, "📢 Eɴᴛᴇʀ Tʜᴇ Mᴇꜱꜱᴀɢᴇ Yᴏᴜ Wᴀɴᴛ Tᴏ Bʀᴏᴀᴅᴄᴀꜱᴛ Tᴏ Aʟʟ Uꜱᴇʀꜱ (ᴛʜɪꜱ ᴡᴏɴ'ᴛ ʙᴇ ᴘɪɴɴᴇᴅ):")
     bot.register_next_step_handler(msg, process_broadcast)
 
 def process_broadcast(message):
@@ -2078,7 +2078,7 @@ def process_broadcast(message):
     success = 0
     failed = 0
     
-    bot.reply_to(message, f"⏳ Sending broadcast to {len(users)} users...")
+    bot.reply_to(message, f"⏳ Sᴇɴᴅɪɴɢ Bʀᴏᴀᴅᴄᴀꜱᴛ Tᴏ {len(users)} users...")
     
     for user_id in users:
         try:
@@ -2103,7 +2103,7 @@ def process_broadcast(message):
 @bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id == admin_user_ids)
 def ban_user_start(message):
     """Start ban user process"""
-    msg = bot.reply_to(message, "Enter user ID to ban:")
+    msg = bot.reply_to(message, "Eɴᴛᴇʀ Uꜱᴇʀ Iᴅ Tᴏ Bᴀɴ:")
     bot.register_next_step_handler(msg, process_ban_user)
 
 def process_ban_user(message):
@@ -2127,12 +2127,12 @@ def process_ban_user(message):
     # Send notification to banned user
     try:
         appeal_markup = InlineKeyboardMarkup()
-        appeal_markup.add(InlineKeyboardButton("📩 Send Appeal", url="https://t.me/Silando"))
+        appeal_markup.add(InlineKeyboardButton("📩 Send Appeal", url="https://t.me/SocialHubBoosterHelper"))
         
         bot.send_message(
             user_id,
-            f"⛔ You have been banned from using this bot.\n\n"
-            f"If you believe this was a mistake, you can appeal your ban:",
+            f"⛔ 𝙔𝙤𝙪 𝙝𝙖𝙫𝙚 𝙗𝙚𝙚𝙣 𝙗𝙖𝙣𝙣𝙚𝙙 𝙛𝙧𝙤𝙢 𝙪𝙨𝙞𝙣𝙜 𝙩𝙝𝙞𝙨 𝙗𝙤𝙩.\n\n"
+            f"𝙄𝙛 𝙮𝙤𝙪 𝙗𝙚𝙡𝙞𝙚𝙫𝙚 𝙩𝙝𝙞𝙨 𝙬𝙖𝙨 𝙖 𝙢𝙞𝙨𝙩𝙖𝙠𝙚, 𝙮𝙤𝙪 𝙘𝙖𝙣 𝙖𝙥𝙥𝙚𝙖𝙡 𝙮𝙤𝙪𝙧 𝙗𝙖𝙣:",
             reply_markup=appeal_markup
         )
     except Exception as e:
@@ -2144,7 +2144,7 @@ def process_ban_user(message):
 @bot.message_handler(func=lambda m: m.text == "✅ Unban User" and m.from_user.id == admin_user_ids)
 def unban_user_start(message):
     """Start unban user process"""
-    msg = bot.reply_to(message, "Enter user ID to unban:")
+    msg = bot.reply_to(message, "Eɴᴛᴇʀ Uꜱᴇʀ Iᴅ Tᴏ Uɴʙᴀɴ:")
     bot.register_next_step_handler(msg, process_unban_user)
 
 def process_unban_user(message):
@@ -2167,7 +2167,7 @@ def process_unban_user(message):
     
     # Notify unbanned user
     try:
-        bot.send_message(user_id, "✅ Your ban has been lifted. You can now use the bot again.")
+        bot.send_message(user_id, "✅ 𝗬𝗼𝘂𝗿 𝗯𝗮𝗻 𝗵𝗮𝘀 𝗯𝗲𝗲𝗻 𝗹𝗶𝗳𝘁𝗲𝗱. 𝗬𝗼𝘂 𝗰𝗮𝗻 𝗻𝗼𝘄 𝘂𝘀𝗲 𝘁𝗵𝗲 𝗯𝗼𝘁 𝗮𝗴𝗮𝗶𝗻.")
     except Exception as e:
         print(f"Could not notify unbanned user: {e}")
     
@@ -2180,7 +2180,7 @@ def list_banned(message):
     banned_users = get_banned_users()
     
     if not banned_users:
-        bot.reply_to(message, "ℹ️ No users are currently banned.", reply_markup=admin_markup)
+        bot.reply_to(message, "ℹ️ 𝗡𝗼 𝘂𝘀𝗲𝗿𝘀 𝗮𝗿𝗲 𝗰𝘂𝗿𝗿𝗲𝗻𝘁𝗹𝘆 𝗯𝗮𝗻𝗻𝗲𝗱.", reply_markup=admin_markup)
         return
     
     msg = "⛔ Banned Users:\n\n" + "\n".join(banned_users)
@@ -2193,10 +2193,10 @@ def show_leaderboard(message):
     top_users = get_top_users(10)
     
     if not top_users:
-        bot.reply_to(message, "🏆 No order data available yet.", reply_markup=main_markup)
+        bot.reply_to(message, "🏆 𝙉𝙤 𝙤𝙧𝙙𝙚𝙧 𝙙𝙖𝙩𝙖 𝙖𝙫𝙖𝙞𝙡𝙖𝙗𝙡𝙚 𝙮𝙚𝙩.", reply_markup=main_markup)
         return
     
-    leaderboard = ["🏆 Top Users by Orders:"]
+    leaderboard = ["🏆 𝗧𝗼𝗽 𝗨𝘀𝗲𝗿𝘀 𝗯𝘆 𝗢𝗿𝗱𝗲𝗿𝘀:"]
     for i, (user_id, count) in enumerate(top_users, 1):
         try:
             user = bot.get_chat(user_id)
@@ -2212,22 +2212,22 @@ def show_leaderboard(message):
 def pin_message_start(message):
     """Start pin message process"""
     msg = bot.reply_to(message, 
-                      "📌 Send the message you want to pin in all user chats:\n"
-                      "(This will pin the message at the top of each user's chat with the bot)\n\n"
-                      "Type '✘ Cancel' to abort.")
+                      "📌 Sᴇɴᴅ Tʜᴇ Mᴇꜱꜱᴀɢᴇ Yᴏᴜ Wᴀɴᴛ Tᴏ Pɪɴ Iɴ Aʟʟ Uꜱᴇʀ Cʜᴀᴛꜱ:\n"
+                      "(ᴛʜɪꜱ ᴡɪʟʟ ᴘɪɴ ᴛʜᴇ ᴍᴇꜱꜱᴀɢᴇ ᴀᴛ ᴛʜᴇ ᴛᴏᴘ ᴏꜰ ᴇᴀᴄʜ ᴜꜱᴇʀ'ꜱ ᴄʜᴀᴛ ᴡɪᴛʜ ᴛʜᴇ ʙᴏᴛ)\n\n"
+                      "Tʏᴘᴇ 'Cancel' Tᴏ Aʙᴏʀᴛ.")
     bot.register_next_step_handler(msg, process_pin_message)
 
 def process_pin_message(message):
     """Process and send the pinned message to all users"""
-    if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Pin cancelled.", reply_markup=admin_markup)
+    if message.text == "Cancel":
+        bot.reply_to(message, "❌ Pɪɴ Cᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=admin_markup)
         return
     
     users = get_all_users()
     success = 0
     failed = 0
     
-    bot.reply_to(message, "⏳ Starting to pin messages in user chats...", reply_markup=admin_markup)
+    bot.reply_to(message, "⏳ Sᴛᴀʀᴛɪɴɢ Tᴏ Pɪɴ Mᴇꜱꜱᴀɢᴇꜱ Iɴ Uꜱᴇʀ Cʜᴀᴛꜱ...", reply_markup=admin_markup)
     
     for user_id in users:
         try:
@@ -2248,7 +2248,7 @@ def process_pin_message(message):
         time.sleep(0.1)  # Rate limiting
     
     bot.reply_to(message, 
-                 f"📌 Pinning Complete:\n"
+                 f"📌 𝗣𝗶𝗻𝗻𝗶𝗻𝗴 𝗖𝗼𝗺𝗽𝗹𝗲𝘁𝗲:\n"
                  f"✅ Successfully pinned in {success} chats\n"
                  f"❌ Failed in {failed} chats",
                  reply_markup=admin_markup)
@@ -2273,14 +2273,14 @@ def process_user_info(message):
         user_data = getData(user_id) or {}
         
         info = f"""
-🔍 <b>User Information</b>:
-🆔 ID: <code>{user_id}</code>
-👤 Name: {user.first_name} {user.last_name or ''}
-📛 Username: @{user.username if user.username else 'N/A'}
-💰 Balance: {user_data.get('balance', 0)}
-📊 Orders: {user_data.get('orders_count', 0)}
-👥 Referrals: {user_data.get('total_refs', 0)}
-🔨 Status: {"BANNED ⛔" if is_banned(user_id) else "ACTIVE ✅"}
+🔍 <b>𝗨𝘀𝗲𝗿 𝗜𝗻𝗳𝗼𝗿𝗺𝗮𝘁𝗶𝗼𝗻</b>:
+🆔 Iᴅ: <code>{user_id}</code>
+👤 Nᴀᴍᴇ: {user.first_name} {user.last_name or ''}
+📛 Uꜱᴇʀɴᴀᴍᴇ: @{user.username if user.username else 'N/A'}
+💰 Bᴀʟᴀɴᴄᴇ: {user_data.get('balance', 0)}
+📊 Oʀᴅᴇʀꜱ: {user_data.get('orders_count', 0)}
+👥 Rᴇꜰᴇʀʀᴀʟꜱ: {user_data.get('total_refs', 0)}
+🔨 Sᴛᴀᴛᴜꜱ: {"BANNED ⛔" if is_banned(user_id) else "ACTIVE ✅"}
         """
         bot.reply_to(message, info, parse_mode="HTML")
     except ValueError:
@@ -2310,19 +2310,19 @@ def server_status(message):
         mongo_stats = db.command("dbstats")
         
         status = f"""
-🖥 <b>System Status</b>
+🖥 <b>𝙎𝙮𝙨𝙩𝙚𝙢 𝙎𝙩𝙖𝙩𝙪𝙨</b>
 ━━━━━━━━━━━━━━
-💻 <b>System</b>: {uname.system} {uname.release}
-⏱ <b>Uptime</b>: {datetime.now() - boot_time}
+💻 <b>Sʏꜱᴛᴇᴍ</b>: {uname.system} {uname.release}
+⏱ <b>Uᴘᴛɪᴍᴇ</b>: {datetime.now() - boot_time}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧠 <b>CPU</b>: {psutil.cpu_percent()}% usage
-💾 <b>Memory</b>: {mem.used/1024/1024:.1f}MB / {mem.total/1024/1024:.1f}MB
-🗄 <b>Disk</b>: {disk.used/1024/1024:.1f}MB / {disk.total/1024/1024:.1f}MB
+🧠 <b>Cᴘᴜ</b>: {psutil.cpu_percent()}% usage
+💾 <b>Mᴇᴍᴏʀʏ</b>: {mem.used/1024/1024:.1f}MB / {mem.total/1024/1024:.1f}MB
+🗄 <b>Dɪꜱᴋ</b>: {disk.used/1024/1024:.1f}MB / {disk.total/1024/1024:.1f}MB
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 <b>MongoDB Stats</b>
-📦 Data Size: {mongo_stats['dataSize']/1024/1024:.1f}MB
-🗃 Storage: {mongo_stats['storageSize']/1024/1024:.1f}MB
-📂 Collections: {mongo_stats['collections']}
+📊 <b>𝙈𝙤𝙣𝙜𝙤𝘿𝘽 𝙎𝙩𝙖𝙩𝙨</b>
+📦 Dᴀᴛᴀ ꜱɪᴢᴇ: {mongo_stats['dataSize']/1024/1024:.1f}MB
+🗃 Sᴛᴏʀᴀɢᴇ: {mongo_stats['storageSize']/1024/1024:.1f}MB
+📂 Cᴏʟʟᴇᴄᴛɪᴏɴꜱ: {mongo_stats['collections']}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
         """
         bot.reply_to(message, status, parse_mode="HTML")
@@ -2362,7 +2362,7 @@ def export_data(message):
         bot.send_document(
             message.chat.id,
             ('users_export.csv', output.getvalue()),
-            caption="📊 User data export"
+            caption="📊 Uꜱᴇʀ Dᴀᴛᴀ Exᴘᴏʀᴛ"
         )
     except Exception as e:
         bot.reply_to(message, f"❌ Export failed: {str(e)}")
@@ -2371,7 +2371,7 @@ def export_data(message):
 
 # Add this at the top with other global variables
 maintenance_mode = False
-maintenance_message = "🚧 The bot is currently under maintenance. Please try again later."
+maintenance_message = "🚧 𝙏𝙝𝙚 𝙗𝙤𝙩 𝙞𝙨 𝙘𝙪𝙧𝙧𝙚𝙣𝙩𝙡𝙮 𝙪𝙣𝙙𝙚𝙧 𝙢𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚. 𝙋𝙡𝙚𝙖𝙨𝙚 𝙩𝙧𝙮 𝙖𝙜𝙖𝙞𝙣 𝙡𝙖𝙩𝙚𝙧."
 
 # Maintenance toggle command
 @bot.message_handler(func=lambda m: m.text == "🔧 Maintenance" and m.from_user.id == admin_user_ids)
@@ -2380,9 +2380,9 @@ def toggle_maintenance(message):
     
     if maintenance_mode:
         maintenance_mode = False
-        bot.reply_to(message, "✅ Maintenance mode DISABLED")
+        bot.reply_to(message, "✅ 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚 𝙢𝙤𝙙𝙚 𝘿𝙄𝙎𝘼𝘽𝙇𝙀𝘿")
     else:
-        msg = bot.reply_to(message, "✍️ Enter maintenance message to send to users:")
+        msg = bot.reply_to(message, "✍️ Eɴᴛᴇʀ Mᴀɪɴᴛᴇɴᴀɴᴄᴇ Mᴇꜱꜱᴀɢᴇ Tᴏ Sᴇɴᴅ Tᴏ Uꜱᴇʀꜱ:")
         bot.register_next_step_handler(msg, set_maintenance_message)
 
 def set_maintenance_message(message):
@@ -2395,13 +2395,13 @@ def set_maintenance_message(message):
     sent = 0
     for user_id in users:
         try:
-            bot.send_message(user_id, f"⚠️ Maintenance Notice:\n{maintenance_message}")
+            bot.send_message(user_id, f"⚠️ 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚 𝙉𝙤𝙩𝙞𝙘𝙚:\n{maintenance_message}")
             sent += 1
             time.sleep(0.1)
         except:
             continue
     
-    bot.reply_to(message, f"🔧 Maintenance mode ENABLED\nMessage sent to {sent} users")
+    bot.reply_to(message, f"🔧 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚 𝙢𝙤𝙙𝙚 𝙀𝙉𝘼𝘽𝙇𝙀𝘿\nMessage sent to {sent} users")
 
 def auto_disable_maintenance():
     global maintenance_mode
@@ -2428,13 +2428,13 @@ def process_check_order(message):
             status = f"""
 📦 <b>Order #{order_id}</b>
 ━━━━━━━━━━━━━━
-👤 User: {order.get('username', 'N/A')} (<code>{order.get('user_id', 'N/A')}</code>)
-🛒 Service: {order.get('service', 'N/A')}
-🔗 Link: {order.get('link', 'N/A')}
-📊 Quantity: {order.get('quantity', 'N/A')}
-💰 Cost: {order.get('cost', 'N/A')}
-🔄 Status: {order.get('status', 'N/A')}
-⏱ Date: {status_time}
+👤 Uꜱᴇʀ: {order.get('username', 'N/A')} (<code>{order.get('user_id', 'N/A')}</code>)
+🛒 Sᴇʀᴠɪᴄᴇ: {order.get('service', 'N/A')}
+🔗 Lɪɴᴋ: {order.get('link', 'N/A')}
+📊 Qᴜᴀɴᴛɪᴛʏ: {order.get('quantity', 'N/A')}
+💰 Cᴏꜱᴛ: {order.get('cost', 'N/A')}
+🔄 Sᴛᴀᴛᴜꜱ: {order.get('status', 'N/A')}
+⏱ Dᴀᴛᴇ: {status_time}
             """
             bot.reply_to(message, status, parse_mode="HTML", disable_web_page_preview=True)
         else:
@@ -2448,7 +2448,7 @@ def process_check_order(message):
 def policy_command(message):
     """Show the bot's usage policy"""
     policy_text = """
-📜 *Bot Usage Policy* 📜
+📜 𝘽𝙤𝙩 𝙐𝙨𝙖𝙜𝙚 𝙋𝙤𝙡𝙞𝙘𝙮 📜
 
 1. **Prohibited Content**: Do not use this bot to promote illegal content, spam, or harassment.
 
@@ -2539,13 +2539,13 @@ print(f"Can write to Account: {os.access('Account', os.W_OK)}")
 
 #======================== Set Bot Commands =====================#
 def get_formatted_datetime():
-    """Get current datetime in Asia/Kolkata timezone"""
-    tz = pytz.timezone('Asia/Kolkata')
+    """Get current datetime in East Africa Time (EAT) timezone"""
+    tz = pytz.timezone('Africa/Nairobi')  # Nairobi is in EAT timezone
     now = datetime.now(tz)
     return {
         'date': now.strftime('%Y-%m-%d'),
         'time': now.strftime('%I:%M:%S %p'),
-        'timezone': 'Asia/Kolkata'
+        'timezone': now.strftime('%Z')  # This will show 'EAT'
     }
 
 def send_startup_message(is_restart=False):
@@ -2610,7 +2610,7 @@ def keep_alive():
             requests.get('https://www.google.com', timeout=5)
         except Exception as e:
             print(f"Keep-alive ping failed: {e}")
-        time.sleep(300)  # Ping every 5 minutes
+        time.sleep(60)  # Ping every 5 minutes
 
 # ==================== BOT POLLING ==================== #
 def run_bot():
