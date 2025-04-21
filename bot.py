@@ -6,11 +6,12 @@ import os
 import json
 import traceback
 import logging
+import psutil
 import threading
 from datetime import datetime
 import pytz
 from functools import wraps
-from flask import Flask
+from flask import Flask, jsonify
 from dotenv import load_dotenv
 from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from functions import (insertUser, track_exists, addBalance, cutBalance, getData,
@@ -29,7 +30,8 @@ load_dotenv()
 bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
 SmmPanelApi = os.getenv("SMM_PANEL_API_KEY")
 SmmPanelApiUrl = os.getenv("SMM_PANEL_API_URL")
-admin_user_id = int(os.getenv("ADMIN_USER_ID"))  # Convert to integer
+# Replace the single admin line with:
+admin_user_ids = [int(id.strip()) for id in os.getenv("ADMIN_USER_IDS", "").split(",") if id.strip()]  # Convert to integer
 
 bot = telebot.TeleBot(bot_token)
 
@@ -159,6 +161,8 @@ whatsapp_services_markup.row(
 whatsapp_services_markup.add(KeyboardButton("↩️ Go Back"))
 
 ############################ END OF NEW FEATURES #############################
+
+#==================================== MongoDB Integration =======================#
 # Replace the existing add_order function in bot.py with this:
 def add_order(user_id, order_data):
     """Add a new order to user's history using MongoDB"""
@@ -176,8 +180,8 @@ def add_order(user_id, order_data):
     except Exception as e:
         print(f"Error adding order to MongoDB: {e}")
         return False
-#======================= Channel Membership Check =======================#
-#========== Channels =================#
+#==================================== Channel Membership Check =======================#
+#================================== Force Join Method =======================================#
 required_channels = ["Megahubbots"] #"Freeairtimehub", #"Freenethubchannel"]  # Channel usernames without "@"
 payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
@@ -236,7 +240,7 @@ def check_ban(func):
         user_id = str(message.from_user.id)
         
         # Check maintenance mode
-        if maintenance_mode and user_id != str(admin_user_id):
+        if maintenance_mode and user_id != str(admin_user_ids):
             bot.reply_to(message, maintenance_message)
             return
             
@@ -335,11 +339,10 @@ def send_welcome(message):
     # Send welcome image with caption
     welcome_image_url = "https://t.me/smmserviceslogs/2"  # Replace with your image URL
     welcome_caption = f"""
-🎉 <b>Welcome {first_name} to View Booster Bot!</b> 🎉
+🎉 <b>Welcome {first_name} !</b> 🎉
 
-🆔 <b>User ID:</b> <code>{user_id}</code>
+🆔 <b>User ID:</b> <code>`{user_id}`</code>
 👤 <b>Username:</b> {username}
-🎁 <b>Welcome Bonus:</b> +{welcome_bonus} coins
 
 With our bot, you can boost your Telegram posts with just a few simple steps!
 
@@ -401,13 +404,13 @@ def my_account(message):
     caption = f"""
 <b><u>My Account</u></b>
 
-🆔 User id: <code>{user_id}</code>
+🆔 User id: <code>`{user_id}`</code>
 👤 Username: @{message.from_user.username if message.from_user.username else "N/A"}
 🗣 Invited users: {data.get('total_refs', 0)}
 ⏰ Time: {current_time}
 📅 Date: {current_date}
 
-👁‍🗨 Balance: <code>{data['balance']}</code> Views
+👁‍🗨 Balance: <code>{data['balance']}</code> Coins
 """
     
     if photos.photos:
@@ -431,6 +434,7 @@ def my_account(message):
         parse_mode='HTML'
     )
 
+#======================= Invite Friends =======================#
 @bot.message_handler(func=lambda message: message.text == "🗣 Invite Friends")
 @check_ban
 def invite_friends(message):
@@ -444,54 +448,84 @@ def invite_friends(message):
         return
         
     total_refs = data['total_refs']
+    
+    # Enhanced referral message
+    referral_message = f"""
+📢 <b>Iɴᴠɪᴛᴇ Fʀɪᴇɴᴅꜱ & Eᴀʀɴ Fʀᴇᴇ Cᴏɪɴꜱ!</b>  
+
+🔗 <b>Yᴏᴜʀ Rᴇꜰᴇʀʀᴀʟ Lɪɴᴋ:</b>  
+<code>{referral_link}</code>  
+
+💎 <b>Hᴏᴡ Iᴛ Wᴏʀᴋꜱ:</b>  
+1️⃣ Sʜᴀʀᴇ ʏᴏᴜʀ ᴜɴɪQᴜᴇ ʟɪɴᴋ ᴡɪᴛʜ ꜰʀɪᴇɴᴅꜱ  
+2️⃣ Wʜᴇɴ ᴛʜᴇʏ ᴊᴏɪɴ ᴜꜱɪɴɢ ʏᴏᴜʀ ʟɪɴᴋ, <b>Bᴏᴛʜ ᴏꜰ ʏᴏᴜ ɢᴇᴛ {ref_bonus} ᴄᴏɪɴꜱ</b> ɪɴꜱᴛᴀɴᴛʟʏ!  
+3️⃣ Eᴀʀɴ ᴜɴʟɪᴍɪᴛᴇᴅ ᴄᴏɪɴꜱ - <b>Nᴏ ʟɪᴍɪᴛꜱ ᴏɴ ʀᴇꜰᴇʀʀᴀʟꜱ!</b>  
+
+🏆 <b>Bᴏɴᴜꜱ:</b> Tᴏᴘ ʀᴇꜰᴇʀʀᴇʀꜱ ɢᴇᴛ ꜱᴘᴇᴄɪᴀʟ ʀᴇᴡᴀʀᴅꜱ!  
+
+💰 <b>Wʜʏ Wᴀɪᴛ?</b> Sᴛᴀʀᴛ ɪɴᴠɪᴛɪɴɢ ɴᴏᴡ ᴀɴᴅ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ʙᴀʟᴀɴᴄᴇ ꜰᴏʀ ꜰʀᴇᴇ!  
+
+📌 <b>Pʀᴏ Tɪᴘ:</b> Sʜᴀʀᴇ ʏᴏᴜʀ ʟɪɴᴋ ɪɴ ɢʀᴏᴜᴘꜱ/ᴄʜᴀᴛꜱ ᴡʜᴇʀᴇ ᴘᴇᴏᴘʟᴇ ɴᴇᴇᴅ ꜱᴏᴄɪᴀʟ ᴍᴇᴅɪᴀ ɢʀᴏᴡᴛʜ!
+
+📊 <b>Yᴏᴜʀ ᴄᴜʀʀᴇɴᴛ ʀᴇꜰᴇʀʀᴀʟꜱ:</b> {total_refs}
+"""
+    
     bot.reply_to(
         message,
-        f"<b>Referral link:</b> {referral_link}\n\n<b><u>Share it with friends and get {ref_bonus} coins for each referral</u></b>",
-        parse_mode='html'
+        referral_message,
+        parse_mode='HTML',
+        disable_web_page_preview=True
     )
 
 @bot.message_handler(func=lambda message: message.text == "📜 Help")
 def help_command(message):
     user_id = message.chat.id
-    msg = f"""<b><u>❓ Frequently Asked questions</u></b>
+    msg = f"""
+<b>FʀᴇQᴜᴇɴᴛʟʏ Aꜱᴋᴇᴅ Qᴜᴇꜱᴛɪᴏɴꜱ</b>
 
-<b><u>•Are the views real?</u></b>
-No, the views are completely fake and no real observations are made.
+<b>• Aʀᴇ ᴛʜᴇ ᴠɪᴇᴡꜱ ʀᴇᴀʟ?</b>
+Nᴏ, ᴛʜᴇ ᴠɪᴇᴡꜱ ᴀʀᴇ ꜱɪᴍᴜʟᴀᴛᴇᴅ ᴀɴᴅ ɴᴏᴛ ꜰʀᴏᴍ ʀᴇᴀʟ ᴜꜱᴇʀꜱ.
 
-<b><u>•What is the minimum and maximum views order for a single post?</u></b>
-The minimum and maximum views order for a post is {min_view} and {max_view} views, respectively.
+<b>• Wʜᴀᴛ'ꜱ ᴛʜᴇ ᴀᴠᴇʀᴀɢᴇ ꜱᴇʀᴠɪᴄᴇ ꜱᴘᴇᴇᴅ?</b>
+Dᴇʟɪᴠᴇʀʏ ꜱᴘᴇᴇᴅ ᴠᴀʀɪᴇꜱ ʙᴀꜱᴇᴅ ᴏɴ ɴᴇᴛᴡᴏʀᴋ ᴄᴏɴᴅɪᴛɪᴏɴꜱ ᴀɴᴅ ᴏʀᴅᴇʀ ᴠᴏʟᴜᴍᴇ, ʙᴜᴛ ᴡᴇ ᴇɴꜱᴜʀᴇ ꜰᴀꜱᴛ ᴅᴇʟɪᴠᴇʀʏ.
 
-<b><u>•Is it possible to register a channel and view automatically?</u></b>
-Yes, first set the bot as your channel admin and then register your channel in the bot and specify the amount of views. As soon as a post is published on your channel, the view starts automatically.
+<b>• Hᴏᴡ ᴛᴏ ɪɴᴄʀᴇᴀꜱᴇ ʏᴏᴜʀ ᴄᴏɪɴꜱ?</b>
+1️⃣ Iɴᴠɪᴛᴇ ꜰʀɪᴇɴᴅꜱ - Eᴀʀɴ {ref_bonus} ᴄᴏɪɴꜱ ᴘᴇʀ ʀᴇꜰᴇʀʀᴀʟ
+2️⃣ Bᴜʏ ᴄᴏɪɴ ᴘᴀᴄᴋᴀɢᴇꜱ - Aᴄᴄᴇᴘᴛᴇᴅ ᴘᴀʏᴍᴇɴᴛꜱ:
+   • Mᴏʙɪʟᴇ Mᴏɴᴇʏ
+   • Cʀʏᴘᴛᴏᴄᴜʀʀᴇɴᴄɪᴇꜱ (BTC, USDT, ᴇᴛᴄ.)
+   • WᴇʙMᴏɴᴇʏ & Pᴇʀꜰᴇᴄᴛ Mᴏɴᴇʏ
 
-<b><u>•What is the average speed of views?</u></b>
-Estimating views speed is difficult because the speed can vary depending on the network status and the amount of orders, but on average 40 to 80 views per minute is possible for one post.
+<b>• Cᴀɴ I ᴛʀᴀɴꜱꜰᴇʀ ᴍʏ ʙᴀʟᴀɴᴄᴇ?</b>
+Yᴇꜱ! Fᴏʀ ʙᴀʟᴀɴᴄᴇꜱ ᴏᴠᴇʀ 10,000 ᴄᴏɪɴꜱ, ᴄᴏɴᴛᴀᴄᴛ ꜱᴜᴘᴘᴏʀᴛ.
+"""
 
-<b><u>•How to increase your credit?</u></b>
-1- Invite your friends to Bot, for each invitation, {ref_bonus} free views will be added to your account and {welcome_bonus} to your invited user.
-2- Buy one of the views packages. We accept PayPal, Paytm, WebMoney, Perfect Money, Payeer, Bitcoin, Tether and other Cryptocurrencies.
+    # Create inline button for support
+    markup = InlineKeyboardMarkup()
+    support_button = InlineKeyboardButton("🆘 Contact Support", url="https://t.me/SocialBoosterAdmin")
+    markup.add(support_button)
 
-<b><u>•Is it possible to transfer balance to other users?</u></b>
-Yes, if your balance is more than 10k and you want to transfer all of them, you can send a request to support.
-
-🆘 In case you have any problem, contact @SocialBoosterAdmin"""
-
-    bot.reply_to(message, msg, parse_mode="html")
+    bot.reply_to(
+        message, 
+        msg,
+        parse_mode="HTML",
+        reply_markup=markup
+    )
 
 @bot.message_handler(func=lambda message: message.text == "💳 Pricing")
 def pricing_command(message):
     user_id = message.chat.id
     msg = f"""<b><u>💎 Pricing 💎</u></b>
 
-<i>👉 Choose one of the views packages and pay its cost via provided payment methods.</i>
+<i>👉 Choose one of the coins packages and pay its cost via provided payment methods.</i>
 
 <b><u>📜 Packages:</u></b>
-<b>➊ 📦 75K views for 5$ (0.07$ per K)
-➋ 📦 170K views for 10$ (0.06$ per K)
-➌ 📦 400K views for 20$ (0.05$ per K)
-➍ 📦 750K views for 30$ (0.04$ per K)
-➎ 📦 1700K views for 50$ (0.03$ per K)
-➏ 📦 5000K views for 100$ (0.02$ per K) </b>
+<b>➊ 📦 75K coins for 5$ (0.07$ per K)
+➋ 📦 170K coins for 10$ (0.06$ per K)
+➌ 📦 400K coins for 20$ (0.05$ per K)
+➍ 📦 750K coins for 30$ (0.04$ per K)
+➎ 📦 1700K coins for 50$ (0.03$ per K)
+➏ 📦 5000K coins for 100$ (0.02$ per K) </b>
 
 💰 Pay with Bitcoin, USDT, BSC, BUSD,  ... 👉🏻 @SocialBoosterAdmin
 
@@ -539,30 +573,31 @@ def show_order_stats(message):
         except Exception as e:
             print(f"Error getting recent orders: {e}")
         
-        # Format the message
-        msg = f"""📊 <b>Your Order Statistics</b>
+        # Format the message with stylish text
+        msg = f"""📊 <b>Yᴏᴜʀ Oʀᴅᴇʀ Sᴛᴀᴛɪꜱᴛɪᴄꜱ</b>
         
-🔄 <b>Total Orders:</b> {stats['total']}
-✅ <b>Completed:</b> {stats['completed']}
-⏳ <b>Pending:</b> {stats['pending']}
-❌ <b>Failed:</b> {stats['failed']}
+🔄 <b>Tᴏᴛᴀʟ Oʀᴅᴇʀꜱ:</b> {stats['total']}
+✅ <b>Cᴏᴍᴘʟᴇᴛᴇᴅ:</b> {stats['completed']}
+⏳ <b>Pᴇɴᴅɪɴɢ:</b> {stats['pending']}
+❌ <b>Fᴀɪʟᴇᴅ:</b> {stats['failed']}
 
-<b>Recent Orders:</b>"""
+<b>Rᴇᴄᴇɴᴛ Oʀᴅᴇʀꜱ:</b>"""
         
         if recent_orders:
             for i, order in enumerate(recent_orders, 1):
                 timestamp = datetime.fromtimestamp(order.get('timestamp', time.time())).strftime('%Y-%m-%d %H:%M')
-                msg += f"\n{i}. {order.get('service', 'N/A')} - {order.get('quantity', '?')} (Status: {order.get('status', 'unknown')}) @ {timestamp}"
+                msg += f"\n{i}. {order.get('service', 'N/A')} - {order.get('quantity', '?')} (Sᴛᴀᴛᴜꜱ: {order.get('status', 'ᴜɴᴋɴᴏᴡɴ')}) @ {timestamp}"
         else:
-            msg += "\nNo recent orders found"
+            msg += "\nNᴏ ʀᴇᴄᴇɴᴛ ᴏʀᴅᴇʀꜱ ꜰᴏᴜɴᴅ"
             
-        msg += "\n\n<i>Note: Status updates may take some time to reflect</i>"
+        msg += "\n\n<i>Nᴏᴛᴇ: Sᴛᴀᴛᴜꜱ ᴜᴘᴅᴀᴛᴇꜱ ᴍᴀʏ ᴛᴀᴋᴇ ꜱᴏᴍᴇ ᴛɪᴍᴇ ᴛᴏ ʀᴇꜰʟᴇᴄᴛ</i>"
         
         bot.reply_to(message, msg, parse_mode='HTML')
         
     except Exception as e:
         print(f"Error showing order stats: {e}")
-        bot.reply_to(message, "❌ Could not retrieve order statistics. Please try again later.")
+        bot.reply_to(message, "❌ Cᴏᴜʟᴅ ɴᴏᴛ ʀᴇᴛʀɪᴇᴠᴇ ᴏʀᴅᴇʀ ꜱᴛᴀᴛɪꜱᴛɪᴄꜱ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+      
 #======================= Send Orders for Telegram =======================#
 @bot.message_handler(func=lambda message: message.text == "📱 Order Telegram")
 def order_telegram_menu(message):
@@ -577,28 +612,35 @@ def handle_telegram_order(message):
     # Store service details in a dictionary
     services = {
         "👀 Order Views": {
-            "name": "Views",
+            "name": "Post Views",
+            "quality": "Super Fast",
             "min": 1000,
-            "max": 1000000,
+            "max": 100000,
             "price": 200,
             "unit": "1k views",
-            "service_id": "10576"  # Your SMM panel service ID for views
+            "service_id": "10576",  # Your SMM panel service ID for views
+            "link_hint": "Telegram post link"
         },
         "❤️ Order Reactions": {
-            "name": "Reactions",
-            "min": 10,
-            "max": 4000,
-            "price": 1000,
+            "name": "Positive Reactions",
+            "quality": "No Refil",
+            "min": 50,
+            "max": 1000,
+            "price": 1500,
             "unit": "1k reactions",
-            "service_id": "10617"  # Replace with actual service ID
+            "service_id": "12209",  # Replace with actual service ID
+            "link_hint": "Telegram post link"
+            
         },
         "👥 Order Members": {
-            "name": "Members",
+            "name": "Members [Mixed]",
+            "quality": "Refill 90 Days",
             "min": 500,
             "max": 10000,
-            "price": 7000,
+            "price": 10000,
             "unit": "1k members",
-            "service_id": "000000"  # Replace with actual service ID
+            "service_id": "18578", # Replace with actual service ID
+            "link_hint": "Telegram channel link"  # Replace with actual service ID
         }
     }
     
@@ -619,6 +661,9 @@ def handle_telegram_order(message):
 📌 Min: {service['min']}
 📌 Max: {service['max']}
 💰 Price: {service['price']} coins/{service['unit']}
+🔗 Link Hint: {service['link_hint']}
+💎 Quality: {service['quality']}
+
 
 Enter quantity:"""
     
@@ -632,19 +677,19 @@ Enter quantity:"""
 def process_telegram_quantity(message, service):
     """Process the quantity input for Telegram orders"""
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Returning to Telegram services...", reply_markup=telegram_services_markup)
+        bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Tᴇʟᴇɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=telegram_services_markup)
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=telegram_services_markup)
+            bot.reply_to(message, f"❌ Mɪɴɪᴍᴜᴍ Oʀᴅᴇʀ ɪꜱ {service['min']}", reply_markup=telegram_services_markup)
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=telegram_services_markup)
+            bot.reply_to(message, f"❌ Mᴀxɪᴍᴜᴍ Oʀᴅᴇʀ ɪꜱ {service['max']}", reply_markup=telegram_services_markup)
             return
             
         # Calculate cost
@@ -652,17 +697,16 @@ def process_telegram_quantity(message, service):
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=telegram_services_markup)
+            bot.reply_to(message, f"❌ Iɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ Bᴀʟᴀɴᴄᴇ. Yᴏᴜ ɴᴇᴇᴅ {cost} ᴄᴏɪɴꜱ.", reply_markup=telegram_services_markup)
             return
             
         # Ask for link
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
-        KeyboardButton("✘ Cancel"),
+            KeyboardButton("✘ Cancel")
+        )
         
-)
-        
-        bot.reply_to(message, "🔗 Please send the Telegram post/channel link:", reply_markup=cancel_back_markup)
+        bot.reply_to(message, "🔗 Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ Tᴇʟᴇɢʀᴀᴍ Pᴏꜱᴛ Lɪɴᴋ:", reply_markup=cancel_back_markup)
         bot.register_next_step_handler(
             message, 
             process_telegram_link, 
@@ -672,18 +716,18 @@ def process_telegram_quantity(message, service):
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Please enter a valid number", reply_markup=telegram_services_markup)
+        bot.reply_to(message, "❌ Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ", reply_markup=telegram_services_markup)
 
 def process_telegram_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     
     link = message.text.strip()
     
     # Validate link format (basic check)
     if not re.match(r'^https?://t\.me/', link):
-        bot.reply_to(message, "❌ Invalid Telegram link format", reply_markup=telegram_services_markup)
+        bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ Tᴇʟᴇɢʀᴀᴍ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=telegram_services_markup)
         return
     
     # Submit to SMM panel
@@ -703,7 +747,7 @@ def process_telegram_link(message, service, quantity, cost):
         print(f"SMM Panel Response: {result}")  # Debug print
         
         if result and result.get('order'):
-            # Deduct balance (using cutBalance which doesn't affect total deposits)
+            # Deduct balance
             if not cutBalance(str(message.from_user.id), cost):
                 raise Exception("Failed to deduct balance")
             
@@ -724,18 +768,20 @@ def process_telegram_link(message, service, quantity, cost):
             # Add to order history
             add_order(str(message.from_user.id), order_data)
             
-            # Send confirmation to user
+            # Stylish confirmation message
             bot.reply_to(
                 message,
-                f"""✅ {service['name']} Order Submitted!
+                f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
                 reply_markup=main_markup,
-                disable_web_page_preview=True
+                disable_web_page_preview=True,
+                parse_mode='HTML'
             )
             
             # Update orders count
@@ -746,49 +792,49 @@ def process_telegram_link(message, service, quantity, cost):
             data['orders_count'] += 1
             updateUser(user_id, data)
             
-            # Send notification to payment channel
+            # Stylish notification to payment channel
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New Telegram Order:
+                    f"""📢 <b>Nᴇᴡ Tᴇʟᴇɢʀᴀᴍ Oʀᴅᴇʀ</b>
                     
-👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
-🆔 ID: {message.from_user.id}
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
-                    disable_web_page_preview=True
+👤 <b>Uꜱᴇʀ:</b> {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
+🆔 <b>ID:</b> {message.from_user.id}
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
+                    disable_web_page_preview=True,
+                    parse_mode='HTML'
                 )
             except Exception as e:
-                print(f"Failed to send to payment channel: {e}")
-                # Don't fail the order if notification fails
+                print(f"Fᴀɪʟᴇᴅ ᴛᴏ ꜱᴇɴᴅ ᴛᴏ ᴘᴀʏᴍᴇɴᴛ ᴄʜᴀɴɴᴇʟ: {e}")
             
         else:
-            error_msg = result.get('error', 'Unknown error from SMM panel')
+            error_msg = result.get('error', 'Uɴᴋɴᴏᴡɴ ᴇʀʀᴏʀ ꜰʀᴏᴍ SMM ᴘᴀɴᴇʟ')
             raise Exception(error_msg)
             
     except requests.Timeout:
         bot.reply_to(
             message,
-            "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
+            "⚠️ Tʜᴇ ᴏʀᴅᴇʀ ɪꜱ ᴛᴀᴋɪɴɢ ʟᴏɴɢᴇʀ ᴛʜᴀɴ ᴇxᴘᴇᴄᴛᴇᴅ. Pʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ ʙᴀʟᴀɴᴄᴇ ᴀɴᴅ ᴏʀᴅᴇʀ ꜱᴛᴀᴛᴜꜱ ʟᴀᴛᴇʀ.",
             reply_markup=main_markup
         )
     except Exception as e:
-        print(f"Error submitting {service['name']} order: {str(e)}")
-        # Only show error if we're not sure the order was submitted
+        print(f"Eʀʀᴏʀ ꜱᴜʙᴍɪᴛᴛɪɴɢ {service['name']} ᴏʀᴅᴇʀ: {str(e)}")
         if 'result' not in locals() or not result.get('order'):
             bot.reply_to(
                 message,
-                f"❌ Failed to submit {service['name']} order. Please try again later.",
+                f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ꜱᴜʙᴍɪᴛ {service['name']} ᴏʀᴅᴇʀ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.",
                 reply_markup=main_markup
             )
         else:
-            # If we have an order ID, the order was likely submitted
             bot.reply_to(
                 message,
-                f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
+                f"⚠️ Oʀᴅᴇʀ ᴡᴀꜱ ꜱᴜʙᴍɪᴛᴛᴇᴅ (ID: {result['order']}) ʙᴜᴛ ᴛʜᴇʀᴇ ᴡᴀꜱ ᴀɴ ɪꜱꜱᴜᴇ ᴡɪᴛʜ ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴꜱ.",
                 reply_markup=main_markup
             )
 #========================= Telegram Orders End =========================#
@@ -807,8 +853,10 @@ def handle_tiktok_order(message):
     
     # TikTok service configurations
     services = {
-        "👀 Order TikTok Views": {
-            "name": "TikTok Views [FastSpeed]",
+        "👀 TikTok Views": {
+            "name": "TikTok Views",
+            "quality": "Fast Speed",
+            "link_hint": "Tiktok Post Link",
             "min": 500,
             "max": 100000,
             "price": 200,
@@ -816,7 +864,9 @@ def handle_tiktok_order(message):
             "service_id": "17566"
         },
         "❤️ Order Likes": {
-            "name": "TikTok Likes [Real&Active]",
+            "name": "TikTok Likes",
+            "quality": "Real & Active",
+            "link_hint": "Tiktok Post Link",
             "min": 100,
             "max": 10000,
             "price": 1500,
@@ -824,12 +874,14 @@ def handle_tiktok_order(message):
             "service_id": "17335"
         },
         "👥 Order Followers": {
-            "name": "TikTok Followers [Real&Active]",
+            "name": "TikTok Followers",
+            "quality": "High Quality",
+            "link_hint": "Tiktok Profile Link",
             "min": 100,
             "max": 10000,
-            "price": 12000,
+            "price": 15000,
             "unit": "1k followers",
-            "service_id": "17239"
+            "service_id": "18383"
         }
     }
     
@@ -847,6 +899,8 @@ def handle_tiktok_order(message):
 📌 Min: {service['min']}
 📌 Max: {service['max']}
 💰 Price: {service['price']} coins/{service['unit']}
+🔗 Link Hint: {service['link_hint']}
+💎 Quality: {service['quality']}
 
 Enter quantity:"""
     
@@ -860,19 +914,19 @@ Enter quantity:"""
 def process_tiktok_quantity(message, service):
     """Process the quantity input for TikTok orders"""
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Returning to TikTok services...", reply_markup=tiktok_services_markup)
+        bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ TɪᴋTᴏᴋ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=tiktok_services_markup)
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=tiktok_services_markup)
+            bot.reply_to(message, f"❌ Mɪɴɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['min']}", reply_markup=tiktok_services_markup)
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=tiktok_services_markup)
+            bot.reply_to(message, f"❌ Mᴀxɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['max']}", reply_markup=tiktok_services_markup)
             return
             
         # Calculate cost (price is per 1k, so divide quantity by 1000)
@@ -880,14 +934,14 @@ def process_tiktok_quantity(message, service):
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=tiktok_services_markup)
+            bot.reply_to(message, f"❌ Iɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ ʙᴀʟᴀɴᴄᴇ. Yᴏᴜ ɴᴇᴇᴅ {cost} ᴄᴏɪɴꜱ.", reply_markup=tiktok_services_markup)
             return
             
         # Ask for TikTok link
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, "🔗 Please send the TikTok video/profile link:", reply_markup=cancel_markup)
+        bot.reply_to(message, "🔗 Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ TɪᴋTᴏᴋ ᴠɪᴅᴇᴏ/ᴘʀᴏꜰɪʟᴇ ʟɪɴᴋ:", reply_markup=cancel_markup)
         bot.register_next_step_handler(
             message, 
             process_tiktok_link, 
@@ -897,16 +951,17 @@ def process_tiktok_quantity(message, service):
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Please enter a valid number", reply_markup=tiktok_services_markup)
+        bot.reply_to(message, "❌ Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ", reply_markup=tiktok_services_markup)
+
 def process_tiktok_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     
     link = message.text.strip()
     
     if not re.match(r'^https?://(www\.)?tiktok\.com/', link):
-        bot.reply_to(message, "❌ Invalid TikTok link format", reply_markup=tiktok_services_markup)
+        bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ TɪᴋTᴏᴋ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=tiktok_services_markup)
         return
     
     try:
@@ -925,7 +980,7 @@ def process_tiktok_link(message, service, quantity, cost):
         
         if result and result.get('order'):
             if not cutBalance(str(message.from_user.id), cost):
-                raise Exception("Failed to deduct balance")
+                raise Exception("Fᴀɪʟᴇᴅ ᴛᴏ ᴅᴇᴅᴜᴄᴛ ʙᴀʟᴀɴᴄᴇ")
             
             order_data = {
                 'service': service['name'],
@@ -949,58 +1004,61 @@ def process_tiktok_link(message, service, quantity, cost):
             
             bot.reply_to(
                 message,
-                f"""✅ {service['name']} Order Submitted!
+                f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}""",
                 reply_markup=main_markup,
-                disable_web_page_preview=True
+                disable_web_page_preview=True,
+                parse_mode='HTML'
             )
             
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New TikTok Order:
+                    f"""📢 <b>Nᴇᴡ TɪᴋTᴏᴋ Oʀᴅᴇʀ</b>
                     
-👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
-🆔 ID: {message.from_user.id}
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
-                    disable_web_page_preview=True
+👤 <b>Uꜱᴇʀ:</b> {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
+🆔 <b>ID:</b> {message.from_user.id}
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}""",
+                    disable_web_page_preview=True,
+                    parse_mode='HTML'
                 )
             except Exception as e:
-                print(f"Failed to send to payment channel: {e}")
+                print(f"Fᴀɪʟᴇᴅ ᴛᴏ ꜱᴇɴᴅ ᴛᴏ ᴘᴀʏᴍᴇɴᴛ ᴄʜᴀɴɴᴇʟ: {e}")
                 
         else:
-            error_msg = result.get('error', 'Unknown error from SMM panel')
+            error_msg = result.get('error', 'Uɴᴋɴᴏᴡɴ ᴇʀʀᴏʀ ꜰʀᴏᴍ SMM ᴘᴀɴᴇʟ')
             raise Exception(error_msg)
             
     except requests.Timeout:
         bot.reply_to(
             message,
-            "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
+            "⚠️ Tʜᴇ ᴏʀᴅᴇʀ ɪꜱ ᴛᴀᴋɪɴɢ ʟᴏɴɢᴇʀ ᴛʜᴀɴ ᴇxᴘᴇᴄᴛᴇᴅ. Pʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ ʙᴀʟᴀɴᴄᴇ ᴀɴᴅ ᴏʀᴅᴇʀ ꜱᴛᴀᴛᴜꜱ ʟᴀᴛᴇʀ.",
             reply_markup=main_markup
         )
     except Exception as e:
-        print(f"Error submitting {service['name']} order: {str(e)}")
+        print(f"Eʀʀᴏʀ ꜱᴜʙᴍɪᴛᴛɪɴɢ {service['name']} ᴏʀᴅᴇʀ: {str(e)}")
         if 'result' not in locals() or not result.get('order'):
             bot.reply_to(
                 message,
-                f"❌ Failed to submit {service['name']} order. Please try again later.",
+                f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ꜱᴜʙᴍɪᴛ {service['name']} ᴏʀᴅᴇʀ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.",
                 reply_markup=main_markup
             )
         else:
             bot.reply_to(
                 message,
-                f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
+                f"⚠️ Oʀᴅᴇʀ ᴡᴀꜱ ꜱᴜʙᴍɪᴛᴛᴇᴅ (ID: {result['order']}) ʙᴜᴛ ᴛʜᴇʀᴇ ᴡᴀꜱ ᴀɴ ɪꜱꜱᴜᴇ ᴡɪᴛʜ ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴꜱ.",
                 reply_markup=main_markup
             )
+    
 #======================== End of TikTok Orders ========================#
 
 #======================== Send Orders for Instagram =====================#
@@ -1016,30 +1074,33 @@ def handle_instagram_order(message):
     
     services = {
         "🎥 Insta Vid Views": {
-            "name": "Instagram Video Views [InstantSpeed]",
+            "name": "Instagram Video Views",
+            "quality": "Real Accounts",
             "min": 1000,
             "max": 100000,
             "price": 300,
             "unit": "1k views",
-            "service_id": "17329",
+            "service_id": "17316",
             "link_hint": "Instagram video link"
         },
         "❤️ Insta Likes": {
-            "name": "Instagram Likes [PowerQuality]",
+            "name": "Instagram Likes",
+            "quality": "Power Quality",
             "min": 500,
             "max": 10000,
             "price": 1000,
             "unit": "1k likes",
-            "service_id": "9578",
+            "service_id": "17375",
             "link_hint": "Instagram post link"
         },
         "👥 Insta Followers": {
-            "name": "Instagram Followers [OldAccountsWithPosts]",
+            "name": "Instagram Followers",
+            "quality": "Old Accounts With Posts",
             "min": 500,
             "max": 10000,
             "price": 13000,
             "unit": "1k followers",
-            "service_id": "18808",
+            "service_id": "18968",
             "link_hint": "Instagram profile link"
         }
     }
@@ -1057,6 +1118,8 @@ def handle_instagram_order(message):
 📌 Min: {service['min']}
 📌 Max: {service['max']}
 💰 Price: {service['price']} coins/{service['unit']}
+🔗 Link Hint: {service['link_hint']}
+💎 Quality: {service['quality']}
 
 Enter quantity:"""
     
@@ -1158,13 +1221,14 @@ def process_instagram_link(message, service, quantity, cost):
             
             bot.reply_to(
                 message,
-                f"""✅ {service['name']} Order Submitted!
+                f"""✅ {service['name']}  Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
                 reply_markup=main_markup,
                 disable_web_page_preview=True
             )
@@ -1174,13 +1238,15 @@ def process_instagram_link(message, service, quantity, cost):
                     payment_channel,
                     f"""📢 New Instagram Order:
                     
-👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
-🆔 ID: {message.from_user.id}
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
+👤 <b>Uꜱᴇʀ:</b> {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
+🆔 <b>ID:</b> {message.from_user.id}
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
                     disable_web_page_preview=True
                 )
             except Exception as e:
@@ -1225,25 +1291,28 @@ def handle_youtube_order(message):
     
     services = {
         "▶️ YT Views": {
-            "name": "YouTube Views [100% Real]",
-            "min": 15000,
+            "name": "YouTube Views",
+            "quality": "100% Real",
+            "min": 40000,
             "max": 1000000,
-            "price": 6000,
+            "price": 7000,
             "unit": "1k views",
-            "service_id": "17460",
+            "service_id": "11272",
             "link_hint": "YouTube video link"
         },
         "👍 YT Likes": {
             "name": "YouTube Likes [Real]",
+            "quality": "No Refill",
             "min": 500,
             "max": 10000,
             "price": 2000,
             "unit": "1k likes",
-            "service_id": "181446",
+            "service_id": "18144",
             "link_hint": "YouTube video link"
         },
         "👥 YT Subscribers": {
             "name": "YouTube Subscribers [Cheapest]",
+            "quality": "Refill 30 days",
             "min": 500,
             "max": 10000,
             "price": 12000,
@@ -1266,6 +1335,8 @@ def handle_youtube_order(message):
 📌 Min: {service['min']}
 📌 Max: {service['max']}
 💰 Price: {service['price']} coins/{service['unit']}
+🔗 Link Hint: {service['link_hint']}
+💎 Quality: {service['quality']}
 
 Enter quantity:"""
     
@@ -1367,13 +1438,14 @@ def process_youtube_link(message, service, quantity, cost):
             
             bot.reply_to(
                 message,
-                f"""✅ {service['name']} Order Submitted!
+                f"""✅ {service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
                 reply_markup=main_markup,
                 disable_web_page_preview=True
             )
@@ -1381,15 +1453,17 @@ def process_youtube_link(message, service, quantity, cost):
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New YouTube Order:
+                    f"""📢 New Youtube Order:
                     
-👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
-🆔 ID: {message.from_user.id}
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
+👤 <b>Uꜱᴇʀ:</b> {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
+🆔 <b>ID:</b> {message.from_user.id}
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
                     disable_web_page_preview=True
                 )
             except Exception as e:
@@ -1434,39 +1508,43 @@ def handle_facebook_order(message):
     
     services = {
         "👤 Profile Followers": {
-            "name": "Facebook Profile Followers [HighQuality]",
+            "name": "FB Profile Followers",
+            "quality": "High Quality",
             "min": 500,
             "max": 100000,
             "price": 10000,
             "unit": "1k followers",
-            "service_id": "17332",
+            "service_id": "18977",
             "link_hint": "Facebook profile link"
         },
         "📄 Page Followers": {
-            "name": "Facebook Page Followers [NonDrop]",
+            "name": "FB Page Followers",
+            "quality": "Refill 30 Days",
             "min": 500,
             "max": 10000,
-            "price": 10000,
+            "price": 6000,
             "unit": "1k followers",
-            "service_id": "17759",
+            "service_id": "18984",
             "link_hint": "Facebook page link"
         },
         "🎥 Video/Reel Views": {
-            "name": "Facebook Video/Reel Views [NonDrop]",
+            "name": "FB Video/Reel Views",
+            "quality": "Non Drop",
             "min": 500,
             "max": 10000,
             "price": 500,
             "unit": "1k views",
-            "service_id": "17766",
+            "service_id": "17859",
             "link_hint": "Facebook video/reel link"
         },
         "❤️ Post Likes": {
-            "name": "Facebook Post Likes [NoRefill]",
+            "name": "FB Post Likes",
+            "quality": "No Refill",
             "min": 100,
             "max": 10000,
             "price": 5000,
             "unit": "1k likes",
-            "service_id": "18860",
+            "service_id": "18990",
             "link_hint": "Facebook post link"
         }
     }
@@ -1484,6 +1562,8 @@ def handle_facebook_order(message):
 📌 Min: {service['min']}
 📌 Max: {service['max']}
 💰 Price: {service['price']} coins/{service['unit']}
+🔗 Link Hint: {service['link_hint']}
+💎 Quality: {service['quality']}
 
 Enter quantity:"""
     
@@ -1585,13 +1665,14 @@ def process_facebook_link(message, service, quantity, cost):
             
             bot.reply_to(
                 message,
-                f"""✅ {service['name']} Order Submitted!
+                f"""✅ {service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
                 reply_markup=main_markup,
                 disable_web_page_preview=True
             )
@@ -1601,13 +1682,15 @@ def process_facebook_link(message, service, quantity, cost):
                     payment_channel,
                     f"""📢 New Facebook Order:
                     
-👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
-🆔 ID: {message.from_user.id}
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
+👤 <b>Uꜱᴇʀ:</b> {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
+🆔 <b>ID:</b> {message.from_user.id}
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
                     disable_web_page_preview=True
                 )
             except Exception as e:
@@ -1652,21 +1735,23 @@ def handle_whatsapp_order(message):
     
     services = {
         "👥 Channel Members": {
-            "name": "WhatsApp Channel Members [EU Users]",
-            "min": 500,
+            "name": "WhatsApp Channel Members",
+            "quality": "EU Users",
+            "min": 100,
             "max": 40000,
             "price": 16000,
             "unit": "1k members",
-            "service_id": "18855",
+            "service_id": "18848",
             "link_hint": "WhatsApp channel invite link"
         },
         "😀 Channel EmojiReaction": {
-            "name": "WhatsApp Channel EmojiReaction [Mixed]",
-            "min": 500,
+            "name": "WhatsApp Channel EmojiReaction",
+            "quality": "Mixed",
+            "min": 100,
             "max": 10000,
             "price": 3000,
             "unit": "1k reactions",
-            "service_id": "18832",
+            "service_id": "18846",
             "link_hint": "WhatsApp channel message link"
         }
     }
@@ -1684,6 +1769,8 @@ def handle_whatsapp_order(message):
 📌 Min: {service['min']}
 📌 Max: {service['max']}
 💰 Price: {service['price']} coins/{service['unit']}
+🔗 Link Hint: {service['link_hint']}
+💎 Quality: {service['quality']}
 
 Enter quantity:"""
     
@@ -1785,13 +1872,14 @@ def process_whatsapp_link(message, service, quantity, cost):
             
             bot.reply_to(
                 message,
-                f"""✅ {service['name']} Order Submitted!
+                f"""✅ {service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
                 reply_markup=main_markup,
                 disable_web_page_preview=True
             )
@@ -1799,15 +1887,17 @@ def process_whatsapp_link(message, service, quantity, cost):
             try:
                 bot.send_message(
                     payment_channel,
-                    f"""📢 New WhatsApp Order:
+                    f"""📢 New Whastapp Order:
                     
-👤 User: {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
-🆔 ID: {message.from_user.id}
-📦 Service: {service['name']}
-🔢 Quantity: {quantity}
-💰 Cost: {cost} coins
-📎 Link: {link}
-🆔 Order ID: {result['order']}""",
+👤 <b>Uꜱᴇʀ:</b> {message.from_user.first_name} (@{message.from_user.username or 'N/A'})
+🆔 <b>ID:</b> {message.from_user.id}
+📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
+💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
+📎 <b>Lɪɴᴋ:</b> {link}
+🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
                     disable_web_page_preview=True
                 )
             except Exception as e:
@@ -1867,7 +1957,7 @@ def handle_back_buttons(message):
 # ================= ADMIN COMMANDS ================== #
 @bot.message_handler(commands=['addcoins', 'removecoins'])
 def handle_admin_commands(message):
-    if message.from_user.id != admin_user_id:
+    if message.from_user.id != admin_user_ids:
         bot.reply_to(message, "❌ You are not authorized to use this command.")
         return
     
@@ -1921,13 +2011,13 @@ def handle_admin_commands(message):
 
 @bot.message_handler(func=lambda message: message.text == "🛠 Admin Panel")
 def admin_panel(message):
-    if message.from_user.id != admin_user_id:
+    if message.from_user.id != admin_user_ids:
         bot.reply_to(message, "❌ You are not authorized to access this panel.")
         return
     
     bot.reply_to(message, "🛠 Admin Panel:", reply_markup=admin_markup)
 
-@bot.message_handler(func=lambda message: message.text in ["➕ Add Coins", "➖ Remove Coins"] and message.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda message: message.text in ["➕ Add Coins", "➖ Remove Coins"] and message.from_user.id == admin_user_ids)
 def admin_actions(message):
     """Guide admin to use addcoins or removecoins commands"""
     if "Add" in message.text:
@@ -1941,7 +2031,7 @@ def back_to_main(message):
 
 #========== New Commands ==============#
 # Admin Stats Command
-@bot.message_handler(func=lambda m: m.text == "📊 Analytics" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "📊 Analytics" and m.from_user.id == admin_user_ids)
 def show_analytics(message):
     """Show comprehensive bot analytics"""
     try:
@@ -1972,7 +2062,7 @@ def show_analytics(message):
         bot.reply_to(message, "❌ Failed to load analytics. Please try again later.")
 
 # =========================== Broadcast Command ================= #
-@bot.message_handler(func=lambda m: m.text == "📢 Broadcast" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "📢 Broadcast" and m.from_user.id == admin_user_ids)
 def broadcast_start(message):
     """Start normal broadcast process (unpinned)"""
     msg = bot.reply_to(message, "📢 Enter the message you want to broadcast to all users (this won't be pinned):")
@@ -2010,7 +2100,7 @@ def process_broadcast(message):
 ❌ Failed: {failed}""", reply_markup=admin_markup)
 
 #====================== Ban User Command ================================#
-@bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id == admin_user_ids)
 def ban_user_start(message):
     """Start ban user process"""
     msg = bot.reply_to(message, "Enter user ID to ban:")
@@ -2051,7 +2141,7 @@ def process_ban_user(message):
     bot.reply_to(message, f"✅ User {user_id} has been banned.", reply_markup=admin_markup)
 
 # Unban User Command
-@bot.message_handler(func=lambda m: m.text == "✅ Unban User" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "✅ Unban User" and m.from_user.id == admin_user_ids)
 def unban_user_start(message):
     """Start unban user process"""
     msg = bot.reply_to(message, "Enter user ID to unban:")
@@ -2084,7 +2174,7 @@ def process_unban_user(message):
     bot.reply_to(message, f"✅ User {user_id} has been unbanned.", reply_markup=admin_markup)
 
 # List Banned Command
-@bot.message_handler(func=lambda m: m.text == "📋 List Banned" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "📋 List Banned" and m.from_user.id == admin_user_ids)
 def list_banned(message):
     """Show list of banned users"""
     banned_users = get_banned_users()
@@ -2118,7 +2208,7 @@ def show_leaderboard(message):
     bot.reply_to(message, "\n".join(leaderboard), reply_markup=main_markup)
 
 #======================= Function to Pin Annoucement Messages ====================#
-@bot.message_handler(func=lambda m: m.text == "📌 Pin Message" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "📌 Pin Message" and m.from_user.id == admin_user_ids)
 def pin_message_start(message):
     """Start pin message process"""
     msg = bot.reply_to(message, 
@@ -2165,7 +2255,7 @@ def process_pin_message(message):
 
 
 #================= Check User Info by ID ===================================#
-@bot.message_handler(func=lambda m: m.text == "👤 User Info" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "👤 User Info" and m.from_user.id == admin_user_ids)
 def user_info_start(message):
     msg = bot.reply_to(message, "Enter user ID or username (@username):")
     bot.register_next_step_handler(msg, process_user_info)
@@ -2199,7 +2289,7 @@ def process_user_info(message):
         bot.reply_to(message, f"❌ Error: {str(e)}")
 
 #============================== Server Status Command ===============================#
-@bot.message_handler(func=lambda m: m.text == "🖥 Server Status" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "🖥 Server Status" and m.from_user.id == admin_user_ids)
 def server_status(message):
     try:
         import psutil, platform
@@ -2240,7 +2330,7 @@ def server_status(message):
         bot.reply_to(message, f"❌ Error getting status: {str(e)}")
 
 #========================== Export User Data (CSV) =================#
-@bot.message_handler(func=lambda m: m.text == "📤 Export Data" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "📤 Export Data" and m.from_user.id == admin_user_ids)
 def export_data(message):
     try:
         from functions import users_collection
@@ -2284,7 +2374,7 @@ maintenance_mode = False
 maintenance_message = "🚧 The bot is currently under maintenance. Please try again later."
 
 # Maintenance toggle command
-@bot.message_handler(func=lambda m: m.text == "🔧 Maintenance" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "🔧 Maintenance" and m.from_user.id == admin_user_ids)
 def toggle_maintenance(message):
     global maintenance_mode, maintenance_message
     
@@ -2322,7 +2412,7 @@ def auto_disable_maintenance():
 threading.Thread(target=auto_disable_maintenance).start()
 
 #============================ Order Management Commands =============================#
-@bot.message_handler(func=lambda m: m.text == "📦 Order Manager" and m.from_user.id == admin_user_id)
+@bot.message_handler(func=lambda m: m.text == "📦 Order Manager" and m.from_user.id == admin_user_ids)
 def check_order_start(message):
     msg = bot.reply_to(message, "Enter Order ID:")
     bot.register_next_step_handler(msg, process_check_order)
@@ -2479,18 +2569,48 @@ def send_startup_message(is_restart=False):
         )
     except Exception as e:
         print(f"Error sending startup message: {e}")
+      
 # ==================== FLASK INTEGRATION ==================== #
 
-# Create minimal Flask app
+# Create enhanced Flask app
 web_app = Flask(__name__)
+start_time = time.time()  # Track bot start time
 
 @web_app.route('/')
 def home():
-    return "Telegram Bot is running!", 200
+    return jsonify({
+        "status": "running",
+        "bot": bot.get_me().username,
+        "uptime_seconds": time.time() - start_time,
+        "admin_count": len(admin_user_ids),
+        "version": "1.0"
+    }), 200
 
 @web_app.route('/health')
 def health():
-    return "OK", 200
+    return jsonify({
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "memory_usage": f"{psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024:.2f} MB"
+    }), 200
+
+@web_app.route('/ping')
+def ping():
+    """Endpoint for keep-alive pings"""
+    return "pong", 200
+
+# ==================== KEEP-ALIVE SYSTEM ==================== #
+def keep_alive():
+    """Pings the server periodically to prevent shutdown"""
+    while True:
+        try:
+            # Ping our own health endpoint
+            requests.get(f'http://localhost:{os.getenv("PORT", "10000")}/ping', timeout=5)
+            # Optionally ping external services
+            requests.get('https://www.google.com', timeout=5)
+        except Exception as e:
+            print(f"Keep-alive ping failed: {e}")
+        time.sleep(300)  # Ping every 5 minutes
 
 # ==================== BOT POLLING ==================== #
 def run_bot():
@@ -2498,15 +2618,35 @@ def run_bot():
     print("Bot is running...")
     while True:
         try:
-            bot.polling(none_stop=True)
+            bot.polling(none_stop=True, timeout=60)
         except Exception as e:
-            print(f"Bot polling failed: {e}")
-            time.sleep(10)
+            error_msg = f"Bot polling failed: {str(e)[:200]}"
+            print(error_msg)
+            
+            # Send alert to all admins
+            for admin_id in admin_user_ids:
+                try:
+                    bot.send_message(
+                        admin_id,
+                        f"⚠️ <b>Bot Error Notification</b> ⚠️\n\n"
+                        f"🔧 <code>{error_msg}</code>\n\n"
+                        f"🔄 Bot is automatically restarting...",
+                        parse_mode='HTML'
+                    )
+                except Exception as admin_error:
+                    print(f"Failed to notify admin {admin_id}: {admin_error}")
+            
+            time.sleep(10)  # Wait before restarting
             send_startup_message(is_restart=True)
 
 # ==================== MAIN EXECUTION ==================== #
 if __name__ == '__main__':
     import threading
+    
+    # Start keep-alive thread
+    keep_alive_thread = threading.Thread(target=keep_alive)
+    keep_alive_thread.daemon = True
+    keep_alive_thread.start()
     
     # Start bot in background thread
     bot_thread = threading.Thread(target=run_bot)
@@ -2518,5 +2658,6 @@ if __name__ == '__main__':
         host='0.0.0.0',
         port=int(os.getenv('PORT', '10000')),
         debug=False,
-        use_reloader=False
+        use_reloader=False,
+        threaded=True  # Enable multi-threading for better performance
     )
