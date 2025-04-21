@@ -531,10 +531,7 @@ def pricing_command(message):
 ➎ 📦 150K coins – $10.00
 ➏ 📦 300K coins – $15.00 </b>
 
-💰 Pay with Bitcoin, USDT, BSC, BUSD,  ... 👉🏻 @SocialBoosterAdmin
-
-💳️ Pay with Paypal, 🇺🇬 Mobile Money, WebMoney, ... 👉🏻 @SocialBoosterAdmin
-
+<b>💡NOTE: 𝘙𝘦𝘮𝘦𝘮𝘣𝘦𝘳 𝘵𝘰 𝘴𝘦𝘯𝘥 𝘺𝘰𝘶𝘳 𝘈𝘤𝘤𝘰𝘶𝘯𝘵 𝘐𝘋 𝘵𝘰 𝘳𝘦𝘤𝘦𝘪𝘷𝘦 𝘤𝘰𝘪𝘯𝘴</b>
 <b>🆔 Your id:</b> <code>{user_id}</code>
 """
 
