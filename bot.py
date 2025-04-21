@@ -2611,7 +2611,7 @@ def keep_alive():
             requests.get('https://www.google.com', timeout=5)
         except Exception as e:
             print(f"Keep-alive ping failed: {e}")
-        time.sleep(60)  # Ping every 5 minutes
+        time.sleep(120)  # Ping every 5 minutes
 
 # ==================== BOT POLLING ==================== #
 def run_bot():
