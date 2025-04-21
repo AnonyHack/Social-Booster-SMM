@@ -1,9 +1,25 @@
-pyTelegramBotAPI==4.12.0
-requests==2.31.0
-python-dotenv==1.0.0
-pymongo==4.5.0
-flask==3.0.0
+# Core dependencies
+pyTelegramBotAPI
+requests
+python-dotenv
+pymongo
+flask
 gunicorn
 pytz
 psutil
 
+# Monitoring & Reliability
+schedule
+sentry-sdk
+python-json-logger
+watchdog
+
+# Performance
+uvicorn
+httpx
+pymongo[srv]
+
+# Utilities
+python-dateutil
+tzlocal
+pyyaml
