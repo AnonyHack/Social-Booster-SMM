@@ -30,8 +30,16 @@ load_dotenv()
 bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
 SmmPanelApi = os.getenv("SMM_PANEL_API_KEY")
 SmmPanelApiUrl = os.getenv("SMM_PANEL_API_URL")
-# Load admin user IDs from environment variable
-admin_user_ids = list(map(int, os.getenv("ADMIN_USER_IDS", "").split(",")))
+# Simple admin IDs loading (comma-separated in .env)
+admin_ids_str = os.getenv("ADMIN_USER_IDS", "")
+admin_user_ids = [int(id) for id in admin_ids_str.split(",")] if admin_ids_str else []
+
+# Add a fallback admin if list is empty (optional but recommended)
+if not admin_user_ids:
+    admin_user_ids = [5962658076]  # Your main admin ID as fallback
+    print("⚠️ Using fallback admin ID - Check your .env file")
+
+print("Active Admin IDs:", admin_user_ids)
 
 bot = telebot.TeleBot(bot_token)
 
@@ -240,7 +248,7 @@ def check_ban(func):
         user_id = str(message.from_user.id)
         
         # Check maintenance mode
-        if maintenance_mode and user_id != str(admin_user_ids):
+        if maintenance_mode and user_id not in map(str, admin_user_ids):
             bot.reply_to(message, maintenance_message)
             return
             
@@ -1957,7 +1965,7 @@ def handle_back_buttons(message):
 # ================= ADMIN COMMANDS ================== #
 @bot.message_handler(commands=['addcoins', 'removecoins'])
 def handle_admin_commands(message):
-    if message.from_user.id != admin_user_ids:
+    if message.from_user.id not in admin_user_ids:
         bot.reply_to(message, "❌ Y̶o̶u̶ ̶a̶r̶e̶ ̶n̶o̶t̶ ̶a̶u̶t̶h̶o̶r̶i̶z̶e̶d̶ ̶t̶o̶ ̶u̶s̶e̶ ̶t̶h̶i̶s̶ ̶c̶o̶m̶m̶a̶n̶d̶.")
         return
     
@@ -2011,7 +2019,7 @@ def handle_admin_commands(message):
 
 @bot.message_handler(func=lambda message: message.text == "🛠 Admin Panel")
 def admin_panel(message):
-    if message.from_user.id != admin_user_ids:
+    if message.from_user.id not in admin_user_ids:
         bot.reply_to(message, "❌ Y̶o̶u̶ ̶a̶r̶e̶ ̶n̶o̶t̶ ̶a̶u̶t̶h̶o̶r̶i̶z̶e̶d̶ ̶t̶o̶ ̶a̶c̶c̶e̶s̶s̶ ̶t̶h̶i̶s̶ ̶p̶a̶n̶e̶l̶.")
         return
     
@@ -2062,7 +2070,7 @@ def show_analytics(message):
         bot.reply_to(message, "❌ Failed to load analytics. Please try again later.")
 
 # =========================== Broadcast Command ================= #
-@bot.message_handler(func=lambda m: m.text == "📤 Broadcast" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "📤 Broadcast" and m.from_user.id in admin_user_ids)
 def broadcast_start(message):
     """Start normal broadcast process (unpinned)"""
     msg = bot.reply_to(message, "📢 Eɴᴛᴇʀ Tʜᴇ Mᴇꜱꜱᴀɢᴇ Yᴏᴜ Wᴀɴᴛ Tᴏ Bʀᴏᴀᴅᴄᴀꜱᴛ Tᴏ Aʟʟ Uꜱᴇʀꜱ (ᴛʜɪꜱ ᴡᴏɴ'ᴛ ʙᴇ ᴘɪɴɴᴇᴅ):")
@@ -2100,7 +2108,7 @@ def process_broadcast(message):
 ❌ Failed: {failed}""", reply_markup=admin_markup)
 
 #====================== Ban User Command ================================#
-@bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id in admin_user_ids)
 def ban_user_start(message):
     """Start ban user process"""
     msg = bot.reply_to(message, "Eɴᴛᴇʀ Uꜱᴇʀ Iᴅ Tᴏ Bᴀɴ:")
@@ -2141,7 +2149,7 @@ def process_ban_user(message):
     bot.reply_to(message, f"✅ User {user_id} has been banned.", reply_markup=admin_markup)
 
 # Unban User Command
-@bot.message_handler(func=lambda m: m.text == "✅ Unban User" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "✅ Unban User" and m.from_user.id in admin_user_ids)
 def unban_user_start(message):
     """Start unban user process"""
     msg = bot.reply_to(message, "Eɴᴛᴇʀ Uꜱᴇʀ Iᴅ Tᴏ Uɴʙᴀɴ:")
@@ -2174,7 +2182,7 @@ def process_unban_user(message):
     bot.reply_to(message, f"✅ User {user_id} has been unbanned.", reply_markup=admin_markup)
 
 # List Banned Command
-@bot.message_handler(func=lambda m: m.text == "📋 List Banned" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "📋 List Banned" and m.from_user.id in admin_user_ids)
 def list_banned(message):
     """Show list of banned users"""
     banned_users = get_banned_users()
@@ -2208,7 +2216,7 @@ def show_leaderboard(message):
     bot.reply_to(message, "\n".join(leaderboard), reply_markup=main_markup)
 
 #======================= Function to Pin Annoucement Messages ====================#
-@bot.message_handler(func=lambda m: m.text == "📌 Pin Message" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "📌 Pin Message" and m.from_user.id in admin_user_ids)
 def pin_message_start(message):
     """Start pin message process"""
     msg = bot.reply_to(message, 
@@ -2255,7 +2263,7 @@ def process_pin_message(message):
 
 
 #================= Check User Info by ID ===================================#
-@bot.message_handler(func=lambda m: m.text == "👤 User Info" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "👤 User Info" and m.from_user.id in admin_user_ids)
 def user_info_start(message):
     msg = bot.reply_to(message, "Enter user ID or username (@username):")
     bot.register_next_step_handler(msg, process_user_info)
@@ -2289,7 +2297,7 @@ def process_user_info(message):
         bot.reply_to(message, f"❌ Error: {str(e)}")
 
 #============================== Server Status Command ===============================#
-@bot.message_handler(func=lambda m: m.text == "🖥 Server Status" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "🖥 Server Status" and m.from_user.id in admin_user_ids)
 def server_status(message):
     try:
         import psutil, platform
@@ -2330,7 +2338,7 @@ def server_status(message):
         bot.reply_to(message, f"❌ Error getting status: {str(e)}")
 
 #========================== Export User Data (CSV) =================#
-@bot.message_handler(func=lambda m: m.text == "📤 Export Data" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "📤 Export Data" and m.from_user.id in admin_user_ids)
 def export_data(message):
     try:
         from functions import users_collection
@@ -2374,7 +2382,7 @@ maintenance_mode = False
 maintenance_message = "🚧 𝙏𝙝𝙚 𝙗𝙤𝙩 𝙞𝙨 𝙘𝙪𝙧𝙧𝙚𝙣𝙩𝙡𝙮 𝙪𝙣𝙙𝙚𝙧 𝙢𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚. 𝙋𝙡𝙚𝙖𝙨𝙚 𝙩𝙧𝙮 𝙖𝙜𝙖𝙞𝙣 𝙡𝙖𝙩𝙚𝙧."
 
 # Maintenance toggle command
-@bot.message_handler(func=lambda m: m.text == "🔧 Maintenance" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "🔧 Maintenance" and m.from_user.id in admin_user_ids)
 def toggle_maintenance(message):
     global maintenance_mode, maintenance_message
     
@@ -2412,7 +2420,7 @@ def auto_disable_maintenance():
 threading.Thread(target=auto_disable_maintenance).start()
 
 #============================ Order Management Commands =============================#
-@bot.message_handler(func=lambda m: m.text == "📦 Order Manager" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "📦 Order Manager" and m.from_user.id in admin_user_ids)
 def check_order_start(message):
     msg = bot.reply_to(message, "Enter Order ID:")
     bot.register_next_step_handler(msg, process_check_order)
