@@ -61,8 +61,8 @@ main_markup.add(button8)
 # Admin keyboard markup
 admin_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 admin_markup.row("➕ Add Coins", "➖ Remove Coins")
-admin_markup.row("📌 Pin Message", "📢 Broadcast")
-admin_markup.row("⛔ Ban User", "✅ Unban User")
+admin_markup.row("📌 Pin Message", "📤 Broadcast")
+admin_markup.row("🔒 Ban User", "✅ Unban User")
 admin_markup.row("📋 List Banned", "👤 User Info")  # New
 admin_markup.row("🖥 Server Status", "📤 Export Data")  # New
 admin_markup.row("📦 Order Manager", "📊 Analytics")  # New
@@ -2018,7 +2018,7 @@ def admin_panel(message):
     
     bot.reply_to(message, "🛠 Admin Panel:", reply_markup=admin_markup)
 
-@bot.message_handler(func=lambda message: message.text in ["➕ Add Coins", "➖ Remove Coins"] and message.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda message: message.text in ["➕ Add Coins", "➖ Remove Coins"] and message.from_user.id in admin_user_ids)
 def admin_actions(message):
     """Guide admin to use addcoins or removecoins commands"""
     if "Add" in message.text:
@@ -2032,7 +2032,7 @@ def back_to_main(message):
 
 #========== New Commands ==============#
 # Admin Stats Command
-@bot.message_handler(func=lambda m: m.text == "📊 Analytics" and m.from_user.id == admin_user_ids)
+@bot.message_handler(func=lambda m: m.text == "📊 Analytics" and m.from_user.id in admin_user_ids)
 def show_analytics(message):
     """Show comprehensive bot analytics"""
     try:
@@ -2141,7 +2141,7 @@ def process_ban_user(message):
     
     bot.reply_to(message, f"✅ User {user_id} has been banned.", reply_markup=admin_markup)
 
-# Unban User Command
+#================================= Unban User Command =============================================#
 @bot.message_handler(func=lambda m: m.text == "✅ Unban User" and m.from_user.id in admin_user_ids)
 def unban_user_start(message):
     """Start unban user process"""
