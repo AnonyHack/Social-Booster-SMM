@@ -31,15 +31,8 @@ bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
 SmmPanelApi = os.getenv("SMM_PANEL_API_KEY")
 SmmPanelApiUrl = os.getenv("SMM_PANEL_API_URL")
 # Simple admin IDs loading (comma-separated in .env)
-admin_ids_str = os.getenv("ADMIN_USER_IDS", "")
-admin_user_ids = [int(id) for id in admin_ids_str.split(",")] if admin_ids_str else []
-
-# Add a fallback admin if list is empty (optional but recommended)
-if not admin_user_ids:
-    admin_user_ids = [5962658076]  # Your main admin ID as fallback
-    print("⚠️ Using fallback admin ID - Check your .env file")
-
-print("Active Admin IDs:", admin_user_ids)
+# Replace the single admin line with:
+admin_user_ids = [int(id.strip()) for id in os.getenv("ADMIN_USER_IDS", "").split(",") if id.strip()]
 
 bot = telebot.TeleBot(bot_token)
 
