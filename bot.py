@@ -30,8 +30,8 @@ load_dotenv()
 bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
 SmmPanelApi = os.getenv("SMM_PANEL_API_KEY")
 SmmPanelApiUrl = os.getenv("SMM_PANEL_API_URL")
-# Replace the single admin line with:
-admin_user_ids = [int(id.strip()) for id in os.getenv("ADMIN_USER_IDS", "").split(",") if id.strip()]  # Convert to integer
+# Load admin user IDs from environment variable
+admin_user_ids = list(map(int, os.getenv("ADMIN_USER_IDS", "").split(",")))
 
 bot = telebot.TeleBot(bot_token)
 
