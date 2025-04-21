@@ -183,7 +183,7 @@ def add_order(user_id, order_data):
         return False
 #==================================== Channel Membership Check =======================#
 #================================== Force Join Method =======================================#
-required_channels = ["Megahubbots"] #"Freeairtimehub", #"Freenethubchannel"]  # Channel usernames without "@"
+required_channels = ["Megahubbots", "Freenethubz", "Freenethubchannel"]  # Channel usernames without "@"
 payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
@@ -223,7 +223,7 @@ def verify_membership(call):
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="✅ 𝐘𝐨𝐮 𝐚𝐫𝐞 𝐯𝐞𝐫𝐢𝐟𝐢𝐞𝐝! 𝐘𝐨𝐮 𝐜𝐚𝐧 𝐧𝐨𝐰 𝐮𝐬𝐞 𝐭𝐡𝐞 𝐛𝐨𝐭."
+            text="✅ 𝐘𝐨𝐮 𝐚𝐫𝐞 𝐯𝐞𝐫𝐢𝐟𝐢𝐞𝐝! 𝐘𝐨𝐮 𝐜𝐚𝐧 𝐧𝐨𝐰 𝐮𝐬𝐞 𝐭𝐡𝐞 𝐛𝐨𝐭. 𝐂𝐥𝐢𝐜𝐤 /start 𝐚𝐠𝐚𝐢𝐧"
         )
         send_welcome(call.message)  # Restart the welcome process
     else:
@@ -342,7 +342,7 @@ def send_welcome(message):
     welcome_caption = f"""
 🎉 <b>Welcome {first_name} !</b> 🎉
 
-🆔 <b>User ID:</b> <code>`{user_id}`</code>
+🆔 <b>User ID:</b> <code>{user_id}</code>
 👤 <b>Username:</b> {username}
 
 Wɪᴛʜ Oᴜʀ Bᴏᴛ, Yᴏᴜ Cᴀɴ Bᴏᴏꜱᴛ Yᴏᴜʀ Sᴏᴄɪᴀʟ Mᴇᴅɪᴀ Aᴄᴄᴏᴜɴᴛꜱ & Pᴏꜱᴛꜱ Wɪᴛʜ Jᴜꜱᴛ A Fᴇᴡ Sɪᴍᴘʟᴇ Sᴛᴇᴘꜱ!
