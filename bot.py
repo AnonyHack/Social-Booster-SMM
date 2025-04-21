@@ -367,7 +367,7 @@ Wɪᴛʜ Oᴜʀ Bᴏᴛ, Yᴏᴜ Cᴀɴ Bᴏᴏꜱᴛ Yᴏᴜʀ Sᴏᴄɪᴀʟ M
         if userData['welcome_bonus'] == 0:
             bot.send_message(
                 user_id,
-                f"🎁 <b>Yᴏᴜ Rᴇᴄᴇɪᴠᴇᴅ +{welcome_bonus} Cᴏɪɴꜱ Sꜱ Wᴇʟᴄᴏᴍᴇ Bᴏɴᴜꜱ!</b>",
+                f"🎁 <b>Yᴏᴜ Rᴇᴄᴇɪᴠᴇᴅ +{welcome_bonus} Cᴏɪɴꜱ Wᴇʟᴄᴏᴍᴇ Bᴏɴᴜꜱ!</b>",
                 parse_mode='HTML'
             )
             
