@@ -972,7 +972,8 @@ def process_tiktok_link(message, service, quantity, cost):
     
     link = message.text.strip()
     
-    if not re.match(r'^https?://(www\.)?tiktok\.com/', link):
+    # Updated TikTok link validation
+    if not re.match(r'^https?://(www\.)?(tiktok\.com|vm\.tiktok\.com)/', link):
         bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ TɪᴋTᴏᴋ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=tiktok_services_markup)
         return
     
