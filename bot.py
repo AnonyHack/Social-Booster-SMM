@@ -116,7 +116,7 @@ tiktok_services_markup.row(
 # Instagram services menu
 instagram_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 instagram_services_markup.row(
-    KeyboardButton("🎥 Insta Vid Views"),
+    KeyboardButton("🎥 Video Views"),
     KeyboardButton("❤️ Insta Likes")
 )
 instagram_services_markup.row(
@@ -723,14 +723,14 @@ def process_telegram_quantity(message, service):
 
 def process_telegram_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
         return
     
     link = message.text.strip()
     
     # Validate link format (basic check)
     if not re.match(r'^https?://t\.me/', link):
-        bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ Tᴇʟᴇɢʀᴀᴍ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=telegram_services_markup)
+        bot.reply_to(message, "❌ Invalid Telegram link format", reply_markup=telegram_services_markup)
         return
     
     # Submit to SMM panel
@@ -771,6 +771,14 @@ def process_telegram_link(message, service, quantity, cost):
             # Add to order history
             add_order(str(message.from_user.id), order_data)
             
+            # Create "Check Order Status" button
+            check_status_markup = InlineKeyboardMarkup()
+            check_status_button = InlineKeyboardButton(
+                text="Check Order Status",
+                url=payment_channel  # Link to the payment channel
+            )
+            check_status_markup.add(check_status_button)
+            
             # Stylish confirmation message
             bot.reply_to(
                 message,
@@ -781,9 +789,9 @@ def process_telegram_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
-😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
+😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗻𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
 😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
-                reply_markup=main_markup,
+                reply_markup=check_status_markup,
                 disable_web_page_preview=True,
                 parse_mode='HTML'
             )
@@ -857,7 +865,7 @@ def handle_tiktok_order(message):
     
     # TikTok service configurations
     services = {
-        "👀 TikTok Views": {
+        "👀 Order Views": {
             "name": "TikTok Views",
             "quality": "Fast Speed",
             "link_hint": "Tiktok Post Link",
@@ -999,6 +1007,14 @@ def process_tiktok_link(message, service, quantity, cost):
                 'username': message.from_user.username or str(message.from_user.id)
             }
             add_order(str(message.from_user.id), order_data)
+
+                        # Create "Check Order Status" button
+            check_status_markup = InlineKeyboardMarkup()
+            check_status_button = InlineKeyboardButton(
+                text="Check Order Status",
+                url=payment_channel  # Link to the payment channel
+            )
+            check_status_markup.add(check_status_button)
             
             # Update user stats
             user_id = str(message.from_user.id)
@@ -1073,13 +1089,13 @@ def order_instagram_menu(message):
     """Show Instagram service options"""
     bot.reply_to(message, "📸 Instagram Services:", reply_markup=instagram_services_markup)
 
-@bot.message_handler(func=lambda message: message.text in ["🎥 Insta Vid Views", "❤️ Insta Likes", "👥 Insta Followers"])
+@bot.message_handler(func=lambda message: message.text in ["🎥 Video Views", "❤️ Insta Likes", "👥 Insta Followers"])
 def handle_instagram_order(message):
     """Handle Instagram service selection"""
     user_id = str(message.from_user.id)
     
     services = {
-        "🎥 Insta Vid Views": {
+        "🎥 Video Views": {
             "name": "Instagram Video Views",
             "quality": "Real Accounts",
             "min": 1000,
@@ -1218,6 +1234,14 @@ def process_instagram_link(message, service, quantity, cost):
                 'username': message.from_user.username or str(message.from_user.id)
             }
             add_order(str(message.from_user.id), order_data)
+
+                        # Create "Check Order Status" button
+            check_status_markup = InlineKeyboardMarkup()
+            check_status_button = InlineKeyboardButton(
+                text="Check Order Status",
+                url=payment_channel  # Link to the payment channel
+            )
+            check_status_markup.add(check_status_button)
             
             # Update user stats
             user_id = str(message.from_user.id)
@@ -1436,6 +1460,14 @@ def process_youtube_link(message, service, quantity, cost):
                 'username': message.from_user.username or str(message.from_user.id)
             }
             add_order(str(message.from_user.id), order_data)
+
+                        # Create "Check Order Status" button
+            check_status_markup = InlineKeyboardMarkup()
+            check_status_button = InlineKeyboardButton(
+                text="Check Order Status",
+                url=payment_channel  # Link to the payment channel
+            )
+            check_status_markup.add(check_status_button)
             
             # Update user stats
             user_id = str(message.from_user.id)
@@ -1664,6 +1696,14 @@ def process_facebook_link(message, service, quantity, cost):
                 'username': message.from_user.username or str(message.from_user.id)
             }
             add_order(str(message.from_user.id), order_data)
+
+                        # Create "Check Order Status" button
+            check_status_markup = InlineKeyboardMarkup()
+            check_status_button = InlineKeyboardButton(
+                text="Check Order Status",
+                url=payment_channel  # Link to the payment channel
+            )
+            check_status_markup.add(check_status_button)
             
             # Update user stats
             user_id = str(message.from_user.id)
@@ -1872,6 +1912,14 @@ def process_whatsapp_link(message, service, quantity, cost):
                 'username': message.from_user.username or str(message.from_user.id)
             }
             add_order(str(message.from_user.id), order_data)
+
+                        # Create "Check Order Status" button
+            check_status_markup = InlineKeyboardMarkup()
+            check_status_button = InlineKeyboardButton(
+                text="Check Order Status",
+                url=payment_channel  # Link to the payment channel
+            )
+            check_status_markup.add(check_status_button)
             
             # Update user stats
             user_id = str(message.from_user.id)
