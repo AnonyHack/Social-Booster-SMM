@@ -90,11 +90,11 @@ send_orders_markup.add(KeyboardButton("🔙 Main Menu"))
 # Telegram services menu
 telegram_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 telegram_services_markup.row(
-    KeyboardButton("👀 Order Views"),
-    KeyboardButton("❤️ Order Reactions")
+    KeyboardButton("👀 Post Views"),
+    KeyboardButton("❤️ Post Reactions")
 )
 telegram_services_markup.row(
-    KeyboardButton("👥 Order Members"),
+    KeyboardButton("👥 Channel Members"),
 )
 telegram_services_markup.row(
     KeyboardButton("↩️ Go Back")
@@ -103,11 +103,11 @@ telegram_services_markup.row(
 # TikTok services menu (placeholder for now)
 tiktok_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 tiktok_services_markup.row(
-    KeyboardButton("👀 Order Views"),
-    KeyboardButton("❤️ Order Likes")
+    KeyboardButton("👀 Tiktok Views"),
+    KeyboardButton("❤️ Tiktok Likes")
 )
 tiktok_services_markup.row(
-    KeyboardButton("👥 Order Followers"),
+    KeyboardButton("👥 Tiktok Followers"),
 )
 tiktok_services_markup.row(
     KeyboardButton("↩️ Go Back")
@@ -607,14 +607,14 @@ def order_telegram_menu(message):
     """Show Telegram service options"""
     bot.reply_to(message, "📱 Telegram Services:", reply_markup=telegram_services_markup)
 
-@bot.message_handler(func=lambda message: message.text in ["👀 Order Views", "❤️ Order Reactions", "👥 Order Members"])
+@bot.message_handler(func=lambda message: message.text in ["👀 Post Views", "❤️ Post Reactions", "👥 Channel Members"])
 def handle_telegram_order(message):
     """Handle Telegram service selection"""
     user_id = str(message.from_user.id)
     
     # Store service details in a dictionary
     services = {
-        "👀 Order Views": {
+        "👀 Post Views": {
             "name": "Post Views",
             "quality": "Super Fast",
             "min": 1000,
@@ -624,7 +624,7 @@ def handle_telegram_order(message):
             "service_id": "10576",  # Your SMM panel service ID for views
             "link_hint": "Telegram post link"
         },
-        "❤️ Order Reactions": {
+        "❤️ Post Reactions": {
             "name": "Positive Reactions",
             "quality": "No Refil",
             "min": 50,
@@ -635,7 +635,7 @@ def handle_telegram_order(message):
             "link_hint": "Telegram post link"
             
         },
-        "👥 Order Members": {
+        "👥 Channel Members": {
             "name": "Members [Mixed]",
             "quality": "Refill 90 Days",
             "min": 500,
@@ -858,14 +858,14 @@ def order_tiktok_menu(message):
     bot.reply_to(message, "🎵 TikTok Services:", reply_markup=tiktok_services_markup)
 
 
-@bot.message_handler(func=lambda message: message.text in ["👀 Order Views", "❤️ Order Likes", "👥 Order Followers"])
+@bot.message_handler(func=lambda message: message.text in ["👀 Tiktok Views", "❤️ Tiktok Likes", "👥 Tiktok Followers"])
 def handle_tiktok_order(message):
     """Handle TikTok service selection"""
     user_id = str(message.from_user.id)
     
     # TikTok service configurations
     services = {
-        "👀 Order Views": {
+        "👀 Tiktok Views": {
             "name": "TikTok Views",
             "quality": "Fast Speed",
             "link_hint": "Tiktok Post Link",
@@ -875,7 +875,7 @@ def handle_tiktok_order(message):
             "unit": "1k views",
             "service_id": "17566"
         },
-        "❤️ Order Likes": {
+        "❤️ Tiktok Likes": {
             "name": "TikTok Likes",
             "quality": "Real & Active",
             "link_hint": "Tiktok Post Link",
@@ -885,7 +885,7 @@ def handle_tiktok_order(message):
             "unit": "1k likes",
             "service_id": "17335"
         },
-        "👥 Order Followers": {
+        "👥 Tiktok Followers": {
             "name": "TikTok Followers",
             "quality": "High Quality",
             "link_hint": "Tiktok Profile Link",
@@ -953,7 +953,7 @@ def process_tiktok_quantity(message, service):
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, "🔗 Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ TɪᴋTᴏᴋ ᴠɪᴅᴇᴏ/ᴘʀᴏꜰɪʟᴇ ʟɪɴᴋ:", reply_markup=cancel_markup)
+        bot.reply_to(message, "🔗 Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ TɪᴋTᴏᴋ ᴠɪᴅᴇᴏ ʟɪɴᴋ:", reply_markup=cancel_markup)
         bot.register_next_step_handler(
             message, 
             process_tiktok_link, 
