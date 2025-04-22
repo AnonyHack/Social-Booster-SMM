@@ -774,8 +774,8 @@ def process_telegram_link(message, service, quantity, cost):
             # Create "Check Order Status" button
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
+                text="📊 Check Order Status",
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -789,8 +789,9 @@ def process_telegram_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
-😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗻𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
-😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
+
+⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
                 reply_markup=check_status_markup,
                 disable_web_page_preview=True,
                 parse_mode='HTML'
@@ -1012,8 +1013,8 @@ def process_tiktok_link(message, service, quantity, cost):
                         # Create "Check Order Status" button
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
+                text="📊 Check Order Status",
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -1032,8 +1033,9 @@ def process_tiktok_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
-😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
-😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
+
+⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
                 reply_markup=main_markup,
                 disable_web_page_preview=True,
                 parse_mode='HTML'
@@ -1050,7 +1052,9 @@ def process_tiktok_link(message, service, quantity, cost):
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
-🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}""",
+🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
                     disable_web_page_preview=True,
                     parse_mode='HTML'
                 )
@@ -1239,8 +1243,8 @@ def process_instagram_link(message, service, quantity, cost):
                         # Create "Check Order Status" button
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
+                text="📊 Check Order Status",
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -1259,8 +1263,9 @@ def process_instagram_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
-😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
-😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
+
+⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
                 reply_markup=main_markup,
                 disable_web_page_preview=True
             )
@@ -1465,8 +1470,8 @@ def process_youtube_link(message, service, quantity, cost):
                         # Create "Check Order Status" button
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
+                text="📊 Check Order Status",
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -1485,8 +1490,9 @@ def process_youtube_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
-😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
-😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
+
+⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
                 reply_markup=main_markup,
                 disable_web_page_preview=True
             )
@@ -1701,8 +1707,8 @@ def process_facebook_link(message, service, quantity, cost):
                         # Create "Check Order Status" button
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
+                text="📊 Check Order Status",
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -1721,8 +1727,9 @@ def process_facebook_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
-😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
-😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
+
+⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
                 reply_markup=main_markup,
                 disable_web_page_preview=True
             )
@@ -1917,8 +1924,8 @@ def process_whatsapp_link(message, service, quantity, cost):
                         # Create "Check Order Status" button
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
+                text="📊 Check Order Status",
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -1937,8 +1944,9 @@ def process_whatsapp_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
-😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
-😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
+😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
+
+⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
                 reply_markup=main_markup,
                 disable_web_page_preview=True
             )
