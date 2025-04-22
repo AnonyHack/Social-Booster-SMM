@@ -1,3 +1,4 @@
+from bot import bot  # ✅ Lazy import to avoid circular import
 import bot
 import os
 import time
