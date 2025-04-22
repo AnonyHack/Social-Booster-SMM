@@ -1,10 +1,11 @@
+import bot
 import os
-import json
 import time
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 import logging
+
 
 # Load environment variables
 load_dotenv()
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Initialize MongoDB connection
 try:
     client = MongoClient(MONGO_URI)
-    db = client.get_database("smmhubbooster")
+    db = client.get_database("view_booster_bot")
     users_collection = db.users
     orders_collection = db.orders
     logger.info("Connected to MongoDB successfully")
@@ -377,5 +378,26 @@ def get_top_referrer():
     except PyMongoError as e:
         logger.error(f"Error getting top referrer: {e}")
         return {'user_id': None, 'username': None, 'count': 0}
+    
+# Add at the top (with other global variables)
+user_last_bot_message = {}  # { user_id: bot_message_id }
+user_last_user_message = {}  # { user_id: user_message_id }
+
+def cleanup_previous_messages(user_id):
+    """Delete the last bot and user messages (if they exist)."""
+    # Delete bot's last message
+    if user_id in user_last_bot_message:
+        try:
+            bot.delete_message(user_id, user_last_bot_message[user_id])
+        except Exception as e:
+            print(f"Failed to delete bot message: {e}")  # Silent fail
+    
+    # Delete user's last message (button click)
+    if user_id in user_last_user_message:
+        try:
+            bot.delete_message(user_id, user_last_user_message[user_id])
+        except Exception as e:
+            print(f"Failed to delete user message: {e}")  # Silent fail
+
 
 print("functions.py loaded with MongoDB support")
