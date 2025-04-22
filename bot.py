@@ -779,12 +779,13 @@ def process_telegram_link(message, service, quantity, cost):
             add_order(str(message.from_user.id), order_data)
             
             # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
+            markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url="https://t.me/smmserviceslogs"  # Hardcoded for testing  # Convert @channel to proper URL
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Hardcoded for testing  # Convert @channel to proper URL
             )
-            check_status_markup.add(check_status_button)
+            markup.add(check_status_button)  # Use add() instead of row()
+
             
             # Stylish confirmation message
             bot.reply_to(
@@ -799,7 +800,7 @@ def process_telegram_link(message, service, quantity, cost):
 😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
 
 ⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
-                reply_markup=check_status_markup,
+                reply_markup=markup,
                 disable_web_page_preview=True,
                 parse_mode='HTML'
             )
@@ -1017,20 +1018,16 @@ def process_tiktok_link(message, service, quantity, cost):
             }
             add_order(str(message.from_user.id), order_data)
 
-                        # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
+            # Create "Check Order Status" button
+            markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url="https://t.me/smmserviceslogs"  # Hardcoded for testing  # Convert @channel to proper URL
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Hardcoded for testing  # Convert @channel to proper URL
             )
-            check_status_markup.add(check_status_button)
+            markup.add(check_status_button)  # Use add() instead of row()
+
             
-            # Update user stats
-            user_id = str(message.from_user.id)
-            data = getData(user_id)
-            data['orders_count'] = data.get('orders_count', 0) + 1
-            updateUser(user_id, data)
-            
+            # Stylish confirmation message
             bot.reply_to(
                 message,
                 f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
@@ -1043,10 +1040,16 @@ def process_tiktok_link(message, service, quantity, cost):
 😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
 
 ⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
-                reply_markup=main_markup,
+                reply_markup=markup,
                 disable_web_page_preview=True,
                 parse_mode='HTML'
             )
+            
+            # Update user stats
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            data['orders_count'] = data.get('orders_count', 0) + 1
+            updateUser(user_id, data)
             
             try:
                 bot.send_message(
@@ -1247,23 +1250,19 @@ def process_instagram_link(message, service, quantity, cost):
             }
             add_order(str(message.from_user.id), order_data)
 
-                        # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
+            # Create "Check Order Status" button
+            markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url="https://t.me/smmserviceslogs"  # Hardcoded for testing  # Convert @channel to proper URL
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Hardcoded for testing  # Convert @channel to proper URL
             )
-            check_status_markup.add(check_status_button)
+            markup.add(check_status_button)  # Use add() instead of row()
+
             
-            # Update user stats
-            user_id = str(message.from_user.id)
-            data = getData(user_id)
-            data['orders_count'] = data.get('orders_count', 0) + 1
-            updateUser(user_id, data)
-            
+            # Stylish confirmation message
             bot.reply_to(
                 message,
-                f"""✅ {service['name']}  Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
+                f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
@@ -1273,9 +1272,16 @@ def process_instagram_link(message, service, quantity, cost):
 😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
 
 ⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
-                reply_markup=main_markup,
-                disable_web_page_preview=True
+                reply_markup=markup,
+                disable_web_page_preview=True,
+                parse_mode='HTML'
             )
+            
+            # Update user stats
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            data['orders_count'] = data.get('orders_count', 0) + 1
+            updateUser(user_id, data)
             
             try:
                 bot.send_message(
@@ -1474,23 +1480,19 @@ def process_youtube_link(message, service, quantity, cost):
             }
             add_order(str(message.from_user.id), order_data)
 
-                        # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
+            # Create "Check Order Status" button
+            markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url="https://t.me/smmserviceslogs"  # Hardcoded for testing"  # Convert @channel to proper URL
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Hardcoded for testing  # Convert @channel to proper URL
             )
-            check_status_markup.add(check_status_button)
+            markup.add(check_status_button)  # Use add() instead of row()
+
             
-            # Update user stats
-            user_id = str(message.from_user.id)
-            data = getData(user_id)
-            data['orders_count'] = data.get('orders_count', 0) + 1
-            updateUser(user_id, data)
-            
+            # Stylish confirmation message
             bot.reply_to(
                 message,
-                f"""✅ {service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
+                f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
@@ -1500,9 +1502,16 @@ def process_youtube_link(message, service, quantity, cost):
 😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
 
 ⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
-                reply_markup=main_markup,
-                disable_web_page_preview=True
+                reply_markup=markup,
+                disable_web_page_preview=True,
+                parse_mode='HTML'
             )
+            
+            # Update user stats
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            data['orders_count'] = data.get('orders_count', 0) + 1
+            updateUser(user_id, data)
             
             try:
                 bot.send_message(
@@ -1711,23 +1720,19 @@ def process_facebook_link(message, service, quantity, cost):
             }
             add_order(str(message.from_user.id), order_data)
 
-                        # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
+            # Create "Check Order Status" button
+            markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url="https://t.me/smmserviceslogs"  # Hardcoded for testing  # Convert @channel to proper URL
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Hardcoded for testing  # Convert @channel to proper URL
             )
-            check_status_markup.add(check_status_button)
+            markup.add(check_status_button)  # Use add() instead of row()
+
             
-            # Update user stats
-            user_id = str(message.from_user.id)
-            data = getData(user_id)
-            data['orders_count'] = data.get('orders_count', 0) + 1
-            updateUser(user_id, data)
-            
+            # Stylish confirmation message
             bot.reply_to(
                 message,
-                f"""✅ {service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
+                f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
@@ -1737,9 +1742,17 @@ def process_facebook_link(message, service, quantity, cost):
 😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
 
 ⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
-                reply_markup=main_markup,
-                disable_web_page_preview=True
+                reply_markup=markup,
+                disable_web_page_preview=True,
+                parse_mode='HTML'
             )
+            
+            # Update user stats
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            data['orders_count'] = data.get('orders_count', 0) + 1
+            updateUser(user_id, data)
+            
             
             try:
                 bot.send_message(
@@ -1928,23 +1941,19 @@ def process_whatsapp_link(message, service, quantity, cost):
             }
             add_order(str(message.from_user.id), order_data)
 
-                        # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
+            # Create "Check Order Status" button
+            markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url="https://t.me/smmserviceslogs"  # Hardcoded for testing  # Convert @channel to proper URL
+                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Hardcoded for testing  # Convert @channel to proper URL
             )
-            check_status_markup.add(check_status_button)
+            markup.add(check_status_button)  # Use add() instead of row()
+
             
-            # Update user stats
-            user_id = str(message.from_user.id)
-            data = getData(user_id)
-            data['orders_count'] = data.get('orders_count', 0) + 1
-            updateUser(user_id, data)
-            
+            # Stylish confirmation message
             bot.reply_to(
                 message,
-                f"""✅ {service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
+                f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
@@ -1954,9 +1963,16 @@ def process_whatsapp_link(message, service, quantity, cost):
 😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>
 
 ⚠️ <b>𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>""",
-                reply_markup=main_markup,
-                disable_web_page_preview=True
+                reply_markup=markup,
+                disable_web_page_preview=True,
+                parse_mode='HTML'
             )
+            
+            # Update user stats
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            data['orders_count'] = data.get('orders_count', 0) + 1
+            updateUser(user_id, data)
             
             try:
                 bot.send_message(
