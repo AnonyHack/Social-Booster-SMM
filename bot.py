@@ -18,13 +18,17 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                        addRefCount, isExists, setWelcomeStaus, setReferredStatus, updateUser, 
                        ban_user, unban_user, get_all_users, is_banned, get_banned_users, 
                        get_top_users, get_user_count, get_active_users, get_total_orders, 
-                       get_total_deposits, get_top_referrer, get_user_orders_stats) # Import your functions from functions.py
+                       get_total_deposits, get_top_referrer, get_user_orders_stats, cleanup_previous_messages) # Import your functions from functions.py
 
 if not os.path.exists('Account'):
     os.makedirs('Account')
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Add at the top (with other global variables)
+user_last_bot_message = {}  # { user_id: bot_message_id }
+user_last_user_message = {}  # { user_id: user_message_id }
 
 # =============== Bot Configuration =============== #
 bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -116,7 +120,7 @@ tiktok_services_markup.row(
 # Instagram services menu
 instagram_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 instagram_services_markup.row(
-    KeyboardButton("🎥 Video Views"),
+    KeyboardButton("🎥 Insta Vid Views"),
     KeyboardButton("❤️ Insta Likes")
 )
 instagram_services_markup.row(
@@ -261,7 +265,12 @@ def check_ban(func):
 @bot.message_handler(func=lambda message: message.text == "📤 Send Orders")
 @check_ban
 def send_orders_menu(message):
+    """Handle the main Send Orders menu"""
     user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
 
     # Update last activity and username
     data = getData(user_id)
@@ -272,13 +281,14 @@ def send_orders_menu(message):
     # Check if the user has joined all required channels
     if not check_membership_and_prompt(user_id, message):
         return  # Stop execution until the user joins
-    
+
     # If the user is a member, show the Send Orders menu
-    """Handle the main Send Orders menu"""
-    bot.reply_to(message, "📤 Sᴇʟᴇᴄᴛ Pʟᴀᴛꜰᴏʀᴍ Tᴏ Sᴇɴᴅ Oʀᴅᴇʀꜱ:", reply_markup=send_orders_markup)
+    sent_msg = bot.reply_to(message, "📤 Sᴇʟᴇᴄᴛ Pʟᴀᴛꜰᴏʀᴍ Tᴏ Sᴇɴᴅ Oʀᴅᴇʀꜱ:", reply_markup=send_orders_markup)
+    user_last_bot_message[user_id] = sent_msg.message_id
 
 
 def set_bot_commands():
+    """Set bot commands for the Telegram bot"""
     commands = [
         BotCommand('start', 'Restart the bot')
         # Removed 'addcoins' and 'removecoins' from global commands
@@ -288,17 +298,23 @@ def set_bot_commands():
         print("Bot commands set successfully")
     except Exception as e:
         print(f"Error setting bot commands: {e}")
-# imports the updateUser function from functions.py
-print(updateUser) 
+
+# Debugging print statement for updateUser function
+print(updateUser)
   
 #======================= Start Command =======================#
 @bot.message_handler(commands=['start'])
 @check_ban
 def send_welcome(message):
+    """Handle the /start command and welcome the user"""
     user_id = str(message.from_user.id)
     first_name = message.from_user.first_name
     username = f"@{message.from_user.username}" if message.from_user.username else "No Username"
     ref_by = message.text.split()[1] if len(message.text.split()) > 1 and message.text.split()[1].isdigit() else None
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
 
     # Check channel membership
     if not check_membership_and_prompt(user_id, message):
@@ -357,31 +373,34 @@ Wɪᴛʜ Oᴜʀ Bᴏᴛ, Yᴏᴜ Cᴀɴ Bᴏᴏꜱᴛ Yᴏᴜʀ Sᴏᴄɪᴀʟ M
 
     try:
         # Send photo with caption
-        bot.send_photo(
+        sent_msg = bot.send_photo(
             chat_id=user_id,
             photo=welcome_image_url,
             caption=welcome_caption,
             parse_mode='HTML',
             reply_markup=main_markup
         )
-        
+        user_last_bot_message[user_id] = sent_msg.message_id
+
         # Send welcome bonus message separately if applicable
         if userData['welcome_bonus'] == 0:
-            bot.send_message(
+            sent_msg = bot.send_message(
                 user_id,
                 f"🎁 <b>Yᴏᴜ Rᴇᴄᴇɪᴠᴇᴅ +{welcome_bonus} Cᴏɪɴꜱ Wᴇʟᴄᴏᴍᴇ Bᴏɴᴜꜱ!</b>",
                 parse_mode='HTML'
             )
-            
+            user_last_bot_message[user_id] = sent_msg.message_id
+
     except Exception as e:
         print(f"Error sending welcome message: {e}")
         # Fallback to text message if image fails
-        bot.send_message(
+        sent_msg = bot.send_message(
             user_id,
             welcome_caption,
             parse_mode='HTML',
             reply_markup=main_markup
         )
+        user_last_bot_message[user_id] = sent_msg.message_id
 #====================== My Account =====================#
 @bot.message_handler(func=lambda message: message.text == "👤 My Account")
 def my_account(message):
@@ -723,14 +742,14 @@ def process_telegram_quantity(message, service):
 
 def process_telegram_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     
     link = message.text.strip()
     
     # Validate link format (basic check)
     if not re.match(r'^https?://t\.me/', link):
-        bot.reply_to(message, "❌ Invalid Telegram link format", reply_markup=telegram_services_markup)
+        bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ Tᴇʟᴇɢʀᴀᴍ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=telegram_services_markup)
         return
     
     # Submit to SMM panel
@@ -771,14 +790,6 @@ def process_telegram_link(message, service, quantity, cost):
             # Add to order history
             add_order(str(message.from_user.id), order_data)
             
-            # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
-            check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
-            )
-            check_status_markup.add(check_status_button)
-            
             # Stylish confirmation message
             bot.reply_to(
                 message,
@@ -789,9 +800,9 @@ def process_telegram_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
-😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗻𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
+😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
 😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
-                reply_markup=check_status_markup,
+                reply_markup=main_markup,
                 disable_web_page_preview=True,
                 parse_mode='HTML'
             )
@@ -852,16 +863,25 @@ def process_telegram_link(message, service, quantity, cost):
 #========================= Telegram Orders End =========================#
 
 #========================= Order for Tiktok =========================#
+#======================= Send Orders for Tiktok =======================#
 @bot.message_handler(func=lambda message: message.text == "🎵 Order TikTok")
 def order_tiktok_menu(message):
-    """Show TikTok service options"""
-    bot.reply_to(message, "🎵 TikTok Services:", reply_markup=tiktok_services_markup)
-
+    """Show Telegram service options"""
+    # Clean previous messages
+    cleanup_previous_messages(message.from_user.id)
+    user_last_user_message[message.from_user.id] = message.message_id
+    
+    sent_msg = bot.reply_to(message, "🎵 TikTok Services:", reply_markup=tiktok_services_markup)
+    user_last_bot_message[message.from_user.id] = sent_msg.message_id
 
 @bot.message_handler(func=lambda message: message.text in ["👀 Order Views", "❤️ Order Likes", "👥 Order Followers"])
 def handle_tiktok_order(message):
     """Handle TikTok service selection"""
     user_id = str(message.from_user.id)
+    
+    # Clean previous messages
+    cleanup_previous_messages(message.from_user.id)
+    user_last_user_message[message.from_user.id] = message.message_id
     
     # TikTok service configurations
     services = {
@@ -902,9 +922,9 @@ def handle_tiktok_order(message):
     # Create cancel markup
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
-    KeyboardButton("✘ Cancel"),
-    KeyboardButton("↩️ Go Back")
-)
+        KeyboardButton("✘ Cancel"),
+        KeyboardButton("↩️ Go Back")
+    )
     
     msg = f"""📊 Order {service['name']}:
     
@@ -916,7 +936,9 @@ def handle_tiktok_order(message):
 
 Enter quantity:"""
     
-    bot.reply_to(message, msg, reply_markup=cancel_back_markup)
+    sent_msg = bot.reply_to(message, msg, reply_markup=cancel_back_markup)
+    user_last_bot_message[message.from_user.id] = sent_msg.message_id
+    
     bot.register_next_step_handler(
         message, 
         process_tiktok_quantity, 
@@ -925,57 +947,77 @@ Enter quantity:"""
 
 def process_tiktok_quantity(message, service):
     """Process the quantity input for TikTok orders"""
+    # Clean previous messages first
+    cleanup_previous_messages(message.from_user.id)
+    user_last_user_message[message.from_user.id] = message.message_id
+    
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
+        sent_msg = bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ TɪᴋTᴏᴋ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=tiktok_services_markup)
+        sent_msg = bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ TɪᴋTᴏᴋ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=tiktok_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Mɪɴɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['min']}", reply_markup=tiktok_services_markup)
+            sent_msg = bot.reply_to(message, f"❌ Mɪɴɪᴍᴜᴍ Oʀᴅᴇʀ ɪꜱ {service['min']}", reply_markup=tiktok_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Mᴀxɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['max']}", reply_markup=tiktok_services_markup)
+            sent_msg = bot.reply_to(message, f"❌ Mᴀxɪᴍᴜᴍ Oʀᴅᴇʀ ɪꜱ {service['max']}", reply_markup=tiktok_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
             
-        # Calculate cost (price is per 1k, so divide quantity by 1000)
+        # Calculate cost
         cost = (quantity * service['price']) // 1000
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Iɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ ʙᴀʟᴀɴᴄᴇ. Yᴏᴜ ɴᴇᴇᴅ {cost} ᴄᴏɪɴꜱ.", reply_markup=tiktok_services_markup)
+            sent_msg = bot.reply_to(message, f"❌ Iɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ Bᴀʟᴀɴᴄᴇ. Yᴏᴜ ɴᴇᴇᴅ {cost} ᴄᴏɪɴꜱ.", reply_markup=tiktok_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
             
-        # Ask for TikTok link
-        cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-        cancel_markup.add(KeyboardButton("✘ Cancel"))
+        # Ask for link
+        cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
+        cancel_back_markup.row(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, "🔗 Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ TɪᴋTᴏᴋ ᴠɪᴅᴇᴏ/ᴘʀᴏꜰɪʟᴇ ʟɪɴᴋ:", reply_markup=cancel_markup)
+        sent_msg = bot.reply_to(message, "🔗 Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ TɪᴋTᴏᴋ Pᴏꜱᴛ Lɪɴᴋ:", reply_markup=cancel_back_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
+        
         bot.register_next_step_handler(
             message, 
-            process_tiktok_link, 
+            process_telegram_link, 
             service,
             quantity,
             cost
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ", reply_markup=tiktok_services_markup)
+        sent_msg = bot.reply_to(message, "❌ Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ", reply_markup=tiktok_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
 
 def process_tiktok_link(message, service, quantity, cost):
+    # Clean previous messages
+    cleanup_previous_messages(message.from_user.id)
+    user_last_user_message[message.from_user.id] = message.message_id
+    
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
+        sent_msg = bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     link = message.text.strip()
     
-    if not re.match(r'^https?://(www\.)?tiktok\.com/', link):
-        bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ TɪᴋTᴏᴋ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=tiktok_services_markup)
+    # Validate link format (basic check)
+    if not  re.match(r'^https?://(www\.)?tiktok\.com/', link):
+        sent_msg = bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ TɪᴋTᴏᴋ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=tiktok_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
+    # Submit to SMM panel
     try:
         response = requests.post(
             SmmPanelApiUrl,
@@ -989,14 +1031,17 @@ def process_tiktok_link(message, service, quantity, cost):
             timeout=30
         )
         result = response.json()
+        print(f"SMM Panel Response: {result}")
         
         if result and result.get('order'):
+            # Deduct balance
             if not cutBalance(str(message.from_user.id), cost):
-                raise Exception("Fᴀɪʟᴇᴅ ᴛᴏ ᴅᴇᴅᴜᴄᴛ ʙᴀʟᴀɴᴄᴇ")
+                raise Exception("Failed to deduct balance")
             
+            # Prepare complete order data
             order_data = {
                 'service': service['name'],
-                'service_type': 'tiktok',
+                'service_type': 'telegram',
                 'service_id': service['service_id'],
                 'quantity': quantity,
                 'cost': cost,
@@ -1006,23 +1051,20 @@ def process_tiktok_link(message, service, quantity, cost):
                 'timestamp': time.time(),
                 'username': message.from_user.username or str(message.from_user.id)
             }
+            
+            # Add to order history
             add_order(str(message.from_user.id), order_data)
-
-                        # Create "Check Order Status" button
+            
+            # Create "Check Order Status" button
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
+                url=payment_channel
             )
             check_status_markup.add(check_status_button)
             
-            # Update user stats
-            user_id = str(message.from_user.id)
-            data = getData(user_id)
-            data['orders_count'] = data.get('orders_count', 0) + 1
-            updateUser(user_id, data)
-            
-            bot.reply_to(
+            # Stylish confirmation message
+            sent_msg = bot.reply_to(
                 message,
                 f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 
@@ -1031,13 +1073,23 @@ def process_tiktok_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}
-😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
+😊 <b>⚠️𝗪𝗮𝗿𝗻𝗶𝗻𝗴: ᴅᴏ ɴᴏᴛ ꜱᴇɴᴅ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ᴇʟꜱᴇ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
 😊 <b>Tʜᴀɴᴋꜱ Fᴏʀ Oʀᴅᴇʀɪɴɢ!</b>""",
-                reply_markup=main_markup,
+                reply_markup=check_status_markup,
                 disable_web_page_preview=True,
                 parse_mode='HTML'
             )
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             
+            # Update orders count
+            user_id = str(message.from_user.id)
+            data = getData(user_id)
+            if 'orders_count' not in data:
+                data['orders_count'] = 0
+            data['orders_count'] += 1
+            updateUser(user_id, data)
+            
+            # Stylish notification to payment channel
             try:
                 bot.send_message(
                     payment_channel,
@@ -1049,37 +1101,41 @@ def process_tiktok_link(message, service, quantity, cost):
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
-🆔 <b>Oʀᴅᴇʀ ID:</b> {result['order']}""",
+🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
                     disable_web_page_preview=True,
                     parse_mode='HTML'
                 )
             except Exception as e:
                 print(f"Fᴀɪʟᴇᴅ ᴛᴏ ꜱᴇɴᴅ ᴛᴏ ᴘᴀʏᴍᴇɴᴛ ᴄʜᴀɴɴᴇʟ: {e}")
-                
+            
         else:
             error_msg = result.get('error', 'Uɴᴋɴᴏᴡɴ ᴇʀʀᴏʀ ꜰʀᴏᴍ SMM ᴘᴀɴᴇʟ')
             raise Exception(error_msg)
             
     except requests.Timeout:
-        bot.reply_to(
+        sent_msg = bot.reply_to(
             message,
             "⚠️ Tʜᴇ ᴏʀᴅᴇʀ ɪꜱ ᴛᴀᴋɪɴɢ ʟᴏɴɢᴇʀ ᴛʜᴀɴ ᴇxᴘᴇᴄᴛᴇᴅ. Pʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ ʙᴀʟᴀɴᴄᴇ ᴀɴᴅ ᴏʀᴅᴇʀ ꜱᴛᴀᴛᴜꜱ ʟᴀᴛᴇʀ.",
             reply_markup=main_markup
         )
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
     except Exception as e:
         print(f"Eʀʀᴏʀ ꜱᴜʙᴍɪᴛᴛɪɴɢ {service['name']} ᴏʀᴅᴇʀ: {str(e)}")
         if 'result' not in locals() or not result.get('order'):
-            bot.reply_to(
+            sent_msg = bot.reply_to(
                 message,
                 f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ꜱᴜʙᴍɪᴛ {service['name']} ᴏʀᴅᴇʀ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.",
                 reply_markup=main_markup
             )
         else:
-            bot.reply_to(
+            sent_msg = bot.reply_to(
                 message,
                 f"⚠️ Oʀᴅᴇʀ ᴡᴀꜱ ꜱᴜʙᴍɪᴛᴛᴇᴅ (ID: {result['order']}) ʙᴜᴛ ᴛʜᴇʀᴇ ᴡᴀꜱ ᴀɴ ɪꜱꜱᴜᴇ ᴡɪᴛʜ ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴꜱ.",
                 reply_markup=main_markup
             )
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
     
 #======================== End of TikTok Orders ========================#
 
@@ -1089,13 +1145,18 @@ def order_instagram_menu(message):
     """Show Instagram service options"""
     bot.reply_to(message, "📸 Instagram Services:", reply_markup=instagram_services_markup)
 
-@bot.message_handler(func=lambda message: message.text in ["🎥 Video Views", "❤️ Insta Likes", "👥 Insta Followers"])
+@bot.message_handler(func=lambda message: message.text in ["🎥 Insta Vid Views", "❤️ Insta Likes", "👥 Insta Followers"])
 def handle_instagram_order(message):
     """Handle Instagram service selection"""
     user_id = str(message.from_user.id)
+
+        # Clean previous messages
+    cleanup_previous_messages(message.from_user.id)
+    user_last_user_message[message.from_user.id] = message.message_id
     
+  # TikTok service configurations
     services = {
-        "🎥 Video Views": {
+        "🎥 Insta Vid Views": {
             "name": "Instagram Video Views",
             "quality": "Real Accounts",
             "min": 1000,
@@ -1145,7 +1206,9 @@ def handle_instagram_order(message):
 
 Enter quantity:"""
     
-    bot.reply_to(message, msg, reply_markup=cancel_back_markup)
+    sent_msg=bot.reply_to(message, msg, reply_markup=cancel_back_markup)
+    user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
     bot.register_next_step_handler(
         message, 
         process_instagram_quantity, 
@@ -1154,33 +1217,44 @@ Enter quantity:"""
 
 def process_instagram_quantity(message, service):
     """Process Instagram order quantity"""
+        # Clean previous messages first
+    cleanup_previous_messages(message.from_user.id)
+    user_last_user_message[message.from_user.id] = message.message_id
+
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        sent_msg=bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Returning to Instagram services...", reply_markup=instagram_services_markup)
+        sent_msg=bot.reply_to(message, "Returning to Instagram services...", reply_markup=instagram_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=instagram_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=instagram_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=instagram_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=instagram_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
             
         cost = (quantity * service['price']) // 1000
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=instagram_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=instagram_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
             
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        sent_msg=bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
+        
         bot.register_next_step_handler(
             message, 
             process_instagram_link, 
@@ -1190,19 +1264,22 @@ def process_instagram_quantity(message, service):
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Please enter a valid number", reply_markup=instagram_services_markup)
+        sent_msg=bot.reply_to(message, "❌ Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ", reply_markup=instagram_services_markup)
 
 def process_instagram_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        sent_msg=bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     link = message.text.strip()
     
     if not re.match(r'^https?://(www\.)?instagram\.com/', link):
-        bot.reply_to(message, "❌ Invalid Instagram link format", reply_markup=instagram_services_markup)
+        sent_msg=bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ instagram ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=instagram_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
+    # Submit to SMM panel
     try:
         response = requests.post(
             SmmPanelApiUrl,
@@ -1234,14 +1311,6 @@ def process_instagram_link(message, service, quantity, cost):
                 'username': message.from_user.username or str(message.from_user.id)
             }
             add_order(str(message.from_user.id), order_data)
-
-                        # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
-            check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
-            )
-            check_status_markup.add(check_status_button)
             
             # Update user stats
             user_id = str(message.from_user.id)
@@ -1288,32 +1357,41 @@ def process_instagram_link(message, service, quantity, cost):
             raise Exception(error_msg)
             
     except requests.Timeout:
-        bot.reply_to(
+        sent_msg=bot.reply_to(
             message,
-            "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
+            "⚠️  Tʜᴇ ᴏʀᴅᴇʀ ɪꜱ ᴛᴀᴋɪɴɢ ʟᴏɴɢᴇʀ ᴛʜᴀɴ ᴇxᴘᴇᴄᴛᴇᴅ. Pʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ ʙᴀʟᴀɴᴄᴇ ᴀɴᴅ ᴏʀᴅᴇʀ ꜱᴛᴀᴛᴜꜱ ʟᴀᴛᴇʀ.",
             reply_markup=main_markup
         )
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
     except Exception as e:
-        print(f"Error submitting {service['name']} order: {str(e)}")
+        print(f"Eʀʀᴏʀ ꜱᴜʙᴍɪᴛᴛɪɴɢ {service['name']} ᴏʀᴅᴇʀ: {str(e)}")
         if 'result' not in locals() or not result.get('order'):
-            bot.reply_to(
+            sent_msg=bot.reply_to(
                 message,
-                f"❌ Failed to submit {service['name']} order. Please try again later.",
+                f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ꜱᴜʙᴍɪᴛ {service['name']} ᴏʀᴅᴇʀ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.",
                 reply_markup=main_markup
             )
+            
         else:
-            bot.reply_to(
+            sent_msg=bot.reply_to(
                 message,
-                f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
+                f"⚠️ Oʀᴅᴇʀ ᴡᴀꜱ ꜱᴜʙᴍɪᴛᴛᴇᴅ (ID: {result['order']}) ʙᴜᴛ ᴛʜᴇʀᴇ ᴡᴀꜱ ᴀɴ ɪꜱꜱᴜᴇ ᴡɪᴛʜ ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴꜱ.",
                 reply_markup=main_markup
             )
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
 #======================== End of Instagram Orders ===========================#
 
 #======================== Send Orders for Youtube =====================#
 @bot.message_handler(func=lambda message: message.text == "▶️ Order YouTube")
 def order_youtube_menu(message):
     """Show YouTube service options"""
-    bot.reply_to(message, "▶️ YouTube Services:", reply_markup=youtube_services_markup)
+        # Clean previous messages
+    cleanup_previous_messages(message.from_user.id)
+    user_last_user_message[message.from_user.id] = message.message_id
+
+    sent_msg=bot.reply_to(message, "▶️ YouTube Services:", reply_markup=youtube_services_markup)
+    user_last_bot_message[message.from_user.id] = sent_msg.message_id
 
 @bot.message_handler(func=lambda message: message.text in ["▶️ YT Views", "👍 YT Likes", "👥 YT Subscribers"])
 def handle_youtube_order(message):
@@ -1371,7 +1449,9 @@ def handle_youtube_order(message):
 
 Enter quantity:"""
     
-    bot.reply_to(message, msg, reply_markup=cancel_back_markup)
+    sent_msg=bot.reply_to(message, msg, reply_markup=cancel_back_markup)
+    user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
     bot.register_next_step_handler(
         message, 
         process_youtube_quantity, 
@@ -1381,32 +1461,39 @@ Enter quantity:"""
 def process_youtube_quantity(message, service):
     """Process YouTube order quantity"""
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        sent_msg=bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Returning to YouTube services...", reply_markup=youtube_services_markup)
+        sent_msg=bot.reply_to(message, "Returning to YouTube services...", reply_markup=youtube_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=youtube_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=youtube_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=youtube_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=youtube_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
             
         cost = (quantity * service['price']) // 1000
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=youtube_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=youtube_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
             
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        sent_msg=bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
         bot.register_next_step_handler(
             message, 
             process_youtube_link, 
@@ -1416,17 +1503,20 @@ def process_youtube_quantity(message, service):
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Please enter a valid number", reply_markup=youtube_services_markup)
+        sent_msg=bot.reply_to(message, "❌ Please enter a valid number", reply_markup=youtube_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
 
 def process_youtube_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        sent_msg=bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     link = message.text.strip()
     
     if not re.match(r'^https?://(www\.)?youtube\.com/', link):
-        bot.reply_to(message, "❌ Invalid YouTube link format", reply_markup=youtube_services_markup)
+        sent_msg=bot.reply_to(message, "❌ Invalid YouTube link format", reply_markup=youtube_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     try:
@@ -1460,14 +1550,6 @@ def process_youtube_link(message, service, quantity, cost):
                 'username': message.from_user.username or str(message.from_user.id)
             }
             add_order(str(message.from_user.id), order_data)
-
-                        # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
-            check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
-            )
-            check_status_markup.add(check_status_button)
             
             # Update user stats
             user_id = str(message.from_user.id)
@@ -1514,32 +1596,40 @@ def process_youtube_link(message, service, quantity, cost):
             raise Exception(error_msg)
             
     except requests.Timeout:
-        bot.reply_to(
+        sent_msg=bot.reply_to(
             message,
             "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
             reply_markup=main_markup
         )
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
     except Exception as e:
         print(f"Error submitting {service['name']} order: {str(e)}")
         if 'result' not in locals() or not result.get('order'):
-            bot.reply_to(
+            sent_msg=bot.reply_to(
                 message,
                 f"❌ Failed to submit {service['name']} order. Please try again later.",
                 reply_markup=main_markup
             )
         else:
-            bot.reply_to(
+            sent_msg=bot.reply_to(
                 message,
                 f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
                 reply_markup=main_markup
             )
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
 #======================== End of Youtube Orders =====================#
 
 #======================== Send Orders for Facebook =====================#
 @bot.message_handler(func=lambda message: message.text == "📘 Order Facebook")
 def order_facebook_menu(message):
     """Show Facebook service options"""
-    bot.reply_to(message, "📘 Facebook Services:", reply_markup=facebook_services_markup)
+            # Clean previous messages
+    cleanup_previous_messages(message.from_user.id)
+    user_last_user_message[message.from_user.id] = message.message_id
+
+    sent_msg=bot.reply_to(message, "📘 Facebook Services:", reply_markup=facebook_services_markup)
+    user_last_bot_message[message.from_user.id] = sent_msg.message_id
 
 @bot.message_handler(func=lambda message: message.text in ["👤 Profile Followers", "📄 Page Followers", "🎥 Video/Reel Views", "❤️ Post Likes"])
 def handle_facebook_order(message):
@@ -1607,7 +1697,9 @@ def handle_facebook_order(message):
 
 Enter quantity:"""
     
-    bot.reply_to(message, msg, reply_markup=cancel_back_markup)
+    sent_msg=bot.reply_to(message, msg, reply_markup=cancel_back_markup)
+    user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
     bot.register_next_step_handler(
         message, 
         process_facebook_quantity, 
@@ -1617,32 +1709,39 @@ Enter quantity:"""
 def process_facebook_quantity(message, service):
     """Process Facebook order quantity"""
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        sent_msg=bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Returning to Facebook services...", reply_markup=facebook_services_markup)
+        sent_msg=bot.reply_to(message, "Returning to Facebook services...", reply_markup=facebook_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=facebook_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=facebook_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=facebook_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=facebook_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
             
         cost = (quantity * service['price']) // 1000
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=facebook_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=facebook_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
             
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        sent_msg=bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
         bot.register_next_step_handler(
             message, 
             process_facebook_link, 
@@ -1652,17 +1751,20 @@ def process_facebook_quantity(message, service):
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Please enter a valid number", reply_markup=facebook_services_markup)
+        sent_msg=bot.reply_to(message, "❌ Please enter a valid number", reply_markup=facebook_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
 
 def process_facebook_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        sent_msg=bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     link = message.text.strip()
     
     if not re.match(r'^https?://(www\.)?facebook\.com/', link):
-        bot.reply_to(message, "❌ Invalid Facebook link format", reply_markup=facebook_services_markup)
+        sent_msg=bot.reply_to(message, "❌ Invalid Facebook link format", reply_markup=facebook_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     try:
@@ -1696,14 +1798,6 @@ def process_facebook_link(message, service, quantity, cost):
                 'username': message.from_user.username or str(message.from_user.id)
             }
             add_order(str(message.from_user.id), order_data)
-
-                        # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
-            check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
-            )
-            check_status_markup.add(check_status_button)
             
             # Update user stats
             user_id = str(message.from_user.id)
@@ -1750,32 +1844,40 @@ def process_facebook_link(message, service, quantity, cost):
             raise Exception(error_msg)
             
     except requests.Timeout:
-        bot.reply_to(
+        sent_msg=bot.reply_to(
             message,
             "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
             reply_markup=main_markup
         )
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
     except Exception as e:
         print(f"Error submitting {service['name']} order: {str(e)}")
         if 'result' not in locals() or not result.get('order'):
-            bot.reply_to(
+            sent_msg=bot.reply_to(
                 message,
                 f"❌ Failed to submit {service['name']} order. Please try again later.",
                 reply_markup=main_markup
             )
         else:
-            bot.reply_to(
+            sent_msg=bot.reply_to(
                 message,
                 f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
                 reply_markup=main_markup
             )
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
 #======================== End of Facebook Orders =====================# 
 
 #======================== Send Orders for Whastapp =====================#
 @bot.message_handler(func=lambda message: message.text == "💬 Order WhatsApp")
 def order_whatsapp_menu(message):
     """Show WhatsApp service options"""
-    bot.reply_to(message, "💬 WhatsApp Services:", reply_markup=whatsapp_services_markup)
+                # Clean previous messages
+    cleanup_previous_messages(message.from_user.id)
+    user_last_user_message[message.from_user.id] = message.message_id
+
+    sent_msg=bot.reply_to(message, "💬 WhatsApp Services:", reply_markup=whatsapp_services_markup)
+    user_last_bot_message[message.from_user.id] = sent_msg.message_id
 
 @bot.message_handler(func=lambda message: message.text in ["👥 Channel Members", "😀 Channel EmojiReaction"])
 def handle_whatsapp_order(message):
@@ -1823,7 +1925,9 @@ def handle_whatsapp_order(message):
 
 Enter quantity:"""
     
-    bot.reply_to(message, msg, reply_markup=cancel_back_markup)
+    sent_msg=bot.reply_to(message, msg, reply_markup=cancel_back_markup)
+    user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
     bot.register_next_step_handler(
         message, 
         process_whatsapp_quantity, 
@@ -1833,32 +1937,40 @@ Enter quantity:"""
 def process_whatsapp_quantity(message, service):
     """Process WhatsApp order quantity"""
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        sent_msg=bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Returning to WhatsApp services...", reply_markup=whatsapp_services_markup)
+        sent_msg=bot.reply_to(message, "Returning to WhatsApp services...", reply_markup=whatsapp_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=whatsapp_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=whatsapp_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=whatsapp_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=whatsapp_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
             
         cost = (quantity * service['price']) // 1000
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=whatsapp_services_markup)
+            sent_msg=bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=whatsapp_services_markup)
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
             return
             
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        sent_msg=bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
+
         bot.register_next_step_handler(
             message, 
             process_whatsapp_link, 
@@ -1868,17 +1980,20 @@ def process_whatsapp_quantity(message, service):
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Please enter a valid number", reply_markup=whatsapp_services_markup)
+        sent_msg=bot.reply_to(message, "❌ Please enter a valid number", reply_markup=whatsapp_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
 
 def process_whatsapp_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        sent_msg=bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     link = message.text.strip()
     
     if not re.match(r'^https?://(chat\.whatsapp\.com|wa\.me)/', link):
-        bot.reply_to(message, "❌ Invalid WhatsApp link format", reply_markup=whatsapp_services_markup)
+        sent_msg=bot.reply_to(message, "❌ Invalid WhatsApp link format", reply_markup=whatsapp_services_markup)
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
         return
     
     try:
@@ -1912,14 +2027,6 @@ def process_whatsapp_link(message, service, quantity, cost):
                 'username': message.from_user.username or str(message.from_user.id)
             }
             add_order(str(message.from_user.id), order_data)
-
-                        # Create "Check Order Status" button
-            check_status_markup = InlineKeyboardMarkup()
-            check_status_button = InlineKeyboardButton(
-                text="Check Order Status",
-                url=payment_channel  # Link to the payment channel
-            )
-            check_status_markup.add(check_status_button)
             
             # Update user stats
             user_id = str(message.from_user.id)
@@ -1966,72 +2073,93 @@ def process_whatsapp_link(message, service, quantity, cost):
             raise Exception(error_msg)
             
     except requests.Timeout:
-        bot.reply_to(
+        sent_msg=bot.reply_to(
             message,
             "⚠️ The order is taking longer than expected. Please check your balance and order status later.",
             reply_markup=main_markup
         )
+        user_last_bot_message[message.from_user.id] = sent_msg.message_id
+
     except Exception as e:
         print(f"Error submitting {service['name']} order: {str(e)}")
         if 'result' not in locals() or not result.get('order'):
-            bot.reply_to(
+            sent_msg=bot.reply_to(
                 message,
                 f"❌ Failed to submit {service['name']} order. Please try again later.",
                 reply_markup=main_markup
             )
         else:
-            bot.reply_to(
+            sent_msg=bot.reply_to(
                 message,
                 f"⚠️ Order was submitted (ID: {result['order']}) but there was an issue with notifications.",
                 reply_markup=main_markup
             )
+            user_last_bot_message[message.from_user.id] = sent_msg.message_id
 #======================== End of Whastapp Orders =====================#
 
 #=================== The back button handler =========================================
 @bot.message_handler(func=lambda message: message.text in ["↩️ Go Back", "✘ Cancel"])
 def handle_back_buttons(message):
     """Handle all back/cancel buttons"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     if message.text == "↩️ Go Back":
         # Determine where to go back based on context
         if message.text in ["👀 Order Views", "❤️ Order Reactions", "👥 Order Members"]:
-            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Tᴇʟᴇɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=telegram_services_markup)
+            sent_msg = bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Tᴇʟᴇɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=telegram_services_markup)
         elif message.text in ["👀 Order TikTok Views", "❤️ Order Likes", "👥 Order Followers"]:
-            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Tɪᴋᴛᴏᴋ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=tiktok_services_markup)
+            sent_msg = bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Tɪᴋᴛᴏᴋ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=tiktok_services_markup)
         elif message.text in ["🎥 Insta Vid Views", "❤️ Insta Likes", "👥 Insta Followers"]:
-            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Iɴꜱᴛᴀɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=instagram_services_markup)
+            sent_msg = bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Iɴꜱᴛᴀɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=instagram_services_markup)
         elif message.text in ["▶️ YT Views", "👍 YT Likes", "👥 YT Subscribers"]:
-            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Yᴏᴜᴛᴜʙᴇ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=youtube_services_markup)
+            sent_msg = bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Yᴏᴜᴛᴜʙᴇ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=youtube_services_markup)
         elif message.text in ["👤 Profile Followers", "📄 Page Followers", "🎥 Video/Reel Views", "❤️ Post Likes"]:
-            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Fᴀᴄᴇʙᴏᴏᴋ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=facebook_services_markup)
+            sent_msg = bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Fᴀᴄᴇʙᴏᴏᴋ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=facebook_services_markup)
         elif message.text in ["👥 Channel Members", "😀 Channel EmojiReaction"]:
-            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Wʜᴀꜱᴛᴀᴘᴘ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=whatsapp_services_markup)
+            sent_msg = bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Wʜᴀꜱᴛᴀᴘᴘ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=whatsapp_services_markup)
         else:
             # Default back to Send Orders menu
-            bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Oʀᴅᴇʀ Oᴘᴛɪᴏɴꜱ...", reply_markup=send_orders_markup)
+            sent_msg = bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Oʀᴅᴇʀ Oᴘᴛɪᴏɴꜱ...", reply_markup=send_orders_markup)
     else:
         # Cancel goes straight to main menu
-        bot.reply_to(message, "Oᴘᴇʀᴀᴛɪᴏɴ Cᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
+        sent_msg = bot.reply_to(message, "Oᴘᴇʀᴀᴛɪᴏɴ Cᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
+
+    # Store the bot's last message ID
+    user_last_bot_message[user_id] = sent_msg.message_id
 
 # ================= ADMIN COMMANDS ================== #
 @bot.message_handler(commands=['addcoins', 'removecoins'])
 def handle_admin_commands(message):
-    if message.from_user.id not in admin_user_ids:
-        bot.reply_to(message, "❌ Y̶o̶u̶ ̶a̶r̶e̶ ̶n̶o̶t̶ ̶a̶u̶t̶h̶o̶r̶i̶z̶e̶d̶ ̶t̶o̶ ̶u̶s̶e̶ ̶t̶h̶i̶s̶ ̶c̶o̶m̶m̶a̶n̶d̶.")
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
+    if user_id not in admin_user_ids:
+        sent_msg = bot.reply_to(message, "❌ Y̶o̶u̶ ̶a̶r̶e̶ ̶n̶o̶t̶ ̶a̶u̶t̶h̶o̶r̶i̶z̶e̶d̶ ̶t̶o̶ ̶u̶s̶e̶ ̶t̶h̶i̶s̶ ̶c̶o̶m̶m̶a̶n̶d̶.")
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
+
     try:
         args = message.text.split()
         if len(args) != 3:
-            bot.reply_to(message, f"⚠️ Usage: {args[0]} <user_id> <amount>")
+            sent_msg = bot.reply_to(message, f"⚠️ Usage: {args[0]} <user_id> <amount>")
+            user_last_bot_message[user_id] = sent_msg.message_id
             return
-            
+
         user_id = args[1]
         try:
             amount = float(args[2])
         except ValueError:
-            bot.reply_to(message, "⚠️ Aᴍᴏᴜɴᴛ Mᴜꜱᴛ Bᴇ ᴀ Nᴜᴍʙᴇʀ")
+            sent_msg = bot.reply_to(message, "⚠️ Aᴍᴏᴜɴᴛ Mᴜꜱᴛ Bᴇ ᴀ Nᴜᴍʙᴇʀ")
+            user_last_bot_message[user_id] = sent_msg.message_id
             return
-            
+
         if args[0] == '/addcoins':
             if not isExists(user_id):
                 initial_data = {
@@ -2043,55 +2171,63 @@ def handle_admin_commands(message):
                     "total_refs": 0,
                 }
                 insertUser(user_id, initial_data)
-                
+
             if addBalance(user_id, amount):
-                bot.reply_to(message, f"✅ Added {amount} coins to user {user_id}")
+                sent_msg = bot.reply_to(message, f"✅ Added {amount} coins to user {user_id}")
+                user_last_bot_message[user_id] = sent_msg.message_id
                 try:
                     bot.send_message(user_id, f"📢 Aᴅᴍɪɴ Aᴅᴅᴇᴅ {amount} Cᴏɪɴꜱ Tᴏ Yᴏᴜʀ Aᴄᴄᴏᴜɴᴛ!")
                 except:
                     pass
             else:
-                bot.reply_to(message, "❌ Failed to add coins")
-                
+                sent_msg = bot.reply_to(message, "❌ Failed to add coins")
+                user_last_bot_message[user_id] = sent_msg.message_id
+
         elif args[0] == '/removecoins':
             if cutBalance(user_id, amount):
-                bot.reply_to(message, f"✅ Removed {amount} coins from user {user_id}")
+                sent_msg = bot.reply_to(message, f"✅ Removed {amount} coins from user {user_id}")
+                user_last_bot_message[user_id] = sent_msg.message_id
                 try:
                     bot.send_message(user_id, f"📢 Aᴅᴍɪɴ Rᴇᴍᴏᴠᴇᴅ {amount} Cᴏɪɴꜱ Fʀᴏᴍ Yᴏᴜʀ Aᴄᴄᴏᴜɴᴛ!")
                 except:
                     pass
             else:
-                bot.reply_to(message, "❌ Failed to remove coins (insufficient balance or user doesn't exist)")
-                
+                sent_msg = bot.reply_to(message, "❌ Failed to remove coins (insufficient balance or user doesn't exist)")
+                user_last_bot_message[user_id] = sent_msg.message_id
+
     except Exception as e:
-        bot.reply_to(message, f"⚠️ Error: {str(e)}")
+        sent_msg = bot.reply_to(message, f"⚠️ Error: {str(e)}")
+        user_last_bot_message[user_id] = sent_msg.message_id
         print(f"Admin command error: {traceback.format_exc()}")
+
 
 @bot.message_handler(func=lambda message: message.text == "🛠 Admin Panel")
 def admin_panel(message):
-    if message.from_user.id not in admin_user_ids:
-        bot.reply_to(message, "❌ Y̶o̶u̶ ̶a̶r̶e̶ ̶n̶o̶t̶ ̶a̶u̶t̶h̶o̶r̶i̶z̶e̶d̶ ̶t̶o̶ ̶a̶c̶c̶e̶s̶s̶ ̶t̶h̶i̶s̶ ̶p̶a̶n̶e̶l̶.")
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
+    if user_id not in admin_user_ids:
+        sent_msg = bot.reply_to(message, "❌ Y̶o̶u̶ ̶a̶r̶e̶ ̶n̶o̶t̶ ̶a̶u̶t̶h̶o̶r̶i̶z̶e̶d̶ ̶t̶o̶ ̶a̶c̶c̶e̶s̶s̶ ̶t̶h̶i̶s̶ ̶p̶a̶n̶e̶l̶.")
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
-    bot.reply_to(message, "🛠 Admin Panel:", reply_markup=admin_markup)
 
-@bot.message_handler(func=lambda message: message.text in ["➕ Add Coins", "➖ Remove Coins"] and message.from_user.id in admin_user_ids)
-def admin_actions(message):
-    """Guide admin to use addcoins or removecoins commands"""
-    if "Add" in message.text:
-        bot.reply_to(message, "Send: /addcoins <user_id> <amount>")
-    elif "Remove" in message.text:
-        bot.reply_to(message, "Send: /removecoins <user_id> <amount>")
-
-@bot.message_handler(func=lambda message: message.text == "🔙 Main Menu")
-def back_to_main(message):
-    bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Mᴀɪɴ Mᴇɴᴜ...", reply_markup=main_markup)
+    sent_msg = bot.reply_to(message, "🛠 Welcome to Admin Panel:", reply_markup=admin_markup)
+    user_last_bot_message[user_id] = sent_msg.message_id
 
 #========== New Commands ==============#
 # Admin Stats Command
 @bot.message_handler(func=lambda m: m.text == "📊 Analytics" and m.from_user.id in admin_user_ids)
 def show_analytics(message):
     """Show comprehensive bot analytics"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     try:
         total_users = get_user_count()
         active_users = get_active_users(7)
@@ -2114,30 +2250,47 @@ def show_analytics(message):
 💰 <b>Tᴏᴛᴀʟ Dᴇᴘᴏꜱɪᴛꜱ:</b> {total_deposits:.2f} coins
 🎯 <b>Tᴏᴘ Rᴇꜰᴇʀʀᴇʀ:</b> {referrer_display}"""
         
-        bot.reply_to(message, msg, parse_mode='HTML')
+        sent_msg = bot.reply_to(message, msg, parse_mode='HTML')
+        user_last_bot_message[user_id] = sent_msg.message_id
     except Exception as e:
         print(f"Error showing analytics: {e}")
-        bot.reply_to(message, "❌ Failed to load analytics. Please try again later.")
+        sent_msg = bot.reply_to(message, "❌ Failed to load analytics. Please try again later.")
+        user_last_bot_message[user_id] = sent_msg.message_id
 
 # =========================== Broadcast Command ================= #
 @bot.message_handler(func=lambda m: m.text == "📤 Broadcast" and m.from_user.id in admin_user_ids)
 def broadcast_start(message):
     """Start normal broadcast process (unpinned)"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     msg = bot.reply_to(message, "📢 Eɴᴛᴇʀ Tʜᴇ Mᴇꜱꜱᴀɢᴇ Yᴏᴜ Wᴀɴᴛ Tᴏ Bʀᴏᴀᴅᴄᴀꜱᴛ Tᴏ Aʟʟ Uꜱᴇʀꜱ (ᴛʜɪꜱ ᴡᴏɴ'ᴛ ʙᴇ ᴘɪɴɴᴇᴅ):")
+    user_last_bot_message[user_id] = msg.message_id
     bot.register_next_step_handler(msg, process_broadcast)
 
 def process_broadcast(message):
     """Process and send the broadcast message (unpinned)"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Broadcast cancelled.", reply_markup=admin_markup)
+        sent_msg = bot.reply_to(message, "❌ Broadcast cancelled.", reply_markup=admin_markup)
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
+
     users = get_all_users()
     success = 0
     failed = 0
-    
-    bot.reply_to(message, f"⏳ Sᴇɴᴅɪɴɢ Bʀᴏᴀᴅᴄᴀꜱᴛ Tᴏ {len(users)} users...")
-    
+
+    sent_msg = bot.reply_to(message, f"⏳ Sᴇɴᴅɪɴɢ Bʀᴏᴀᴅᴄᴀꜱᴛ Tᴏ {len(users)} users...")
+    user_last_bot_message[user_id] = sent_msg.message_id
+
     for user_id in users:
         try:
             if message.content_type == 'text':
@@ -2151,107 +2304,156 @@ def process_broadcast(message):
             print(f"Failed to send to {user_id}: {e}")
             failed += 1
         time.sleep(0.1)  # Rate limiting
-    
-    bot.reply_to(message, f"""✅ Broadcast Complete:
+
+    sent_msg = bot.reply_to(message, f"""✅ Broadcast Complete:
     
 📤 Sent: {success}
 ❌ Failed: {failed}""", reply_markup=admin_markup)
+    user_last_bot_message[user_id] = sent_msg.message_id
 
 #====================== Ban User Command ================================#
 @bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id in admin_user_ids)
 def ban_user_start(message):
     """Start ban user process"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     msg = bot.reply_to(message, "Eɴᴛᴇʀ Uꜱᴇʀ Iᴅ Tᴏ Bᴀɴ:")
+    user_last_bot_message[user_id] = msg.message_id
     bot.register_next_step_handler(msg, process_ban_user)
 
 def process_ban_user(message):
     """Ban a user"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Ban cancelled.", reply_markup=admin_markup)
+        sent_msg = bot.reply_to(message, "❌ Ban cancelled.", reply_markup=admin_markup)
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
-    user_id = message.text.strip()
-    
-    if not user_id.isdigit():
-        bot.reply_to(message, "❌ Invalid user ID. Must be numeric.", reply_markup=admin_markup)
+
+    target_user_id = message.text.strip()
+
+    if not target_user_id.isdigit():
+        sent_msg = bot.reply_to(message, "❌ Invalid user ID. Must be numeric.", reply_markup=admin_markup)
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
-    if is_banned(user_id):
-        bot.reply_to(message, "⚠️ User is already banned.", reply_markup=admin_markup)
+
+    if is_banned(target_user_id):
+        sent_msg = bot.reply_to(message, "⚠️ User is already banned.", reply_markup=admin_markup)
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
-    ban_user(user_id)
-    
+
+    ban_user(target_user_id)
+
     # Send notification to banned user
     try:
         appeal_markup = InlineKeyboardMarkup()
         appeal_markup.add(InlineKeyboardButton("📩 Send Appeal", url="https://t.me/SocialHubBoosterHelper"))
-        
+
         bot.send_message(
-            user_id,
+            target_user_id,
             f"⛔ 𝙔𝙤𝙪 𝙝𝙖𝙫𝙚 𝙗𝙚𝙚𝙣 𝙗𝙖𝙣𝙣𝙚𝙙 𝙛𝙧𝙤𝙢 𝙪𝙨𝙞𝙣𝙜 𝙩𝙝𝙞𝙨 𝙗𝙤𝙩.\n\n"
             f"𝙄𝙛 𝙮𝙤𝙪 𝙗𝙚𝙡𝙞𝙚𝙫𝙚 𝙩𝙝𝙞𝙨 𝙬𝙖𝙨 𝙖 𝙢𝙞𝙨𝙩𝙖𝙠𝙚, 𝙮𝙤𝙪 𝙘𝙖𝙣 𝙖𝙥𝙥𝙚𝙖𝙡 𝙮𝙤𝙪𝙧 𝙗𝙖𝙣:",
             reply_markup=appeal_markup
         )
     except Exception as e:
         print(f"Could not notify banned user: {e}")
-    
-    bot.reply_to(message, f"✅ User {user_id} has been banned.", reply_markup=admin_markup)
+
+    sent_msg = bot.reply_to(message, f"✅ User {target_user_id} has been banned.", reply_markup=admin_markup)
+    user_last_bot_message[user_id] = sent_msg.message_id
 
 #================================= Unban User Command =============================================#
 @bot.message_handler(func=lambda m: m.text == "✅ Unban User" and m.from_user.id in admin_user_ids)
 def unban_user_start(message):
     """Start unban user process"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     msg = bot.reply_to(message, "Eɴᴛᴇʀ Uꜱᴇʀ Iᴅ Tᴏ Uɴʙᴀɴ:")
+    user_last_bot_message[user_id] = msg.message_id
     bot.register_next_step_handler(msg, process_unban_user)
 
 def process_unban_user(message):
     """Unban a user"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Unban cancelled.", reply_markup=admin_markup)
+        sent_msg = bot.reply_to(message, "❌ Unban cancelled.", reply_markup=admin_markup)
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
-    user_id = message.text.strip()
-    
-    if not user_id.isdigit():
-        bot.reply_to(message, "❌ Invalid user ID. Must be numeric.", reply_markup=admin_markup)
+
+    target_user_id = message.text.strip()
+
+    if not target_user_id.isdigit():
+        sent_msg = bot.reply_to(message, "❌ Invalid user ID. Must be numeric.", reply_markup=admin_markup)
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
-    if not is_banned(user_id):
-        bot.reply_to(message, "⚠️ User is not currently banned.", reply_markup=admin_markup)
+
+    if not is_banned(target_user_id):
+        sent_msg = bot.reply_to(message, "⚠️ User is not currently banned.", reply_markup=admin_markup)
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
-    unban_user(user_id)
-    
+
+    unban_user(target_user_id)
+
     # Notify unbanned user
     try:
-        bot.send_message(user_id, "✅ 𝗬𝗼𝘂𝗿 𝗯𝗮𝗻 𝗵𝗮𝘀 𝗯𝗲𝗲𝗻 𝗹𝗶𝗳𝘁𝗲𝗱. 𝗬𝗼𝘂 𝗰𝗮𝗻 𝗻𝗼𝘄 𝘂𝘀𝗲 𝘁𝗵𝗲 𝗯𝗼𝘁 𝗮𝗴𝗮𝗶𝗻.")
+        bot.send_message(target_user_id, "✅ 𝗬𝗼𝘂𝗿 𝗯𝗮𝗻 𝗵𝗮𝘀 𝗯𝗲𝗲𝗻 𝗹𝗶𝗳𝘁𝗲𝗱. 𝗬𝗼𝘂 𝗰𝗮𝗻 𝗻𝗼𝘄 𝘂𝘀𝗲 𝘁𝗵𝗲 𝗯𝗼𝘁 𝗮𝗴𝗮𝗶𝗻.")
     except Exception as e:
         print(f"Could not notify unbanned user: {e}")
-    
-    bot.reply_to(message, f"✅ User {user_id} has been unbanned.", reply_markup=admin_markup)
 
-# List Banned Command
+    sent_msg = bot.reply_to(message, f"✅ User {target_user_id} has been unbanned.", reply_markup=admin_markup)
+    user_last_bot_message[user_id] = sent_msg.message_id
+
 @bot.message_handler(func=lambda m: m.text == "📋 List Banned" and m.from_user.id in admin_user_ids)
 def list_banned(message):
     """Show list of banned users"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     banned_users = get_banned_users()
-    
+
     if not banned_users:
-        bot.reply_to(message, "ℹ️ 𝗡𝗼 𝘂𝘀𝗲𝗿𝘀 𝗮𝗿𝗲 𝗰𝘂𝗿𝗿𝗲𝗻𝘁𝗹𝘆 𝗯𝗮𝗻𝗻𝗲𝗱.", reply_markup=admin_markup)
+        sent_msg = bot.reply_to(message, "ℹ️ 𝗡𝗼 𝘂𝘀𝗲𝗿𝘀 𝗮𝗿𝗲 𝗰𝘂𝗿𝗿𝗲𝗻𝘁𝗹𝘆 𝗯𝗮𝗻𝗻𝗲𝗱.", reply_markup=admin_markup)
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
+
     msg = "⛔ Banned Users:\n\n" + "\n".join(banned_users)
-    bot.reply_to(message, msg, reply_markup=admin_markup)
+    sent_msg = bot.reply_to(message, msg, reply_markup=admin_markup)
+    user_last_bot_message[user_id] = sent_msg.message_id
 
 #==================== Leaderboard Command ==========================#
 @bot.message_handler(func=lambda m: m.text == "🏆 Leaderboard")
 def show_leaderboard(message):
     """Show top 10 users by orders"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     top_users = get_top_users(10)
     
     if not top_users:
-        bot.reply_to(message, "🏆 𝙉𝙤 𝙤𝙧𝙙𝙚𝙧 𝙙𝙖𝙩𝙖 𝙖𝙫𝙖𝙞𝙡𝙖𝙗𝙡𝙚 𝙮𝙚𝙩.", reply_markup=main_markup)
+        sent_msg = bot.reply_to(message, "🏆 𝙉𝙤 𝙤𝙧𝙙𝙚𝙧 𝙙𝙖𝙩𝙖 𝙖𝙫𝙖𝙞𝙡𝙖𝙗𝙡𝙚 𝙮𝙚𝙩.", reply_markup=main_markup)
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
     
     leaderboard = ["🏆 𝗧𝗼𝗽 𝗨𝘀𝗲𝗿𝘀 𝗯𝘆 𝗢𝗿𝗱𝗲𝗿𝘀:"]
@@ -2263,30 +2465,48 @@ def show_leaderboard(message):
         except:
             leaderboard.append(f"{i}. User {user_id}: {count} orders")
     
-    bot.reply_to(message, "\n".join(leaderboard), reply_markup=main_markup)
+    sent_msg = bot.reply_to(message, "\n".join(leaderboard), reply_markup=main_markup)
+    user_last_bot_message[user_id] = sent_msg.message_id
 
 #======================= Function to Pin Annoucement Messages ====================#
 @bot.message_handler(func=lambda m: m.text == "📌 Pin Message" and m.from_user.id in admin_user_ids)
 def pin_message_start(message):
     """Start pin message process"""
-    msg = bot.reply_to(message, 
-                      "📌 Sᴇɴᴅ Tʜᴇ Mᴇꜱꜱᴀɢᴇ Yᴏᴜ Wᴀɴᴛ Tᴏ Pɪɴ Iɴ Aʟʟ Uꜱᴇʀ Cʜᴀᴛꜱ:\n"
-                      "(ᴛʜɪꜱ ᴡɪʟʟ ᴘɪɴ ᴛʜᴇ ᴍᴇꜱꜱᴀɢᴇ ᴀᴛ ᴛʜᴇ ᴛᴏᴘ ᴏꜰ ᴇᴀᴄʜ ᴜꜱᴇʀ'ꜱ ᴄʜᴀᴛ ᴡɪᴛʜ ᴛʜᴇ ʙᴏᴛ)\n\n"
-                      "Tʏᴘᴇ 'Cancel' Tᴏ Aʙᴏʀᴛ.")
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
+    msg = bot.reply_to(
+        message,
+        "📌 Sᴇɴᴅ Tʜᴇ Mᴇꜱꜱᴀɢᴇ Yᴏᴜ Wᴀɴᴛ Tᴏ Pɪɴ Iɴ Aʟʟ Uꜱᴇʀ Cʜᴀᴛꜱ:\n"
+        "(ᴛʜɪꜱ ᴡɪʟʟ ᴘɪɴ ᴛʜᴇ ᴍᴇꜱꜱᴀɢᴇ ᴀᴛ ᴛʜᴇ ᴛᴏᴘ ᴏꜰ ᴇᴀᴄʜ ᴜꜱᴇʀ'ꜱ ᴄʜᴀᴛ ᴡɪᴛʜ ᴛʜᴇ ʙᴏᴛ)\n\n"
+        "Tʏᴘᴇ 'Cancel' Tᴏ Aʙᴏʀᴛ."
+    )
+    user_last_bot_message[user_id] = msg.message_id
     bot.register_next_step_handler(msg, process_pin_message)
 
 def process_pin_message(message):
     """Process and send the pinned message to all users"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     if message.text == "Cancel":
-        bot.reply_to(message, "❌ Pɪɴ Cᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=admin_markup)
+        sent_msg = bot.reply_to(message, "❌ Pɪɴ Cᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=admin_markup)
+        user_last_bot_message[user_id] = sent_msg.message_id
         return
-    
+
     users = get_all_users()
     success = 0
     failed = 0
-    
-    bot.reply_to(message, "⏳ Sᴛᴀʀᴛɪɴɢ Tᴏ Pɪɴ Mᴇꜱꜱᴀɢᴇꜱ Iɴ Uꜱᴇʀ Cʜᴀᴛꜱ...", reply_markup=admin_markup)
-    
+
+    sent_msg = bot.reply_to(message, "⏳ Sᴛᴀʀᴛɪɴɢ Tᴏ Pɪɴ Mᴇꜱꜱᴀɢᴇꜱ Iɴ Uꜱᴇʀ Cʜᴀᴛꜱ...", reply_markup=admin_markup)
+    user_last_bot_message[user_id] = sent_msg.message_id
+
     for user_id in users:
         try:
             # Send and pin the message based on content type
@@ -2296,7 +2516,7 @@ def process_pin_message(message):
                 sent_msg = bot.send_photo(user_id, message.photo[-1].file_id, caption=message.caption)
             elif message.content_type == 'document':
                 sent_msg = bot.send_document(user_id, message.document.file_id, caption=message.caption)
-            
+
             # Pin the message in the user's chat
             bot.pin_chat_message(user_id, sent_msg.message_id)
             success += 1
@@ -2304,51 +2524,79 @@ def process_pin_message(message):
             print(f"Failed to pin message for {user_id}: {e}")
             failed += 1
         time.sleep(0.1)  # Rate limiting
-    
-    bot.reply_to(message, 
-                 f"📌 𝗣𝗶𝗻𝗻𝗶𝗻𝗴 𝗖𝗼𝗺𝗽𝗹𝗲𝘁𝗲:\n"
-                 f"✅ Successfully pinned in {success} chats\n"
-                 f"❌ Failed in {failed} chats",
-                 reply_markup=admin_markup)
+
+    sent_msg = bot.reply_to(
+        message,
+        f"📌 𝗣𝗶𝗻𝗻𝗶𝗻𝗴 𝗖𝗼𝗺𝗽𝗹𝗲𝘁𝗲:\n"
+        f"✅ Successfully pinned in {success} chats\n"
+        f"❌ Failed in {failed} chats",
+        reply_markup=admin_markup
+    )
+    user_last_bot_message[user_id] = sent_msg.message_id
 
 
 #================= Check User Info by ID ===================================#
 @bot.message_handler(func=lambda m: m.text == "👤 User Info" and m.from_user.id in admin_user_ids)
 def user_info_start(message):
+    """Start user info process"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     msg = bot.reply_to(message, "Enter user ID or username (@username):")
+    user_last_bot_message[user_id] = msg.message_id
     bot.register_next_step_handler(msg, process_user_info)
 
 def process_user_info(message):
+    """Process user info query"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     query = message.text.strip()
     try:
         if query.startswith('@'):
             user = bot.get_chat(query)
-            user_id = user.id
+            target_user_id = user.id
         else:
-            user_id = int(query)
-            user = bot.get_chat(user_id)
+            target_user_id = int(query)
+            user = bot.get_chat(target_user_id)
         
-        user_data = getData(user_id) or {}
+        user_data = getData(target_user_id) or {}
         
         info = f"""
 🔍 <b>𝗨𝘀𝗲𝗿 𝗜𝗻𝗳𝗼𝗿𝗺𝗮𝘁𝗶𝗼𝗻</b>:
-🆔 Iᴅ: <code>{user_id}</code>
+🆔 Iᴅ: <code>{target_user_id}</code>
 👤 Nᴀᴍᴇ: {user.first_name} {user.last_name or ''}
 📛 Uꜱᴇʀɴᴀᴍᴇ: @{user.username if user.username else 'N/A'}
 💰 Bᴀʟᴀɴᴄᴇ: {user_data.get('balance', 0)}
 📊 Oʀᴅᴇʀꜱ: {user_data.get('orders_count', 0)}
 👥 Rᴇꜰᴇʀʀᴀʟꜱ: {user_data.get('total_refs', 0)}
-🔨 Sᴛᴀᴛᴜꜱ: {"BANNED ⛔" if is_banned(user_id) else "ACTIVE ✅"}
+🔨 Sᴛᴀᴛᴜꜱ: {"BANNED ⛔" if is_banned(target_user_id) else "ACTIVE ✅"}
         """
-        bot.reply_to(message, info, parse_mode="HTML")
+        sent_msg = bot.reply_to(message, info, parse_mode="HTML")
+        user_last_bot_message[user_id] = sent_msg.message_id
     except ValueError:
-        bot.reply_to(message, "❌ Invalid user ID. Must be numeric.")
+        sent_msg = bot.reply_to(message, "❌ Invalid user ID. Must be numeric.")
+        user_last_bot_message[user_id] = sent_msg.message_id
     except Exception as e:
-        bot.reply_to(message, f"❌ Error: {str(e)}")
+        sent_msg = bot.reply_to(message, f"❌ Error: {str(e)}")
+        user_last_bot_message[user_id] = sent_msg.message_id
 
 #============================== Server Status Command ===============================#
 @bot.message_handler(func=lambda m: m.text == "🖥 Server Status" and m.from_user.id in admin_user_ids)
 def server_status(message):
+
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     try:
         import psutil, platform
         from datetime import datetime
@@ -2383,13 +2631,21 @@ def server_status(message):
 📂 Cᴏʟʟᴇᴄᴛɪᴏɴꜱ: {mongo_stats['collections']}
 ━━━━━━━━━━━━━━━━━━━━━━━━
         """
-        bot.reply_to(message, status, parse_mode="HTML")
+        sent_msg=bot.reply_to(message, status, parse_mode="HTML")
     except Exception as e:
-        bot.reply_to(message, f"❌ Error getting status: {str(e)}")
+        sent_msg=bot.reply_to(message, f"❌ Error getting status: {str(e)}")
+        user_last_bot_message[user_id] = sent_msg.message_id
 
 #========================== Export User Data (CSV) =================#
 @bot.message_handler(func=lambda m: m.text == "📤 Export Data" and m.from_user.id in admin_user_ids)
 def export_data(message):
+
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     try:
         from functions import users_collection
         import csv
@@ -2417,13 +2673,14 @@ def export_data(message):
         
         # Send file
         output.seek(0)
-        bot.send_document(
+        sent_msg=bot.send_document(
             message.chat.id,
             ('users_export.csv', output.getvalue()),
             caption="📊 Uꜱᴇʀ Dᴀᴛᴀ Exᴘᴏʀᴛ"
         )
     except Exception as e:
-        bot.reply_to(message, f"❌ Export failed: {str(e)}")
+        sent_msg=bot.reply_to(message, f"❌ Export failed: {str(e)}")
+        user_last_bot_message[user_id] = sent_msg.message_id
 
 #======================= Maintenance Mode command ==================================#
 
@@ -2434,21 +2691,37 @@ maintenance_message = "🚧 𝙏𝙝𝙚 𝙗𝙤𝙩 𝙞𝙨 𝙘𝙪𝙧𝙧�
 # Maintenance toggle command
 @bot.message_handler(func=lambda m: m.text == "🔧 Maintenance" and m.from_user.id in admin_user_ids)
 def toggle_maintenance(message):
+    """Toggle maintenance mode"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     global maintenance_mode, maintenance_message
-    
+
     if maintenance_mode:
         maintenance_mode = False
-        bot.reply_to(message, "✅ 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚 𝙢𝙤𝙙𝙚 𝘿𝙄𝙎𝘼𝘽𝙇𝙀𝘿")
+        sent_msg = bot.reply_to(message, "✅ 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚 𝙢𝙤𝙙𝙚 𝘿𝙄𝙎𝘼𝘽𝙇𝙀𝘿")
+        user_last_bot_message[user_id] = sent_msg.message_id
     else:
         msg = bot.reply_to(message, "✍️ Eɴᴛᴇʀ Mᴀɪɴᴛᴇɴᴀɴᴄᴇ Mᴇꜱꜱᴀɢᴇ Tᴏ Sᴇɴᴅ Tᴏ Uꜱᴇʀꜱ:")
+        user_last_bot_message[user_id] = msg.message_id
         bot.register_next_step_handler(msg, set_maintenance_message)
 
 def set_maintenance_message(message):
+    """Set maintenance message and enable maintenance mode"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     global maintenance_mode, maintenance_message
     maintenance_message = message.text
     maintenance_mode = True
-    
-    # Send to all users
+
+    # Send maintenance message to all users
     users = get_all_users()
     sent = 0
     for user_id in users:
@@ -2456,26 +2729,44 @@ def set_maintenance_message(message):
             bot.send_message(user_id, f"⚠️ 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚 𝙉𝙤𝙩𝙞𝙘𝙚:\n{maintenance_message}")
             sent += 1
             time.sleep(0.1)
-        except:
+        except Exception as e:
+            print(f"Failed to send maintenance message to {user_id}: {e}")
             continue
-    
-    bot.reply_to(message, f"🔧 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚 𝙢𝙤𝙙𝙚 𝙀𝙉𝘼𝘽𝙇𝙀𝘿\nMessage sent to {sent} users")
+
+    sent_msg = bot.reply_to(message, f"🔧 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚 𝙢𝙤𝙙𝙚 𝙀𝙉𝘼𝘽𝙇𝙀𝘿\nMessage sent to {sent} users")
+    user_last_bot_message[user_id] = sent_msg.message_id
 
 def auto_disable_maintenance():
+    """Automatically disable maintenance mode after 1 hour"""
     global maintenance_mode
     time.sleep(3600)  # 1 hour
     maintenance_mode = False
 
-# Then in set_maintenance_message():
+# Start auto-disable thread in set_maintenance_message
 threading.Thread(target=auto_disable_maintenance).start()
 
 #============================ Order Management Commands =============================#
 @bot.message_handler(func=lambda m: m.text == "📦 Order Manager" and m.from_user.id in admin_user_ids)
 def check_order_start(message):
+    """Start order check process"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     msg = bot.reply_to(message, "Enter Order ID:")
+    user_last_bot_message[user_id] = msg.message_id
     bot.register_next_step_handler(msg, process_check_order)
 
 def process_check_order(message):
+    """Process order check"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     order_id = message.text.strip()
     try:
         from functions import orders_collection
@@ -2494,17 +2785,26 @@ def process_check_order(message):
 🔄 Sᴛᴀᴛᴜꜱ: {order.get('status', 'N/A')}
 ⏱ Dᴀᴛᴇ: {status_time}
             """
-            bot.reply_to(message, status, parse_mode="HTML", disable_web_page_preview=True)
+            sent_msg = bot.reply_to(message, status, parse_mode="HTML", disable_web_page_preview=True)
+            user_last_bot_message[user_id] = sent_msg.message_id
         else:
-            bot.reply_to(message, "❌ Order not found")
+            sent_msg = bot.reply_to(message, "❌ Order not found")
+            user_last_bot_message[user_id] = sent_msg.message_id
     except Exception as e:
-        bot.reply_to(message, f"❌ Error: {str(e)}")
+        sent_msg = bot.reply_to(message, f"❌ Error: {str(e)}")
+        user_last_bot_message[user_id] = sent_msg.message_id
 
 
 #========================== Add this handler for the /policy command =================#
 @bot.message_handler(commands=['policy'])
 def policy_command(message):
     """Show the bot's usage policy"""
+    user_id = message.from_user.id
+
+    # Clean previous messages
+    cleanup_previous_messages(user_id)
+    user_last_user_message[user_id] = message.message_id
+
     policy_text = """
 📜 𝘽𝙤𝙩 𝙐𝙨𝙖𝙜𝙚 𝙋𝙤𝙡𝙞𝙘𝙮 📜
 
@@ -2520,7 +2820,8 @@ def policy_command(message):
 
 Violations of these policies may result in permanent bans.
 """
-    bot.reply_to(message, policy_text, parse_mode="Markdown")
+    sent_msg = bot.reply_to(message, policy_text, parse_mode="Markdown")
+    user_last_bot_message[user_id] = sent_msg.message_id
 
 
 #======================= Function to periodically check order status ====================#
@@ -2679,21 +2980,20 @@ def run_bot():
             bot.polling(none_stop=True, timeout=60)
         except Exception as e:
             error_msg = f"Bot polling failed: {str(e)[:200]}"
-            print(error_msg)  # Always log to terminal
+            print(error_msg)
             
-            # Only notify admins for critical errors (not KeyError, etc.)
-            if not isinstance(e, (KeyError, ValueError, AttributeError)):
-                for admin_id in admin_user_ids:
-                    try:
-                        bot.send_message(
-                            admin_id,
-                            f"⚠️ <b>Bot Error Notification</b> ⚠️\n\n"
-                            f"🔧 <code>{error_msg}</code>\n\n"
-                            f"🔄 Bot is automatically restarting...",
-                            parse_mode='HTML'
-                        )
-                    except Exception as admin_error:
-                        print(f"Failed to notify admin {admin_id}: {admin_error}")
+            # Send alert to all admins
+            for admin_id in admin_user_ids:
+                try:
+                    bot.send_message(
+                        admin_id,
+                        f"⚠️ <b>Bot Error Notification</b> ⚠️\n\n"
+                        f"🔧 <code>{error_msg}</code>\n\n"
+                        f"🔄 Bot is automatically restarting...",
+                        parse_mode='HTML'
+                    )
+                except Exception as admin_error:
+                    print(f"Failed to notify admin {admin_id}: {admin_error}")
             
             time.sleep(10)  # Wait before restarting
             send_startup_message(is_restart=True)
