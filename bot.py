@@ -18,7 +18,7 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                        addRefCount, isExists, setWelcomeStaus, setReferredStatus, updateUser, 
                        ban_user, unban_user, get_all_users, is_banned, get_banned_users, 
                        get_top_users, get_user_count, get_active_users, get_total_orders, 
-                       get_total_deposits, get_top_referrer, get_user_orders_stats, cleanup_previous_messages) # Import your functions from functions.py
+                       get_total_deposits, get_top_referrer, get_user_orders_stats) # Import your functions from functions.py
 
 if not os.path.exists('Account'):
     os.makedirs('Account')
@@ -241,7 +241,22 @@ def verify_membership(call):
             text="❌ Y̶o̶u̶ ̶h̶a̶v̶e̶n̶'̶t̶ ̶j̶o̶i̶n̶e̶d̶ ̶a̶l̶l̶ ̶t̶h̶e̶ ̶r̶e̶q̶u̶i̶r̶e̶d̶ ̶c̶h̶a̶n̶n̶e̶l̶s̶ ̶y̶e̶t̶!",
             show_alert=True
         )
-#==============================================#
+#=================== Auto Delete Messages ===========================#
+def cleanup_previous_messages(user_id):
+    """Delete the last bot and user messages (if they exist)."""
+    # Delete bot's last message
+    if user_id in user_last_bot_message:
+        try:
+            bot.delete_message(user_id, user_last_bot_message[user_id])
+        except Exception as e:
+            print(f"Failed to delete bot message: {e}")  # Silent fail
+    
+    # Delete user's last message (button click)
+    if user_id in user_last_user_message:
+        try:
+            bot.delete_message(user_id, user_last_user_message[user_id])
+        except Exception as e:
+            print(f"Failed to delete user message: {e}")  # Silent fail
 #========================= utility function to check bans =================#
 # Enhanced check_ban decorator to include maintenance check
 def check_ban(func):
