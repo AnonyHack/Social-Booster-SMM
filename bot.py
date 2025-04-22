@@ -103,7 +103,7 @@ telegram_services_markup.row(
 # TikTok services menu (placeholder for now)
 tiktok_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 tiktok_services_markup.row(
-    KeyboardButton("👀 Order TikTok Views"),
+    KeyboardButton("👀 Order Views"),
     KeyboardButton("❤️ Order Likes")
 )
 tiktok_services_markup.row(
@@ -850,7 +850,7 @@ def order_tiktok_menu(message):
     bot.reply_to(message, "🎵 TikTok Services:", reply_markup=tiktok_services_markup)
 
 
-@bot.message_handler(func=lambda message: message.text in ["👀 Order TikTok Views", "❤️ Order Likes", "👥 Order Followers"])
+@bot.message_handler(func=lambda message: message.text in ["👀 Order Views", "❤️ Order Likes", "👥 Order Followers"])
 def handle_tiktok_order(message):
     """Handle TikTok service selection"""
     user_id = str(message.from_user.id)
