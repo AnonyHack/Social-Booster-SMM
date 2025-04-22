@@ -192,11 +192,13 @@ def is_user_member(user_id):
         try:
             chat_member = bot.get_chat_member(chat_id=f"@{channel}", user_id=user_id)
             if chat_member.status not in ["member", "administrator", "creator"]:
-                return False  # User is NOT a member
+                return False
         except Exception as e:
             print(f"Error checking channel membership for {channel}: {e}")
-            return False  # Assume not a member if an error occurs
-    return True  # User is a member of all channels
+            # Consider implementing a retry mechanism here
+            time.sleep(1)  # Add delay between checks
+            continue
+    return True
 
 
 def check_membership_and_prompt(user_id, message):
@@ -223,14 +225,19 @@ def check_membership_and_prompt(user_id, message):
 @bot.callback_query_handler(func=lambda call: call.data == "verify_membership")
 def verify_membership(call):
     user_id = call.from_user.id
-
+    
     if is_user_member(user_id):
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="✅ 𝐘𝐨𝐮 𝐚𝐫𝐞 𝐯𝐞𝐫𝐢𝐟𝐢𝐞𝐝! 𝐘𝐨𝐮 𝐜𝐚𝐧 𝐧𝐨𝐰 𝐮𝐬𝐞 𝐭𝐡𝐞 𝐛𝐨𝐭. 𝐂𝐥𝐢𝐜𝐤 /start 𝐚𝐠𝐚𝐢𝐧"
-        )
-        send_welcome(call.message)  # Restart the welcome process
+        try:
+            bot.edit_message_text(
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                text="✅ 𝐘𝐨𝐮 𝐚𝐫𝐞 𝐯𝐞𝐫𝐢𝐟𝐢𝐞𝐝! 𝐘𝐨𝐮 𝐜𝐚𝐧 𝐧𝐨𝐰 𝐮𝐬𝐞 𝐭𝐡𝐞 𝐛𝐨𝐭. 𝐂𝐥𝐢𝐜𝐤 /start 𝐚𝐠𝐚𝐢𝐧"
+            )
+            # Only send welcome if the user is not a bot
+            if not call.from_user.is_bot:
+                send_welcome(call.message)
+        except Exception as e:
+            print(f"Error in verify_membership: {e}")
     else:
         bot.answer_callback_query(
             callback_query_id=call.id,
@@ -2686,11 +2693,12 @@ def run_bot():
     while True:
         try:
             bot.polling(none_stop=True, timeout=60)
+        except ConnectionError as e:
+            print(f"Connection error: {e}. Reconnecting in 10 seconds...")
+            time.sleep(10)
         except Exception as e:
             error_msg = f"Bot polling failed: {str(e)[:200]}"
-            print(error_msg)  # Always log to terminal
-            
-            # Only notify admins for critical errors (not KeyError, etc.)
+            print(error_msg)
             if not isinstance(e, (KeyError, ValueError, AttributeError)):
                 for admin_id in admin_user_ids:
                     try:
@@ -2703,8 +2711,7 @@ def run_bot():
                         )
                     except Exception as admin_error:
                         print(f"Failed to notify admin {admin_id}: {admin_error}")
-            
-            time.sleep(10)  # Wait before restarting
+            time.sleep(10)
             send_startup_message(is_restart=True)
 
 # ==================== MAIN EXECUTION ==================== #
