@@ -2679,20 +2679,21 @@ def run_bot():
             bot.polling(none_stop=True, timeout=60)
         except Exception as e:
             error_msg = f"Bot polling failed: {str(e)[:200]}"
-            print(error_msg)
+            print(error_msg)  # Always log to terminal
             
-            # Send alert to all admins
-            for admin_id in admin_user_ids:
-                try:
-                    bot.send_message(
-                        admin_id,
-                        f"⚠️ <b>Bot Error Notification</b> ⚠️\n\n"
-                        f"🔧 <code>{error_msg}</code>\n\n"
-                        f"🔄 Bot is automatically restarting...",
-                        parse_mode='HTML'
-                    )
-                except Exception as admin_error:
-                    print(f"Failed to notify admin {admin_id}: {admin_error}")
+            # Only notify admins for critical errors (not KeyError, etc.)
+            if not isinstance(e, (KeyError, ValueError, AttributeError)):
+                for admin_id in admin_user_ids:
+                    try:
+                        bot.send_message(
+                            admin_id,
+                            f"⚠️ <b>Bot Error Notification</b> ⚠️\n\n"
+                            f"🔧 <code>{error_msg}</code>\n\n"
+                            f"🔄 Bot is automatically restarting...",
+                            parse_mode='HTML'
+                        )
+                    except Exception as admin_error:
+                        print(f"Failed to notify admin {admin_id}: {admin_error}")
             
             time.sleep(10)  # Wait before restarting
             send_startup_message(is_restart=True)
