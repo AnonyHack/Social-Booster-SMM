@@ -782,7 +782,7 @@ def process_telegram_link(message, service, quantity, cost):
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
+                url="https://t.me/smmserviceslogs"  # Hardcoded for testing  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -1021,7 +1021,7 @@ def process_tiktok_link(message, service, quantity, cost):
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
+                url="https://t.me/smmserviceslogs"  # Hardcoded for testing  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -1211,7 +1211,7 @@ def process_instagram_link(message, service, quantity, cost):
     
     link = message.text.strip()
     
-    if not re.match(r'^https?://(www\.)?instagram\.com/', link):
+    if not re.match(r'^https?://(www\.)?instagram\.com/[\w./-]+', link):
         bot.reply_to(message, "❌ Invalid Instagram link format", reply_markup=instagram_services_markup)
         return
     
@@ -1251,7 +1251,7 @@ def process_instagram_link(message, service, quantity, cost):
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
+                url="https://t.me/smmserviceslogs"  # Hardcoded for testing  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -1438,7 +1438,7 @@ def process_youtube_link(message, service, quantity, cost):
     
     link = message.text.strip()
     
-    if not re.match(r'^https?://(www\.)?youtube\.com/', link):
+    if not re.match(r'^https?://(www\.)?(youtube\.com|youtu\.be)/', link):
         bot.reply_to(message, "❌ Invalid YouTube link format", reply_markup=youtube_services_markup)
         return
     
@@ -1478,7 +1478,7 @@ def process_youtube_link(message, service, quantity, cost):
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
+                url="https://t.me/smmserviceslogs"  # Hardcoded for testing"  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -1675,7 +1675,7 @@ def process_facebook_link(message, service, quantity, cost):
     
     link = message.text.strip()
     
-    if not re.match(r'^https?://(www\.)?facebook\.com/', link):
+    if not re.match(r'^https?://(www\.|m\.)?(facebook\.com|fb\.watch)/', link):
         bot.reply_to(message, "❌ Invalid Facebook link format", reply_markup=facebook_services_markup)
         return
     
@@ -1715,7 +1715,7 @@ def process_facebook_link(message, service, quantity, cost):
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
+                url="https://t.me/smmserviceslogs"  # Hardcoded for testing  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
@@ -1932,7 +1932,7 @@ def process_whatsapp_link(message, service, quantity, cost):
             check_status_markup = InlineKeyboardMarkup()
             check_status_button = InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url=f"https://t.me/{payment_channel.lstrip('@')}"  # Convert @channel to proper URL
+                url="https://t.me/smmserviceslogs"  # Hardcoded for testing  # Convert @channel to proper URL
             )
             check_status_markup.add(check_status_button)
             
