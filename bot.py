@@ -158,10 +158,10 @@ facebook_services_markup.add(KeyboardButton("↩️ Go Back"))
 # WhatsApp services menu
 whatsapp_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 whatsapp_services_markup.row(
-    KeyboardButton("👥 Channel Members"),
+    KeyboardButton("👥 Channel Subscribers"),
 )
 whatsapp_services_markup.row(
-    KeyboardButton("😀 Channel EmojiReaction")
+    KeyboardButton("😀 Post EmojiReaction")
 )
 whatsapp_services_markup.add(KeyboardButton("↩️ Go Back"))
 
@@ -545,6 +545,7 @@ def pricing_command(message):
 ➏ 📦 300K coins – $15.00 </b>
 
 <b>💡NOTE: 𝘙𝘦𝘮𝘦𝘮𝘣𝘦𝘳 𝘵𝘰 𝘴𝘦𝘯𝘥 𝘺𝘰𝘶𝘳 𝘈𝘤𝘤𝘰𝘶𝘯𝘵 𝘐𝘋 𝘵𝘰 𝘳𝘦𝘤𝘦𝘪𝘷𝘦 𝘤𝘰𝘪𝘯𝘴</b>
+
 <b>🆔 Your id:</b> <code>{user_id}</code>
 """
 
@@ -604,7 +605,7 @@ def show_order_stats(message):
         else:
             msg += "\nNᴏ ʀᴇᴄᴇɴᴛ ᴏʀᴅᴇʀꜱ ꜰᴏᴜɴᴅ"
             
-        msg += "\n\n<i>Nᴏᴛᴇ: Sᴛᴀᴛᴜꜱ ᴜᴘᴅᴀᴛᴇꜱ ᴍᴀʏ ᴛᴀᴋᴇ ꜱᴏᴍᴇ ᴛɪᴍᴇ ᴛᴏ ʀᴇꜰʟᴇᴄᴛ</i>"
+        msg += "\n\n<i>Nᴏᴛᴇ: Sᴛᴀᴛᴜꜱ Uᴘᴅᴀᴛᴇꜱ Mᴀʏ Tᴀᴋᴇꜱ Sᴏᴍᴇ Tɪᴍᴇ Tᴏ Rᴇꜰʟᴇᴄᴛ Aɴᴅ Sᴏᴍᴇᴛɪᴍᴇꜱ Jᴜꜱᴛ Kᴇᴇᴘꜱ Sʜᴏᴡɪɴɢ Pᴇɴᴅɪɴɢ Aɴᴅ Yᴇᴛ Iᴛꜱ Cᴏᴍᴘʟᴇᴛᴇᴅ.</i>"
         
         bot.reply_to(message, msg, parse_mode='HTML')
         
@@ -1809,13 +1810,13 @@ def order_whatsapp_menu(message):
     """Show WhatsApp service options"""
     bot.reply_to(message, "💬 WhatsApp Services:", reply_markup=whatsapp_services_markup)
 
-@bot.message_handler(func=lambda message: message.text in ["👥 Channel Members", "😀 Channel EmojiReaction"])
+@bot.message_handler(func=lambda message: message.text in ["👥 Channel Subscribers", "😀 Post EmojiReaction"])
 def handle_whatsapp_order(message):
     """Handle WhatsApp service selection"""
     user_id = str(message.from_user.id)
     
     services = {
-        "👥 Channel Members": {
+        "👥 Channel Subscribers": {
             "name": "WhatsApp Channel Members",
             "quality": "EU Users",
             "min": 100,
@@ -1825,7 +1826,7 @@ def handle_whatsapp_order(message):
             "service_id": "18848",
             "link_hint": "WhatsApp channel invite link"
         },
-        "😀 Channel EmojiReaction": {
+        "😀 Post EmojiReaction": {
             "name": "WhatsApp Channel EmojiReaction",
             "quality": "Mixed",
             "min": 100,
