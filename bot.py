@@ -13,6 +13,10 @@ import pytz
 from functools import wraps
 from flask import Flask, jsonify
 from dotenv import load_dotenv
+import logging
+from logging.handlers import RotatingFileHandler
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from functions import (insertUser, track_exists, addBalance, cutBalance, getData,
                        addRefCount, isExists, setWelcomeStaus, setReferredStatus, updateUser, 
@@ -206,7 +210,7 @@ def check_membership_and_prompt(user_id, message):
     if not is_user_member(user_id):
         bot.reply_to(
             message,
-            "🚨 *Tᴏ Uꜱᴇ Tʜɪꜱ Bᴏᴛ, Yᴏᴜ Mᴜꜱᴛ Jᴏɪɴ Tʜᴇ RᴇQᴜɪʀᴇᴅ Cʜᴀɴɴᴇʟꜱ Fɪʀꜱᴛ!* 🚨\ɴ\ɴ"
+            "🚨 *Tᴏ Uꜱᴇ Tʜɪꜱ Bᴏᴛ, Yᴏᴜ Mᴜꜱᴛ Jᴏɪɴ Tʜᴇ RᴇQᴜɪʀᴇᴅ Cʜᴀɴɴᴇʟꜱ Fɪʀꜱᴛ!* 🚨"
           "Cʟɪᴄᴋ Tʜᴇ Bᴜᴛᴛᴏɴꜱ Bᴇʟᴏᴡ Tᴏ Jᴏɪɴ, Tʜᴇɴ Pʀᴇꜱꜱ *'✅ I Joined'*. ",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
@@ -417,7 +421,7 @@ def my_account(message):
     caption = f"""
 <b><u>𝗠𝘆 𝗔𝗰𝗰𝗼𝘂𝗻𝘁</u></b>
 
-🆔 Uꜱᴇʀ Iᴅ: <code>`{user_id}`</code>
+🆔 Uꜱᴇʀ Iᴅ: <code>{user_id}</code>
 👤 Uꜱᴇʀɴᴀᴍᴇ: @{message.from_user.username if message.from_user.username else "N/A"}
 🗣 Iɴᴠɪᴛᴇᴅ Uꜱᴇʀꜱ: {data.get('total_refs', 0)}
 ⏰ Tɪᴍᴇ: {current_time}
@@ -2662,6 +2666,38 @@ def send_startup_message(is_restart=False):
       
 # ==================== FLASK INTEGRATION ==================== #
 
+# Configure API helper settings
+telebot.apihelper.READ_TIMEOUT = 30
+telebot.apihelper.CONNECT_TIMEOUT = 10
+telebot.apihelper.RETRY_ON_ERROR = True
+telebot.apihelper.MAX_RETRIES = 3
+
+
+log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# File handler with rotation
+file_handler = RotatingFileHandler('bot.log', maxBytes=5*1024*1024, backupCount=3)
+file_handler.setFormatter(log_formatter)
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(log_formatter)
+
+# Get logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+retry_strategy = Retry(
+    total=3,
+    backoff_factor=1,
+    status_forcelist=[408, 429, 500, 502, 503, 504]
+)
+
+session = requests.Session()
+session.mount("https://", HTTPAdapter(max_retries=retry_strategy))
+
 # Create enhanced Flask app
 web_app = Flask(__name__)
 start_time = time.time()  # Track bot start time
@@ -2681,7 +2717,8 @@ def health():
     return jsonify({
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "memory_usage": f"{psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024:.2f} MB"
+        "memory_usage": f"{psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024:.2f} MB",
+        "active_threads": threading.active_count()
     }), 200
 
 @web_app.route('/ping')
@@ -2689,66 +2726,96 @@ def ping():
     """Endpoint for keep-alive pings"""
     return "pong", 200
 
+def notify_admins(message):
+    """Helper function to notify admins of errors"""
+    for admin_id in admin_user_ids:
+        try:
+            bot.send_message(
+                admin_id,
+                f"⚠️ Bot Notification ⚠️\n\n{message}",
+                parse_mode='HTML'
+            )
+            break  # Notify just one admin to avoid rate limits
+        except Exception as admin_error:
+            logger.error(f"Failed to notify admin {admin_id}: {admin_error}")
+
 # ==================== KEEP-ALIVE SYSTEM ==================== #
 def keep_alive():
     """Pings the server periodically to prevent shutdown"""
     while True:
         try:
             # Ping our own health endpoint
-            requests.get(f'http://localhost:{os.getenv("PORT", "10000")}/ping', timeout=5)
+            session.get(f'http://localhost:{os.getenv("PORT", "10000")}/ping', timeout=5)
             # Optionally ping external services
-            requests.get('https://www.google.com', timeout=5)
+            session.get('https://www.google.com', timeout=5)
         except Exception as e:
-            print(f"Keep-alive ping failed: {e}")
-        time.sleep(120)  # Ping every 5 minutes
+            logger.warning(f"Keep-alive ping failed: {e}")
+        time.sleep(300)  # Ping every 5 minutes
 
 # ==================== BOT POLLING ==================== #
 def run_bot():
     set_bot_commands()
-    print("Bot is running...")
+    logger.info("Bot is starting...")
+    
+    # Initial delay to prevent immediate restart storms
+    time.sleep(10)
+    
     while True:
         try:
-            bot.polling(none_stop=True, timeout=60)
+            logger.info("Starting bot polling...")
+            # Use skip_pending=True to skip old updates after restart
+            bot.polling(none_stop=True, timeout=30, skip_pending=True)
+            
         except ConnectionError as e:
-            print(f"Connection error: {e}. Reconnecting in 10 seconds...")
-            time.sleep(10)
+            error_msg = f"Connection error: {e}. Reconnecting in 30 seconds..."
+            logger.warning(error_msg)
+            notify_admins(error_msg)
+            time.sleep(30)
+            
+        except telebot.apihelper.ApiException as e:
+            error_msg = f"Telegram API error: {str(e)[:200]}"
+            logger.warning(error_msg)
+            time.sleep(30)
+            
         except Exception as e:
             error_msg = f"Bot polling failed: {str(e)[:200]}"
-            print(error_msg)
-            if not isinstance(e, (KeyError, ValueError, AttributeError)):
-                for admin_id in admin_user_ids:
-                    try:
-                        bot.send_message(
-                            admin_id,
-                            f"⚠️ <b>Bot Error Notification</b> ⚠️\n\n"
-                            f"🔧 <code>{error_msg}</code>\n\n"
-                            f"🔄 Bot is automatically restarting...",
-                            parse_mode='HTML'
-                        )
-                    except Exception as admin_error:
-                        print(f"Failed to notify admin {admin_id}: {admin_error}")
-            time.sleep(10)
-            send_startup_message(is_restart=True)
+            logger.error(error_msg)
+            
+            # Don't notify for common, expected errors
+            if not isinstance(e, (ConnectionError, telebot.apihelper.ApiException)):
+                notify_admins(error_msg)
+                
+            # Longer delay for more serious errors
+            time.sleep(30)
+            
+        # Small delay before restarting to prevent tight loops
+        time.sleep(5)
 
 # ==================== MAIN EXECUTION ==================== #
 if __name__ == '__main__':
-    import threading
-    
-    # Start keep-alive thread
-    keep_alive_thread = threading.Thread(target=keep_alive)
-    keep_alive_thread.daemon = True
-    keep_alive_thread.start()
-    
-    # Start bot in background thread
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
-    
-    # Start Flask web server in main thread
-    web_app.run(
-        host='0.0.0.0',
-        port=int(os.getenv('PORT', '10000')),
-        debug=False,
-        use_reloader=False,
-        threaded=True  # Enable multi-threading for better performance
-    )
+    try:
+        logger.info("Initializing bot...")
+        
+        # Start keep-alive thread
+        keep_alive_thread = threading.Thread(target=keep_alive)
+        keep_alive_thread.daemon = True
+        keep_alive_thread.start()
+        
+        # Start bot in background thread
+        bot_thread = threading.Thread(target=run_bot)
+        bot_thread.daemon = True
+        bot_thread.start()
+        
+        # Configure Flask server
+        logger.info("Starting Flask server...")
+        web_app.run(
+            host='0.0.0.0',
+            port=int(os.getenv('PORT', '10000')),
+            debug=False,
+            use_reloader=False,
+            threaded=True
+        )
+    except Exception as e:
+        logger.critical(f"Fatal error in main execution: {e}")
+        notify_admins(f"Bot crashed: {str(e)[:200]}")
+        raise
