@@ -291,7 +291,8 @@ def send_orders_menu(message):
 
 def set_bot_commands():
     commands = [
-        BotCommand('start', 'Restart the bot')
+        BotCommand('start', 'Restart the bot'),
+        BotCommand('policy', 'View usage policy'),
         # Removed 'addcoins' and 'removecoins' from global commands
     ]
     try:
@@ -500,8 +501,8 @@ def help_command(message):
     msg = f"""
 <b>FʀᴇQᴜᴇɴᴛʟʏ Aꜱᴋᴇᴅ Qᴜᴇꜱᴛɪᴏɴꜱ</b>
 
-<b>• Aʀᴇ ᴛʜᴇ ᴠɪᴇᴡꜱ ʀᴇᴀʟ?</b>
-Nᴏ, ᴛʜᴇ ᴠɪᴇᴡꜱ ᴀʀᴇ ꜱɪᴍᴜʟᴀᴛᴇᴅ ᴀɴᴅ ɴᴏᴛ ꜰʀᴏᴍ ʀᴇᴀʟ ᴜꜱᴇʀꜱ.
+<b>• Aʀᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇꜱ ʀᴇᴀʟ?</b>
+ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇꜱ ᴀʀᴇ ʀᴀɴᴅᴏᴍʟʏ ꜱᴇʟᴇᴄᴛᴇᴅ ꜰʀᴏᴍ ᴏᴜʀ ᴘᴀɴᴇʟ ʙᴜᴛ ɪꜰ ʏᴏᴜ ᴡᴀɴᴛ ᴏɴʟʏ ʀᴇᴀʟ ᴏɴᴇꜱ ᴏɴʟʏ, ꜰᴇᴇʟ ꜰʀᴇᴇ ᴛᴏ ᴄᴏɴᴛᴀᴄᴛ ᴜꜱ ꜰᴏʀ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ.
 
 <b>• Wʜᴀᴛ'ꜱ ᴛʜᴇ ᴀᴠᴇʀᴀɢᴇ ꜱᴇʀᴠɪᴄᴇ ꜱᴘᴇᴇᴅ?</b>
 Dᴇʟɪᴠᴇʀʏ ꜱᴘᴇᴇᴅ ᴠᴀʀɪᴇꜱ ʙᴀꜱᴇᴅ ᴏɴ ɴᴇᴛᴡᴏʀᴋ ᴄᴏɴᴅɪᴛɪᴏɴꜱ ᴀɴᴅ ᴏʀᴅᴇʀ ᴠᴏʟᴜᴍᴇ, ʙᴜᴛ ᴡᴇ ᴇɴꜱᴜʀᴇ ꜰᴀꜱᴛ ᴅᴇʟɪᴠᴇʀʏ.
@@ -2160,39 +2161,86 @@ def show_analytics(message):
 @bot.message_handler(func=lambda m: m.text == "📤 Broadcast" and m.from_user.id in admin_user_ids)
 def broadcast_start(message):
     """Start normal broadcast process (unpinned)"""
-    msg = bot.reply_to(message, "📢 Eɴᴛᴇʀ Tʜᴇ Mᴇꜱꜱᴀɢᴇ Yᴏᴜ Wᴀɴᴛ Tᴏ Bʀᴏᴀᴅᴄᴀꜱᴛ Tᴏ Aʟʟ Uꜱᴇʀꜱ (ᴛʜɪꜱ ᴡᴏɴ'ᴛ ʙᴇ ᴘɪɴɴᴇᴅ):")
+    msg = bot.reply_to(message, "📢 ✨ <b>Compose Your Broadcast Message</b> ✨\n\n"
+                              "Please enter the message you'd like to send to all users.\n"
+                              "This will be sent as a regular (unpinned) message.\n\n"
+                              "🖋️ You can include text, photos, or documents.\n"
+                              "❌ Type <code>✘ Cancel</code> to abort.", 
+                       parse_mode="HTML")
     bot.register_next_step_handler(msg, process_broadcast)
 
 def process_broadcast(message):
     """Process and send the broadcast message (unpinned)"""
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Broadcast cancelled.", reply_markup=admin_markup)
+        bot.reply_to(message, "🛑 <b>Broadcast cancelled.</b>", 
+                     parse_mode="HTML", reply_markup=admin_markup)
         return
     
     users = get_all_users()
     success = 0
     failed = 0
     
-    bot.reply_to(message, f"⏳ Sᴇɴᴅɪɴɢ Bʀᴏᴀᴅᴄᴀꜱᴛ Tᴏ {len(users)} users...")
+    # Enhanced sending notification with progress bar concept
+    progress_msg = bot.reply_to(message, f"""📨 <b>Broadcast Initiated</b>
     
-    for user_id in users:
+📊 Total Recipients: <code>{len(users)}</code>
+⏳ Status: <i>Processing...</i>
+
+[░░░░░░░░░░] 0%""", parse_mode="HTML")
+    
+    for index, user_id in enumerate(users):
         try:
             if message.content_type == 'text':
-                bot.send_message(user_id, message.text, parse_mode="Markdown")
+                # Enhanced text message format
+                formatted_text = f"""✨ <b>Announcement</b> ✨\n\n{message.text}\n\n"""
+                if not message.text.endswith(('🌐', '📢', '🔔', '📣', '📩')):
+                    formatted_text += "━━━━━━━━━━━━━━\n"
+                    formatted_text += "💌 Thank you for being part of our community!\n"
+                    formatted_text += "🔔 Stay tuned for more updates."
+                bot.send_message(user_id, formatted_text, parse_mode="HTML")
             elif message.content_type == 'photo':
-                bot.send_photo(user_id, message.photo[-1].file_id, caption=message.caption)
+                # Enhanced photo caption
+                caption = f"📸 {message.caption}" if message.caption else "✨ Community Update"
+                bot.send_photo(user_id, message.photo[-1].file_id, caption=caption)
             elif message.content_type == 'document':
-                bot.send_document(user_id, message.document.file_id, caption=message.caption)
+                # Enhanced document caption
+                caption = f"📄 {message.caption}" if message.caption else "📁 Important Document"
+                bot.send_document(user_id, message.document.file_id, caption=caption)
             success += 1
         except Exception as e:
             print(f"Failed to send to {user_id}: {e}")
             failed += 1
+        
+        # Update progress every 10%
+        if (index+1) % (len(users)//10) == 0 or index+1 == len(users):
+            progress = int((index+1)/len(users)*100)
+            progress_bar = '█' * (progress//10) + '░' * (10 - progress//10)
+            try:
+                bot.edit_message_text(f"""📨 <b>Broadcast Progress</b>
+                
+📊 Total Recipients: <code>{len(users)}</code>
+✅ Successful: <code>{success}</code>
+❌ Failed: <code>{failed}</code>
+⏳ Status: <i>Sending...</i>
+
+[{progress_bar}] {progress}%""", 
+                    message.chat.id, progress_msg.message_id, parse_mode="HTML")
+            except:
+                pass
+        
         time.sleep(0.1)  # Rate limiting
     
-    bot.reply_to(message, f"""✅ Broadcast Complete:
+    # Enhanced completion message
+    bot.reply_to(message, f"""📣 <b>Broadcast Completed Successfully!</b>
     
-📤 Sent: {success}
-❌ Failed: {failed}""", reply_markup=admin_markup)
+📊 <b>Statistics:</b>
+├ 📤 <i>Sent:</i> <code>{success}</code>
+└ ❌ <i>Failed:</i> <code>{failed}</code>
+
+⏱️ <i>Finished at:</i> <code>{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>
+
+✨ <i>Thank you for using our broadcast system!</i>""", 
+                 parse_mode="HTML", reply_markup=admin_markup)
 
 #====================== Ban User Command ================================#
 @bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id in admin_user_ids)
@@ -2368,14 +2416,18 @@ def process_user_info(message):
         user_data = getData(user_id) or {}
         
         info = f"""
-🔍 <b>𝗨𝘀𝗲𝗿 𝗜𝗻𝗳𝗼𝗿𝗺𝗮𝘁𝗶𝗼𝗻</b>:
-🆔 Iᴅ: <code>{user_id}</code>
-👤 Nᴀᴍᴇ: {user.first_name} {user.last_name or ''}
-📛 Uꜱᴇʀɴᴀᴍᴇ: @{user.username if user.username else 'N/A'}
-💰 Bᴀʟᴀɴᴄᴇ: {user_data.get('balance', 0)}
-📊 Oʀᴅᴇʀꜱ: {user_data.get('orders_count', 0)}
-👥 Rᴇꜰᴇʀʀᴀʟꜱ: {user_data.get('total_refs', 0)}
-🔨 Sᴛᴀᴛᴜꜱ: {"BANNED ⛔" if is_banned(user_id) else "ACTIVE ✅"}
+┌─────────────────────────
+│ 🔍 <b>𝗨𝘀𝗲𝗿 𝗜𝗻𝗳𝗼𝗿𝗺𝗮𝘁𝗶𝗼𝗻</b>:
+│ ━━━━━━━━━━━━━━━━━━━━━━
+│ 🆔 Iᴅ: <code>{user_id}</code>
+│ 👤 Nᴀᴍᴇ: {user.first_name} {user.last_name or ''}
+│ 📛 Uꜱᴇʀɴᴀᴍᴇ: @{user.username if user.username else 'N/A'}
+│ 💰 Bᴀʟᴀɴᴄᴇ: {user_data.get('balance', 0)}
+│ 📊 Oʀᴅᴇʀꜱ: {user_data.get('orders_count', 0)}
+│ 👥 Rᴇꜰᴇʀʀᴀʟꜱ: {user_data.get('total_refs', 0)}
+│ 🔨 Sᴛᴀᴛᴜꜱ: {"BANNED ⛔" if is_banned(user_id) else "ACTIVE ✅"}
+└────────────────────────
+
         """
         bot.reply_to(message, info, parse_mode="HTML")
     except ValueError:
@@ -2405,20 +2457,22 @@ def server_status(message):
         mongo_stats = db.command("dbstats")
         
         status = f"""
-🖥 <b>𝙎𝙮𝙨𝙩𝙚𝙢 𝙎𝙩𝙖𝙩𝙪𝙨</b>
-━━━━━━━━━━━━━━
-💻 <b>Sʏꜱᴛᴇᴍ</b>: {uname.system} {uname.release}
-⏱ <b>Uᴘᴛɪᴍᴇ</b>: {datetime.now() - boot_time}
-━━━━━━━━━━━━━━━━━━━━━━━━
-🧠 <b>Cᴘᴜ</b>: {psutil.cpu_percent()}% usage
-💾 <b>Mᴇᴍᴏʀʏ</b>: {mem.used/1024/1024:.1f}MB / {mem.total/1024/1024:.1f}MB
-🗄 <b>Dɪꜱᴋ</b>: {disk.used/1024/1024:.1f}MB / {disk.total/1024/1024:.1f}MB
-━━━━━━━━━━━━━━━━━━━━━━━━
-📊 <b>𝙈𝙤𝙣𝙜𝙤𝘿𝘽 𝙎𝙩𝙖𝙩𝙨</b>
-📦 Dᴀᴛᴀ ꜱɪᴢᴇ: {mongo_stats['dataSize']/1024/1024:.1f}MB
-🗃 Sᴛᴏʀᴀɢᴇ: {mongo_stats['storageSize']/1024/1024:.1f}MB
-📂 Cᴏʟʟᴇᴄᴛɪᴏɴꜱ: {mongo_stats['collections']}
-━━━━━━━━━━━━━━━━━━━━━━━━
+┌────────────────────────
+│ 🖥 <b>𝙎𝙮𝙨𝙩𝙚𝙢 𝙎𝙩𝙖𝙩𝙪𝙨</b>
+│ ━━━━━━━━━━━━━━━━━━━━━━
+│ 💻 <b>Sʏꜱᴛᴇᴍ</b>: {uname.system} {uname.release}
+│ ⏱ <b>Uᴘᴛɪᴍᴇ</b>: {datetime.now() - boot_time}
+│ ━━━━━━━━━━━━━━━━━━━━━━
+│ 🧠 <b>Cᴘᴜ</b>: {psutil.cpu_percent()}% usage
+│ 💾 <b>Mᴇᴍᴏʀʏ</b>: {mem.used/1024/1024:.1f}MB / {mem.total/1024/1024:.1f}MB
+│ 🗄 <b>Dɪꜱᴋ</b>: {disk.used/1024/1024:.1f}MB / {disk.total/1024/1024:.1f}MB
+│ ━━━━━━━━━━━━━━━━━━━━━━
+│ 📊 <b>𝙈𝙤𝙣𝙜𝙤𝘿𝘽 𝙎𝙩𝙖𝙩𝙨</b>
+│ 📦 Dᴀᴛᴀ ꜱɪᴢᴇ: {mongo_stats['dataSize']/1024/1024:.1f}MB
+│ 🗃 Sᴛᴏʀᴀɢᴇ: {mongo_stats['storageSize']/1024/1024:.1f}MB
+│ 📂 Cᴏʟʟᴇᴄᴛɪᴏɴꜱ: {mongo_stats['collections']}
+└───────────────────────
+
         """
         bot.reply_to(message, status, parse_mode="HTML")
     except Exception as e:
@@ -2521,15 +2575,17 @@ def process_check_order(message):
         if order:
             status_time = datetime.fromtimestamp(order.get('timestamp', time.time())).strftime('%Y-%m-%d %H:%M')
             status = f"""
-📦 <b>Order #{order_id}</b>
-━━━━━━━━━━━━━━
-👤 Uꜱᴇʀ: {order.get('username', 'N/A')} (<code>{order.get('user_id', 'N/A')}</code>)
-🛒 Sᴇʀᴠɪᴄᴇ: {order.get('service', 'N/A')}
-🔗 Lɪɴᴋ: {order.get('link', 'N/A')}
-📊 Qᴜᴀɴᴛɪᴛʏ: {order.get('quantity', 'N/A')}
-💰 Cᴏꜱᴛ: {order.get('cost', 'N/A')}
-🔄 Sᴛᴀᴛᴜꜱ: {order.get('status', 'N/A')}
-⏱ Dᴀᴛᴇ: {status_time}
+┌─────────────────────
+│ 📦 <b>Order #{order_id}</b>
+│ ━━━━━━━━━━━━━━
+│ 👤 Uꜱᴇʀ: {order.get('username', 'N/A')} (<code>{order.get('user_id', 'N/A')}</code>)
+│ 🛒 Sᴇʀᴠɪᴄᴇ: {order.get('service', 'N/A')}
+│ 🔗 Lɪɴᴋ: {order.get('link', 'N/A')}
+│ 📊 Qᴜᴀɴᴛɪᴛʏ: {order.get('quantity', 'N/A')}
+│ 💰 Cᴏꜱᴛ: {order.get('cost', 'N/A')}
+│ 🔄 Sᴛᴀᴛᴜꜱ: {order.get('status', 'N/A')}
+│ ⏱ Dᴀᴛᴇ: {status_time}
+└─────────────────────
             """
             bot.reply_to(message, status, parse_mode="HTML", disable_web_page_preview=True)
         else:
