@@ -639,7 +639,7 @@ def handle_telegram_order(message):
         "❤️ Post Reactions": {
             "name": "Positive Reactions",
             "quality": "No Refil",
-            "min": 50,
+            "min": 60,
             "max": 1000,
             "price": 1500,
             "unit": "1k reactions",
