@@ -923,6 +923,7 @@ def handle_tiktok_order(message):
     
     msg = f"""📊 Order {service['name']}:
     
+📌 Oʀᴅᴇʀ Iᴅ: {service['service_id']}
 📌 Mɪɴɪᴍᴜᴍ: {service['min']}
 📌 Mᴀxɪᴍᴜᴍ: {service['max']}
 💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
