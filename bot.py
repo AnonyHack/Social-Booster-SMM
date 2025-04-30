@@ -22,7 +22,7 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                        addRefCount, isExists, setWelcomeStaus, setReferredStatus, updateUser, 
                        ban_user, unban_user, get_all_users, is_banned, get_banned_users, 
                        get_top_users, get_user_count, get_active_users, get_total_orders, 
-                       get_total_deposits, get_top_referrer, get_user_orders_stats) # Import your functions from functions.py
+                       get_total_deposits, get_top_referrer, get_user_orders_stats, orders_collection) # Import your functions from functions.py
 
 if not os.path.exists('Account'):
     os.makedirs('Account')
