@@ -3,29 +3,31 @@ import re
 import requests
 import time
 import os
-import json
 import traceback
 import logging
 import psutil
 import threading
+import datetime
 from datetime import datetime
 import pytz
 from functools import wraps
 from flask import Flask, jsonify
 from dotenv import load_dotenv
 import logging
+from telebot import types
 from logging.handlers import RotatingFileHandler
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
+from telebot.types import ForceReply, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from functions import (insertUser, track_exists, addBalance, cutBalance, getData,
                        addRefCount, isExists, setWelcomeStaus, setReferredStatus, updateUser, 
                        ban_user, unban_user, get_all_users, is_banned, get_banned_users, 
                        get_top_users, get_user_count, get_active_users, get_total_orders, 
-                       get_total_deposits, get_top_referrer, get_user_orders_stats, orders_collection) # Import your functions from functions.py
+                       get_total_deposits, get_top_referrer, get_user_orders_stats, get_new_users,
+                       get_completed_orders, get_all_users, save_pinned_message, get_all_pinned_messages,
+                         clear_all_pinned_messages, orders_collection, get_confirmed_spent, get_pending_spent) # Import your functions from functions.py
 
-if not os.path.exists('Account'):
-    os.makedirs('Account')
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -40,37 +42,35 @@ admin_user_ids = [int(id.strip()) for id in os.getenv("ADMIN_USER_IDS", "").spli
 
 bot = telebot.TeleBot(bot_token)
 
+
 welcome_bonus = 100
 ref_bonus = 50
-min_view = 1000
-max_view = 30000
 
 # Main keyboard markup
 main_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-button1 = KeyboardButton("📤 Send Orders")  # Changed from "👁‍🗨 Order View"
+button1 = KeyboardButton("🛒 Buy Services")  # Changed from "👁‍🗨 Order View"
 button2 = KeyboardButton("👤 My Account")
 button3 = KeyboardButton("💳 Pricing")
-button4 = KeyboardButton("📊 Order Statistics")
-button5 = KeyboardButton("🗣 Invite Friends")
+button4 = KeyboardButton("📊 Order Stats")
+button5 = KeyboardButton("🗣 Invite")
 button6 = KeyboardButton("🏆 Leaderboard")
 button7 = KeyboardButton("📜 Help")
-button8 = KeyboardButton("🛠 Admin Panel")
 
 main_markup.add(button1, button2)
 main_markup.add(button3, button4)
 main_markup.add(button5, button6)
 main_markup.add(button7)
-main_markup.add(button8)
 
 # Admin keyboard markup
 admin_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 admin_markup.row("➕ Add Coins", "➖ Remove Coins")
-admin_markup.row("📌 Pin Message", "📤 Broadcast")
+admin_markup.row("📌 Pin Message", "📍 Unpin")
 admin_markup.row("🔒 Ban User", "✅ Unban User")
 admin_markup.row("📋 List Banned", "👤 User Info")  # New
 admin_markup.row("🖥 Server Status", "📤 Export Data")  # New
 admin_markup.row("📦 Order Manager", "📊 Analytics")  # New
-admin_markup.row("🔧 Maintenance")
+admin_markup.row("🔧 Maintenance", "📤 Broadcast")
+admin_markup.row("📦 Batch Coins")
 admin_markup.row("🔙 Main Menu")
 #======================= Send Orders main menu =======================#
 send_orders_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -187,7 +187,8 @@ def add_order(user_id, order_data):
         return False
 #==================================== Channel Membership Check =======================#
 #================================== Force Join Method =======================================#
-required_channels = ["SmmBoosterz", "Megahubbots", "Freenethubz", "Freenethubchannel", "smmserviceslogs"]  # Channel usernames without "@"
+#================================== Force Join Method =======================================#
+required_channels = ["smmserviceslogs"]  # Channel usernames without "@"
 payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
@@ -199,32 +200,70 @@ def is_user_member(user_id):
                 return False
         except Exception as e:
             print(f"Error checking channel membership for {channel}: {e}")
-            # Consider implementing a retry mechanism here
-            time.sleep(1)  # Add delay between checks
-            continue
+            # If there's an error checking, assume user is not member
+            return False
     return True
-
 
 def check_membership_and_prompt(user_id, message):
     """Check if the user is a member of all required channels and prompt them to join if not."""
     if not is_user_member(user_id):
-        bot.reply_to(
-            message,
-            "🚨 *Tᴏ Uꜱᴇ Tʜɪꜱ Bᴏᴛ, Yᴏᴜ Mᴜꜱᴛ Jᴏɪɴ Tʜᴇ RᴇQᴜɪʀᴇᴅ Cʜᴀɴɴᴇʟꜱ Fɪʀꜱᴛ!* 🚨"
-          "Cʟɪᴄᴋ Tʜᴇ Bᴜᴛᴛᴏɴꜱ Bᴇʟᴏᴡ Tᴏ Jᴏɪɴ, Tʜᴇɴ Pʀᴇꜱꜱ *'✅ I Joined'*. ",
+        # First, check if this is a callback query or regular message
+        if hasattr(message, 'message_id'):
+            chat_id = message.chat.id
+            reply_to_message_id = message.message_id
+        else:
+            chat_id = message.chat.id
+            reply_to_message_id = None
+        
+        # Send the join message
+        bot.send_message(
+            chat_id=chat_id,
+            reply_to_message_id=reply_to_message_id,
+            text="""
+<blockquote>
+*🚀 Wᴇʟᴄᴏᴍᴇ Tᴏ Sᴍᴍʜᴜʙ Bᴏᴏꜱᴛᴇʀ Bᴏᴛ ! 🚀*
+
+🚨 *Tᴏ Uꜱᴇ Tʜɪꜱ Bᴏᴛ, Yᴏᴜ Mᴜꜱᴛ Jᴏɪɴ Tʜᴇ RᴇQᴜɪʀᴇᴅ Cʜᴀɴɴᴇʟꜱ Fɪʀꜱᴛ!* 🚨
+
+📊 *Cᴏᴍᴘʟᴇᴛᴇ Tʜᴇꜱᴇ Sᴛᴇᴘꜱ Tᴏ Uɴʟᴏᴄᴋ:*
+▫️ Jᴏɪɴ Aʟʟ Cʜᴀɴɴᴇʟꜱ Bᴇʟᴏᴡ
+▫️ Cʟɪᴄᴋ *'✅ VERIFY MEMBERSHIP'* Bᴜᴛᴛᴏɴ
+▫️ Wᴀɪᴛ Fᴏʀ Vᴇʀɪғɪᴄᴀᴛɪᴏɴ
+
+
+🔐 *Vᴇʀɪғɪᴄᴀᴛɪᴏɴ Sᴛᴀᴛᴜꜱ:* 𝘕𝘰𝘵 𝘝𝘦𝘳𝘪𝘧𝘪𝘦𝘥
+━━━━━━━━━━━━━━━━━━━━
+</blockquote>""",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("MAIN CHANNEL", url="https://t.me/SmmBoosterz")],
-                [InlineKeyboardButton("BOTS UPDATE", url="https://t.me/Megahubbots")],
-                [InlineKeyboardButton("PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
-                [InlineKeyboardButton("BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
-                [InlineKeyboardButton("LOGS CHANNEL", url="https://t.me/smmserviceslogs")],
-                [InlineKeyboardButton("WHASTAPP CHANNEL", url="https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")],
-                [InlineKeyboardButton("✅ I Joined", callback_data="verify_membership")]
+                [InlineKeyboardButton("📢 MAIN CHANNEL", url="https://t.me/smmserviceslogs")],
+                #[InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
+                #[InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
+                #[InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
+                #[InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/smmserviceslogs")],
+                #[InlineKeyboardButton("📱 WHATSAPP CHANNEL", url="https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")],
+                [InlineKeyboardButton("✨ ✅ VERIFY MEMBERSHIP", callback_data="verify_membership")],
+                [InlineKeyboardButton("❓ Why Join These Channels?", callback_data="why_join_info")]
             ])
         )
-        return False  # User is not a member
-    return True  # User is a member
+        return False
+    return True
+
+@bot.callback_query_handler(func=lambda call: call.data == "why_join_info")
+def handle_why_join(call):
+    """Send the privileges info when user clicks 'Why Join?' button"""
+    perks_text = """
+<blockquote>
+🛡️ *𝙋𝙧𝙞𝙫𝙞𝙡𝙚𝙜𝙚𝙨 𝙮𝙤𝙪'𝙡𝙡 𝙜𝙚𝙩:*
+✓ Fᴜʟʟ Bᴏᴛ Aᴄᴄᴇꜱꜱ  
+✓ Exᴄʟᴜꜱɪᴠᴇ Oғғᴇʀꜱ  
+✓ Pʀᴇᴍɪᴜᴍ Sᴜᴘᴘᴏʀᴛ  
+✓ Rᴇɢᴜʟᴀʀ Uᴘᴅᴀᴛᴇꜱ
+━━━━━━━━━━━━━━━━━━━━
+</blockquote>
+"""
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, perks_text, parse_mode="Markdown")
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify_membership")
 def verify_membership(call):
@@ -232,23 +271,23 @@ def verify_membership(call):
     
     if is_user_member(user_id):
         try:
-            bot.edit_message_text(
-                chat_id=call.message.chat.id,
-                message_id=call.message.message_id,
-                text="✅ 𝐘𝐨𝐮 𝐚𝐫𝐞 𝐯𝐞𝐫𝐢𝐟𝐢𝐞𝐝! 𝐘𝐨𝐮 𝐜𝐚𝐧 𝐧𝐨𝐰 𝐮𝐬𝐞 𝐭𝐡𝐞 𝐛𝐨𝐭. 𝐂𝐥𝐢𝐜𝐤 /start 𝐚𝐠𝐚𝐢𝐧"
-            )
-            # Only send welcome if the user is not a bot
-            if not call.from_user.is_bot:
-                send_welcome(call.message)
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            send_welcome(call.message)
         except Exception as e:
             print(f"Error in verify_membership: {e}")
+            bot.answer_callback_query(
+                call.id,
+                text="✅ Hᴇʏ! Yᴏᴜ ᴀʀᴇ ᴠᴇʀɪꜰɪᴇᴅ! Yᴏᴜ ᴄᴀɴ ɴᴏᴡ ᴜꜱᴇ ᴛʜᴇ ʙᴏᴛ. Cʟɪᴄᴋ /start ᴀɢᴀɪɴ.",
+                show_alert=True
+            )
     else:
         bot.answer_callback_query(
-            callback_query_id=call.id,
-            text="❌ Y̶o̶u̶ ̶h̶a̶v̶e̶n̶'̶t̶ ̶j̶o̶i̶n̶e̶d̶ ̶a̶l̶l̶ ̶t̶h̶e̶ ̶r̶e̶q̶u̶i̶r̶e̶d̶ ̶c̶h̶a̶n̶n̶e̶l̶s̶ ̶y̶e̶t̶!",
+            call.id,
+            text="❌ Yᴏᴜ ʜᴀᴠᴇɴ'ᴛ ᴊᴏɪɴᴇᴅ ᴀʟʟ ᴛʜᴇ ʀᴇQᴜɪʀᴇᴅ ᴄʜᴀɴɴᴇʟꜱ ʏᴇᴛ!",
             show_alert=True
         )
 #==============================================#
+
 #========================= utility function to check bans =================#
 # Enhanced check_ban decorator to include maintenance check
 def check_ban(func):
@@ -263,13 +302,13 @@ def check_ban(func):
             
         # Check ban status
         if is_banned(user_id):
-            bot.reply_to(message, "⛔ ❝𝐘𝐨𝐮 𝐡𝐚𝐯𝐞 𝐛𝐞𝐞𝐧 𝐛𝐚𝐧𝐧𝐞𝐝 𝐟𝐫𝐨𝐦 𝐮𝐬𝐢𝐧𝐠 𝐭𝐡𝐢𝐬 𝐛𝐨𝐭❞.")
+            bot.reply_to(message, "⛔ ❝Yᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ʙᴀɴɴᴇᴅ ꜰʀᴏᴍ ᴜꜱɪɴɢ ᴛʜɪꜱ ʙᴏᴛ❞.")
             return
             
         return func(message, *args, **kwargs)
     return wrapped
 #================== Send Orders Button ============================#
-@bot.message_handler(func=lambda message: message.text == "📤 Send Orders")
+@bot.message_handler(func=lambda message: message.text == "🛒 Buy Services")
 @check_ban
 def send_orders_menu(message):
     user_id = message.from_user.id
@@ -293,15 +332,31 @@ def set_bot_commands():
     commands = [
         BotCommand('start', 'Restart the bot'),
         BotCommand('policy', 'View usage policy'),
-        # Removed 'addcoins' and 'removecoins' from global commands
     ]
+    
+    # Admin-only commands
+    admin_commands = [
+        BotCommand('adminpanel', 'Access admin controls'),
+    ]
+    
     try:
+        # Set basic commands for all users
         bot.set_my_commands(commands)
+        
+        # Set admin commands specifically for admin users
+        for admin_id in admin_user_ids:
+            try:
+                bot.set_chat_menu_button(
+                    chat_id=admin_id,
+                    menu_button=types.MenuButtonCommands()
+                )
+                bot.set_my_commands(admin_commands + commands, scope=types.BotCommandScopeChat(admin_id))
+            except Exception as e:
+                print(f"Error setting admin commands for {admin_id}: {e}")
+        
         print("Bot commands set successfully")
     except Exception as e:
         print(f"Error setting bot commands: {e}")
-# imports the updateUser function from functions.py
-print(updateUser) 
   
 #======================= Start Command =======================#
 @bot.message_handler(commands=['start'])
@@ -347,24 +402,47 @@ def send_welcome(message):
         addBalance(user_id, welcome_bonus)
         setWelcomeStaus(user_id)
 
-    # Referral bonus logic
+    # Professional Referral bonus logic
     data = getData(user_id)
     if data['ref_by'] != "none" and data['referred'] == 0:
-        bot.send_message(data['ref_by'], f"You referred {first_name} +{ref_bonus}")
+        referrer_data = getData(data['ref_by'])
+        referral_message = f"""
+<blockquote>
+🎉 <b>Rᴇꜰᴇʀʀᴀʟ Rᴇᴡᴀʀᴅ Nᴏᴛɪꜰɪᴄᴀᴛɪᴏɴ</b> 🎉
+
+Wᴇ'ʀᴇ ᴘʟᴇᴀꜱᴇᴅ ᴛᴏ ɪɴꜰᴏʀᴍ ʏᴏᴜ ᴛʜᴀᴛ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ <b>{first_name}</b> ʜᴀꜱ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴊᴏɪɴᴇᴅ ᴜꜱɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ʟɪɴᴋ.
+
+💰 <b>Rᴇᴡᴀʀᴅ Cʀᴇᴅɪᴛᴇᴅ:</b> +{ref_bonus} ᴄᴏɪɴꜱ
+📈 <b>Yᴏᴜʀ Tᴏᴛᴀʟ Rᴇꜰᴇʀʀᴀʟꜱ:</b> {int(referrer_data.get('total_refs', 0)) + 1}
+💎 <b>Cᴜʀʀᴇɴᴛ Bᴀʟᴀɴᴄᴇ:</b> {float(referrer_data.get('balance', 0)) + float(ref_bonus):.2f} ᴄᴏɪɴꜱ
+
+Kᴇᴇᴘ ꜱʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ ʀᴇᴡᴀʀᴅꜱ!
+Yᴏᴜʀ ᴜɴɪQᴜᴇ ʟɪɴᴋ: https://t.me/{bot.get_me().username}?start={data['ref_by']}
+
+Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ʜᴇʟᴘɪɴɢ ɢʀᴏᴡ ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ!
+</blockquote>
+"""
+        bot.send_message(
+            data['ref_by'], 
+            referral_message,
+            parse_mode='HTML',
+            disable_web_page_preview=True
+        )
         addBalance(data['ref_by'], ref_bonus)
         setReferredStatus(user_id)
 
     # Send welcome image with caption
     welcome_image_url = "https://t.me/smmserviceslogs/20"  # Replace with your image URL
     welcome_caption = f"""
-🎉 <b>Welcome {first_name} !</b> 🎉
+<blockquote>
+🎉 <b>Wᴇʟᴄᴏᴍᴇ {first_name}!</b> 🎉
 
-🆔 <b>User ID:</b> <code>{user_id}</code>
-👤 <b>Username:</b> {username}
+👤 <b>Uꜱᴇʀɴᴀᴍᴇ:</b> {username}
 
-Wɪᴛʜ Oᴜʀ Bᴏᴛ, Yᴏᴜ Cᴀɴ Bᴏᴏꜱᴛ Yᴏᴜʀ Sᴏᴄɪᴀʟ Mᴇᴅɪᴀ Aᴄᴄᴏᴜɴᴛꜱ & Pᴏꜱᴛꜱ Wɪᴛʜ Jᴜꜱᴛ A Fᴇᴡ Sɪᴍᴘʟᴇ Sᴛᴇᴘꜱ!
+Wɪᴛʜ ᴏᴜʀ ʙᴏᴛ, ʏᴏᴜ ᴄᴀɴ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ꜱᴏᴄɪᴀʟ ᴍᴇᴅɪᴀ ᴀᴄᴄᴏᴜɴᴛꜱ & ᴘᴏꜱᴛꜱ ᴡɪᴛʜ ᴊᴜꜱᴛ ᴀ ꜰᴇᴡ ꜱɪᴍᴘʟᴇ ꜱᴛᴇᴘꜱ!
 
-👇 <b>Cʜᴏᴏꜱᴇ Aɴ Oᴘᴛɪᴏɴ Bᴇʟᴏᴡ Tᴏ Gᴇᴛ Sᴛᴀʀᴛᴇᴅ:</b>
+👇 <b>Cʜᴏᴏꜱᴇ ᴀɴ ᴏᴘᴛɪᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ɢᴇᴛ ꜱᴛᴀʀᴛᴇᴅ:</b>
+</blockquote>
 """
 
     try:
@@ -381,7 +459,7 @@ Wɪᴛʜ Oᴜʀ Bᴏᴛ, Yᴏᴜ Cᴀɴ Bᴏᴏꜱᴛ Yᴏᴜʀ Sᴏᴄɪᴀʟ M
         if userData['welcome_bonus'] == 0:
             bot.send_message(
                 user_id,
-                f"🎁 <b>Yᴏᴜ Rᴇᴄᴇɪᴠᴇᴅ +{welcome_bonus} Cᴏɪɴꜱ Wᴇʟᴄᴏᴍᴇ Bᴏɴᴜꜱ!</b>",
+                f"🎁 <b>You received +{welcome_bonus} coins welcome bonus!</b>",
                 parse_mode='HTML'
             )
             
@@ -400,6 +478,10 @@ def my_account(message):
     user_id = str(message.chat.id)
     data = getData(user_id)
     
+    confirmed_spent = get_confirmed_spent(user_id)
+    pending_spent = get_pending_spent(user_id)
+
+
     if not data:
         bot.reply_to(message, "❌ Account not found. Please /start again.")
         return
@@ -410,7 +492,6 @@ def my_account(message):
     updateUser(user_id, data)
     
     # Get current time and date
-    from datetime import datetime
     now = datetime.now()
     current_time = now.strftime("%I:%M %p")
     current_date = now.strftime("%Y-%m-%d")
@@ -420,6 +501,7 @@ def my_account(message):
     
     # Format the message
     caption = f"""
+<blockquote>
 <b><u>𝗠𝘆 𝗔𝗰𝗰𝗼𝘂𝗻𝘁</u></b>
 
 🆔 Uꜱᴇʀ Iᴅ: <code>{user_id}</code>
@@ -429,6 +511,9 @@ def my_account(message):
 📅 Dᴀᴛᴇ: {current_date}
 
 🪙 Bᴀʟᴀɴᴄᴇ: <code>{data['balance']}</code> Cᴏɪɴꜱ
+💸 Cᴏɴꜰɪʀᴍᴇᴅ Sᴘᴇɴᴛ: <code>{confirmed_spent:.2f}</code> Cᴏɪɴꜱ
+⏳ Pᴇɴᴅɪɴɢ Sᴘᴇɴᴅɪɴɢ: <code>{pending_spent:.2f}</code> Cᴏɪɴꜱ
+</blockquote>
 """
     
     if photos.photos:
@@ -453,7 +538,7 @@ def my_account(message):
     )
 
 #======================= Invite Friends =======================#
-@bot.message_handler(func=lambda message: message.text == "🗣 Invite Friends")
+@bot.message_handler(func=lambda message: message.text == "🗣 Invite")
 @check_ban
 def invite_friends(message):
     user_id = str(message.chat.id)
@@ -473,7 +558,7 @@ def invite_friends(message):
 
 🔗 <b>Yᴏᴜʀ Rᴇꜰᴇʀʀᴀʟ Lɪɴᴋ:</b>  
 <code>{referral_link}</code>  
-
+<blockquote>
 💎 <b>𝙃𝙤𝙬 𝙞𝙩 𝙒𝙤𝙧𝙠𝙨:</b>  
 1️⃣ Sʜᴀʀᴇ ʏᴏᴜʀ ᴜɴɪQᴜᴇ ʟɪɴᴋ ᴡɪᴛʜ ꜰʀɪᴇɴᴅꜱ  
 2️⃣ Wʜᴇɴ ᴛʜᴇʏ ᴊᴏɪɴ ᴜꜱɪɴɢ ʏᴏᴜʀ ʟɪɴᴋ, <b>Bᴏᴛʜ ᴏꜰ ʏᴏᴜ ɢᴇᴛ {ref_bonus} ᴄᴏɪɴꜱ</b> ɪɴꜱᴛᴀɴᴛʟʏ!  
@@ -486,6 +571,7 @@ def invite_friends(message):
 📌 <b>Pʀᴏ Tɪᴘ:</b> Sʜᴀʀᴇ ʏᴏᴜʀ ʟɪɴᴋ ɪɴ ɢʀᴏᴜᴘꜱ/ᴄʜᴀᴛꜱ ᴡʜᴇʀᴇ ᴘᴇᴏᴘʟᴇ ɴᴇᴇᴅ ꜱᴏᴄɪᴀʟ ᴍᴇᴅɪᴀ ɢʀᴏᴡᴛʜ!
 
 📊 <b>Yᴏᴜʀ ᴄᴜʀʀᴇɴᴛ ʀᴇꜰᴇʀʀᴀʟꜱ:</b> {total_refs}
+</blockquote>
 """
     
     bot.reply_to(
@@ -495,10 +581,12 @@ def invite_friends(message):
         disable_web_page_preview=True
     )
 
+#======================= Help =======================#
 @bot.message_handler(func=lambda message: message.text == "📜 Help")
 def help_command(message):
     user_id = message.chat.id
     msg = f"""
+<blockquote>
 <b>FʀᴇQᴜᴇɴᴛʟʏ Aꜱᴋᴇᴅ Qᴜᴇꜱᴛɪᴏɴꜱ</b>
 
 <b>• Aʀᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇꜱ ʀᴇᴀʟ?</b>
@@ -513,14 +601,18 @@ Dᴇʟɪᴠᴇʀʏ ꜱᴘᴇᴇᴅ ᴠᴀʀɪᴇꜱ ʙᴀꜱᴇᴅ ᴏɴ ɴᴇ�
    • Mᴏʙɪʟᴇ Mᴏɴᴇʏ
    • Cʀʏᴘᴛᴏᴄᴜʀʀᴇɴᴄɪᴇꜱ (BTC, USDT, ᴇᴛᴄ.)
    • WᴇʙMᴏɴᴇʏ & Pᴇʀꜰᴇᴄᴛ Mᴏɴᴇʏ
+   
+<b>• Bᴜɢꜱ Rᴇᴘᴏʀᴛ Rᴇᴡᴀʀᴅ:</b>
+Wᴇ ʀᴇᴡᴀʀᴅ ᴏᴜʀ Uꜱᴇʀꜱ Fʀᴇᴇ 100 ᴄᴏɪɴꜱ ꜰᴏʀ ᴇᴀᴄʜ Bᴜɢ ᴏʀ Eʀʀᴏʀ ᴛʜᴇʏ Rᴇᴘᴏʀᴛ ᴛᴏ Uꜱ. Jᴜꜱᴛ ᴄʟɪᴄᴋ ᴛʜᴇ Bᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ.
 
 <b>• Cᴀɴ I ᴛʀᴀɴꜱꜰᴇʀ ᴍʏ ʙᴀʟᴀɴᴄᴇ?</b>
 Yᴇꜱ! Fᴏʀ ʙᴀʟᴀɴᴄᴇꜱ ᴏᴠᴇʀ 10,000 ᴄᴏɪɴꜱ, ᴄᴏɴᴛᴀᴄᴛ ꜱᴜᴘᴘᴏʀᴛ.
+</blockquote>
 """
 
     # Create inline button for support
     markup = InlineKeyboardMarkup()
-    support_button = InlineKeyboardButton("🆘 Contact Support", url="https://t.me/SocialBoosterAdmin")
+    support_button = InlineKeyboardButton("🆘 Contact Support", url="https://t.me/SocialHubBoosterTMbot")
     markup.add(support_button)
 
     bot.reply_to(
@@ -530,13 +622,14 @@ Yᴇꜱ! Fᴏʀ ʙᴀʟᴀɴᴄᴇꜱ ᴏᴠᴇʀ 10,000 ᴄᴏɪɴꜱ, ᴄᴏɴ
         reply_markup=markup
     )
 
+#======================== Pricing Command =======================#
 @bot.message_handler(func=lambda message: message.text == "💳 Pricing")
 def pricing_command(message):
     user_id = message.chat.id
     msg = f"""<b><u>💎 Pricing 💎</u></b>
 
 <i> Cʜᴏᴏꜱᴇ Oɴᴇ Oꜰ Tʜᴇ Cᴏɪɴꜱ Pᴀᴄᴋᴀɢᴇꜱ Aɴᴅ Pᴀʏ Iᴛꜱ Cᴏꜱᴛ Vɪᴀ Pʀᴏᴠɪᴅᴇᴅ Pᴀʏᴍᴇɴᴛ Mᴇᴛʜᴏᴅꜱ.</i>
-
+<blockquote>
 <b><u>📜 𝐏𝐚𝐜𝐤𝐚𝐠𝐞𝐬:</u></b>
 <b>➊ 📦 10K coins – $1.00
 ➋ 📦 30K coins – $2.50
@@ -544,7 +637,7 @@ def pricing_command(message):
 ➍ 📦 100K coins – $7.00
 ➎ 📦 150K coins – $10.00
 ➏ 📦 300K coins – $15.00 </b>
-
+</blockquote>
 <b>💡NOTE: 𝘙𝘦𝘮𝘦𝘮𝘣𝘦𝘳 𝘵𝘰 𝘴𝘦𝘯𝘥 𝘺𝘰𝘶𝘳 𝘈𝘤𝘤𝘰𝘶𝘯𝘵 𝘐𝘋 𝘵𝘰 𝘳𝘦𝘤𝘦𝘪𝘷𝘦 𝘤𝘰𝘪𝘯𝘴</b>
 
 <b>🆔 Your id:</b> <code>{user_id}</code>
@@ -568,52 +661,156 @@ def pricing_command(message):
     bot.reply_to(message, msg, parse_mode="html", reply_markup=markup)
 
 #======================= Order Statistics =======================#
-@bot.message_handler(func=lambda message: message.text == "📊 Order Statistics")
+# ============================= Enhanced Order Statistics with Auto-Clean ============================= #
+@bot.message_handler(func=lambda message: message.text == "📊 Order Stats")
 @check_ban
 def show_order_stats(message):
-    """Show comprehensive order statistics for the user"""
+    """Show performance overview only. Hide completed/failed orders immediately."""
     user_id = str(message.from_user.id)
-    
-    try:
-        # Get basic stats
-        stats = get_user_orders_stats(user_id)
-        
-        # Get recent orders (last 5)
-        recent_orders = []
-        try:
-            from functions import orders_collection
-            recent_orders = list(orders_collection.find(
-                {"user_id": user_id},
-                {"service": 1, "quantity": 1, "status": 1, "timestamp": 1, "_id": 0}
-            ).sort("timestamp", -1).limit(5))
-        except Exception as e:
-            print(f"Error getting recent orders: {e}")
-        
-        # Format the message with stylish text
-        msg = f"""📊 <b>𝗬𝗼𝘂𝗿 𝗢𝗿𝗱𝗲𝗿 𝗦𝘁𝗮𝘁𝗶𝘀𝘁𝗶𝗰𝘀</b>
-        
-🔄 <b>Tᴏᴛᴀʟ Oʀᴅᴇʀꜱ:</b> {stats['total']}
-✅ <b>Cᴏᴍᴘʟᴇᴛᴇᴅ:</b> {stats['completed']}
-⏳ <b>Pᴇɴᴅɪɴɢ:</b> {stats['pending']}
-❌ <b>Fᴀɪʟᴇᴅ:</b> {stats['failed']}
 
-<b>Rᴇᴄᴇɴᴛ Oʀᴅᴇʀꜱ:</b>"""
-        
+    try:
+        stats = get_user_orders_stats(user_id)
+
+        # Immediately hide completed and failed orders
+        orders_collection.update_many(
+            {
+                "user_id": user_id,
+                "status": {"$in": ["completed", "failed"]},
+                "hidden": {"$ne": True}
+            },
+            {"$set": {"hidden": True}}
+        )
+
+        completion_rate = (stats['completed'] / stats['total']) * 100 if stats['total'] > 0 else 0
+
+        msg = f"""
+📦 <b>Yᴏᴜʀ SMM Oʀᴅᴇʀ Pᴏʀᴛꜰᴏʟɪᴏ</b>
+━━━━━━━━━━━━━━━━━━━━
+<blockquote>
+📊 <b>Pᴇʀꜰᴏʀᴍᴀɴᴄᴇ Oᴠᴇʀᴠɪᴇᴡ</b>
+├ 🔄 Tᴏᴛᴀʟ Oʀᴅᴇʀꜱ: <code>{stats['total']}</code>
+├ ✅ Cᴏᴍᴘʟᴇᴛɪᴏɴ Rᴀᴛᴇ: <code>{completion_rate:.1f}%</code>
+├ ⏳ Pᴇɴᴅɪɴɢ: <code>{stats['pending']}</code>
+└ ❌ Fᴀɪʟᴇᴅ: <code>{stats['failed']}</code>
+
+📌 <b>NOTE:</b> Iꜰ ʏᴏᴜ ʜᴀᴠᴇ ᴀ Fᴀɪʟᴇᴅ Oʀᴅᴇʀ ᴀɴᴅ ʏᴏᴜʀ Cᴏɪɴꜱ ᴡᴇʀᴇ Dᴇᴅᴜᴄᴛᴇᴅ, 
+Vɪꜱɪᴛ ᴛʜᴇ @smmserviceslogs ᴀɴᴅ ɢᴇᴛ ʏᴏᴜʀ Oʀᴅᴇʀ Iᴅ. 
+Tʜᴇɴ ꜱᴇɴᴅ ɪᴛ ᴛᴏ ᴛʜᴇ Aᴅᴍɪɴ ꜰᴏʀ Aꜱꜱɪꜱᴛᴀɴᴄᴇ @SocialHubBoosterTMbot.
+</blockquote>
+"""
+
+        markup = InlineKeyboardMarkup()
+        markup.row(
+            InlineKeyboardButton("📜 Check Orders", callback_data="order_history")
+        )
+
+        if hasattr(message, 'is_callback'):
+            bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=message.message_id,
+                text=msg,
+                parse_mode='HTML',
+                reply_markup=markup
+            )
+        else:
+            sent_msg = bot.send_message(
+                message.chat.id,
+                msg,
+                parse_mode='HTML',
+                reply_markup=markup
+            )
+            threading.Thread(target=delete_after_delay, args=(message.chat.id, sent_msg.message_id, 120)).start()
+
+    except Exception as e:
+        print(f"Order stats error: {e}")
+        bot.reply_to(message,
+            "⚠️ <blockquote><b>Oʀᴅᴇʀ Sᴛᴀᴛɪꜱᴛɪᴄꜱ Uɴᴀᴠᴀɪʟᴀʙʟᴇ</b>\n\n"
+            "ᴡWᴇ ᴄᴏᴜʟᴅɴ'ᴛ ʀᴇᴛʀɪᴇᴠᴇ ʏᴏᴜʀ Oʀᴅᴇʀ Dᴀᴛᴀ ᴀᴛ ᴛʜɪꜱ ᴛɪᴍᴇ\n"
+            "Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ</blockquote>",
+            parse_mode='HTML')
+
+@bot.callback_query_handler(func=lambda call: call.data == "order_history")
+def show_recent_orders(call):
+    """Show pending orders from the last 24h only"""
+    user_id = str(call.from_user.id)
+
+    try:
+        recent_orders = list(orders_collection.find(
+            {
+                "user_id": user_id,
+                "status": "pending",
+                "hidden": {"$ne": True}
+            },
+            {"service": 1, "quantity": 1, "status": 1, "timestamp": 1, "_id": 0}
+        ).sort("timestamp", -1))
+
+        msg = "🕒 <b>Pᴇɴᴅɪɴɢ Oʀᴅᴇʀꜱ (Lᴀꜱᴛ 24ʜ)</b>\n"
+
         if recent_orders:
             for i, order in enumerate(recent_orders, 1):
-                timestamp = datetime.fromtimestamp(order.get('timestamp', time.time())).strftime('%Y-%m-%d %H:%M')
-                msg += f"\n{i}. {order.get('service', 'N/A')} - {order.get('quantity', '?')} (Sᴛᴀᴛᴜꜱ: {order.get('status', 'ᴜɴᴋɴᴏᴡɴ')}) @ {timestamp}"
+                time_ago = format_timespan(time.time() - order.get('timestamp', time.time()))
+                msg += f"\n{i}. ⏳ {order.get('service', 'N/A')[:15]}... x{order.get('quantity', '?')} (<i>{time_ago} ᴀɢᴏ</i>)"
         else:
-            msg += "\nNᴏ ʀᴇᴄᴇɴᴛ ᴏʀᴅᴇʀꜱ ꜰᴏᴜɴᴅ"
-            
-        msg += "\n\n<i>Nᴏᴛᴇ: Sᴛᴀᴛᴜꜱ Uᴘᴅᴀᴛᴇꜱ Mᴀʏ Tᴀᴋᴇꜱ Sᴏᴍᴇ Tɪᴍᴇ Tᴏ Rᴇꜰʟᴇᴄᴛ Aɴᴅ Sᴏᴍᴇᴛɪᴍᴇꜱ Jᴜꜱᴛ Kᴇᴇᴘꜱ Sʜᴏᴡɪɴɢ Pᴇɴᴅɪɴɢ Aɴᴅ Yᴇᴛ Iᴛꜱ Cᴏᴍᴘʟᴇᴛᴇᴅ.</i>"
-        
-        bot.reply_to(message, msg, parse_mode='HTML')
-        
+            msg += "\n└ 🌟 Nᴏ ᴘᴇɴᴅɪɴɢ ᴏʀᴅᴇʀꜱ ꜰᴏᴜɴᴅ"
+
+        msg += "\n\n📌 <i>Oɴʟʏ ᴘᴇɴᴅɪɴɢ ᴏʀᴅᴇʀꜱ ᴀʀᴇ ꜱʜᴏᴡɴ ʜᴇʀᴇ</i>"
+
+        markup = InlineKeyboardMarkup()
+        markup.row(
+            InlineKeyboardButton("🔙 Back to Overview", callback_data="show_order_stats")
+        )
+
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=msg,
+            parse_mode='HTML',
+            reply_markup=markup
+        )
     except Exception as e:
-        print(f"Error showing order stats: {e}")
-        bot.reply_to(message, "❌ Cᴏᴜʟᴅ ɴᴏᴛ ʀᴇᴛʀɪᴇᴠᴇ ᴏʀᴅᴇʀ ꜱᴛᴀᴛɪꜱᴛɪᴄꜱ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
-      
+        print(f"Recent orders error: {e}")
+        bot.answer_callback_query(call.id, "❌ Failed to load pending orders")
+
+@bot.callback_query_handler(func=lambda call: call.data == "show_order_stats")
+@check_ban
+def callback_show_order_stats(call):
+    """Back to stats page from order list"""
+    try:
+        from types import SimpleNamespace
+        message = SimpleNamespace()
+        message.chat = call.message.chat
+        message.message_id = call.message.message_id
+        message.from_user = call.from_user
+        message.is_callback = True
+        show_order_stats(message)
+        bot.answer_callback_query(call.id)
+    except Exception as e:
+        print(f"Callback show_order_stats error: {e}")
+        bot.answer_callback_query(call.id, "⚠️ Failed to go back", show_alert=True)
+
+def delete_after_delay(chat_id, message_id, delay):
+    time.sleep(delay)
+    try:
+        bot.delete_message(chat_id, message_id)
+    except Exception as e:
+        print(f"Could not delete message: {e}")
+
+def format_timespan(seconds):
+    intervals = (
+        ('days', 86400),
+        ('hours', 3600),
+        ('minutes', 60),
+        ('seconds', 1)
+    )
+    result = []
+    for name, count in intervals:
+        value = int(seconds // count)
+        if value:
+            seconds -= value * count
+            result.append(f"{value} {name}")
+    return ', '.join(result[:2])
+
+
 #======================= Send Orders for Telegram =======================#
 @bot.message_handler(func=lambda message: message.text == "📱 Order Telegram")
 def order_telegram_menu(message):
@@ -673,7 +870,8 @@ def handle_telegram_order(message):
     # Here we'll just pass it through the register_next_step_handler
     
     msg = f"""📊 Order {service['name']}:
-    
+
+📌 Oʀᴅᴇʀ Iᴅ: {service['service_id']}    
 📌 Mɪɴɪᴍᴜᴍ: {service['min']}
 📌 Mᴀxɪᴍᴜᴍ: {service['max']}
 💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
@@ -736,14 +934,14 @@ def process_telegram_quantity(message, service):
 
 def process_telegram_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     
     link = message.text.strip()
     
     # Validate link format (basic check)
     if not re.match(r'^https?://t\.me/', link):
-        bot.reply_to(message, "❌ Invalid Telegram link format", reply_markup=telegram_services_markup)
+        bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ Tᴇʟᴇɢʀᴀᴍ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=telegram_services_markup)
         return
     
     # Submit to SMM panel
@@ -797,7 +995,7 @@ def process_telegram_link(message, service, quantity, cost):
             bot.reply_to(
                 message,
                 f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
-                
+             
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
@@ -884,7 +1082,7 @@ def handle_tiktok_order(message):
             "name": "TikTok Views",
             "quality": "Fast Speed",
             "link_hint": "Tiktok Post Link",
-            "min": 500,
+            "min": 100,
             "max": 100000,
             "price": 200,
             "unit": "1k views",
@@ -922,8 +1120,8 @@ def handle_tiktok_order(message):
 )
     
     msg = f"""📊 Order {service['name']}:
-    
-📌 Oʀᴅᴇʀ Iᴅ: {service['service_id']}
+
+📌 Oʀᴅᴇʀ Iᴅ: {service['service_id']}    
 📌 Mɪɴɪᴍᴜᴍ: {service['min']}
 📌 Mᴀxɪᴍᴜᴍ: {service['max']}
 💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
@@ -1038,7 +1236,7 @@ def process_tiktok_link(message, service, quantity, cost):
             bot.reply_to(
                 message,
                 f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
-                
+             
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
@@ -1158,7 +1356,8 @@ def handle_instagram_order(message):
     )
     
     msg = f"""📊 Order {service['name']}:
-    
+ 
+📌 Oʀᴅᴇʀ Iᴅ: {service['service_id']}    
 📌 Mɪɴɪᴍᴜᴍ: {service['min']}
 📌 Mᴀxɪᴍᴜᴍ: {service['max']}
 💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
@@ -1177,32 +1376,32 @@ Enter quantity:"""
 def process_instagram_quantity(message, service):
     """Process Instagram order quantity"""
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Returning to Instagram services...", reply_markup=instagram_services_markup)
+        bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Iɴꜱᴛᴀɢʀᴀᴍ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=instagram_services_markup)
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=instagram_services_markup)
+            bot.reply_to(message, f"❌ Mɪɴɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['min']}", reply_markup=instagram_services_markup)
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=instagram_services_markup)
+            bot.reply_to(message, f"❌ Mᴀxɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['max']}", reply_markup=instagram_services_markup)
             return
             
         cost = (quantity * service['price']) // 1000
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=instagram_services_markup)
+            bot.reply_to(message, f"❌ Iɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ ʙᴀʟᴀɴᴄᴇ. Yᴏᴜ ɴᴇᴇᴅ {cost} ᴄᴏɪɴꜱ.", reply_markup=instagram_services_markup)
             return
             
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        bot.reply_to(message, f"🔗 Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ {service['link_hint']}:", reply_markup=cancel_markup)
         bot.register_next_step_handler(
             message, 
             process_instagram_link, 
@@ -1212,17 +1411,17 @@ def process_instagram_quantity(message, service):
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Please enter a valid number", reply_markup=instagram_services_markup)
+        bot.reply_to(message, "❌ Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ", reply_markup=instagram_services_markup)
 
 def process_instagram_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     
     link = message.text.strip()
     
     if not re.match(r'^https?://(www\.)?instagram\.com/[\w./-]+', link):
-        bot.reply_to(message, "❌ Invalid Instagram link format", reply_markup=instagram_services_markup)
+        bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ Iɴꜱᴛᴀɢʀᴀᴍ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=instagram_services_markup)
         return
     
     try:
@@ -1270,7 +1469,7 @@ def process_instagram_link(message, service, quantity, cost):
             bot.reply_to(
                 message,
                 f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
-                
+              
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
@@ -1304,7 +1503,8 @@ def process_instagram_link(message, service, quantity, cost):
 🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
 ⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>{result.get('status', 'pending').capitalize()}</code>
 🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
-                    disable_web_page_preview=True
+                    disable_web_page_preview=True,
+                    parse_mode='HTML'
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
@@ -1388,7 +1588,8 @@ def handle_youtube_order(message):
     )
     
     msg = f"""📊 Order {service['name']}:
-    
+  
+📌 Oʀᴅᴇʀ Iᴅ: {service['service_id']}    
 📌 Mɪɴɪᴍᴜᴍ: {service['min']}
 📌 Mᴀxɪᴍᴜᴍ: {service['max']}
 💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
@@ -1407,32 +1608,32 @@ Enter quantity:"""
 def process_youtube_quantity(message, service):
     """Process YouTube order quantity"""
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Returning to YouTube services...", reply_markup=youtube_services_markup)
+        bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ YᴏᴜTᴜʙᴇ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=youtube_services_markup)
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=youtube_services_markup)
+            bot.reply_to(message, f"❌ Mɪɴɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['min']}", reply_markup=youtube_services_markup)
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=youtube_services_markup)
+            bot.reply_to(message, f"❌ Mᴀxɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['max']}", reply_markup=youtube_services_markup)
             return
             
         cost = (quantity * service['price']) // 1000
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=youtube_services_markup)
+            bot.reply_to(message, f"❌ Iɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ ʙᴀʟᴀɴᴄᴇ. Yᴏᴜ ɴᴇᴇᴅ {cost} ᴄᴏɪɴꜱ.", reply_markup=youtube_services_markup)
             return
             
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        bot.reply_to(message, f"🔗 Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ {service['link_hint']}:", reply_markup=cancel_markup)
         bot.register_next_step_handler(
             message, 
             process_youtube_link, 
@@ -1442,17 +1643,17 @@ def process_youtube_quantity(message, service):
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Please enter a valid number", reply_markup=youtube_services_markup)
+        bot.reply_to(message, "❌ Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ", reply_markup=youtube_services_markup)
 
 def process_youtube_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     
     link = message.text.strip()
     
     if not re.match(r'^https?://(www\.)?(youtube\.com|youtu\.be)/', link):
-        bot.reply_to(message, "❌ Invalid YouTube link format", reply_markup=youtube_services_markup)
+        bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ YᴏᴜTᴜʙᴇ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=youtube_services_markup)
         return
     
     try:
@@ -1500,7 +1701,7 @@ def process_youtube_link(message, service, quantity, cost):
             bot.reply_to(
                 message,
                 f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
-                
+             
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
@@ -1534,7 +1735,8 @@ def process_youtube_link(message, service, quantity, cost):
 🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
 ⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>{result.get('status', 'pending').capitalize()}</code>
 🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
-                    disable_web_page_preview=True
+                    disable_web_page_preview=True,
+                    parse_mode='HTML'
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
@@ -1628,7 +1830,8 @@ def handle_facebook_order(message):
     )
     
     msg = f"""📊 Order {service['name']}:
-    
+
+📌 Oʀᴅᴇʀ Iᴅ: {service['service_id']}    
 📌 Mɪɴɪᴍᴜᴍ: {service['min']}
 📌 Mᴀxɪᴍᴜᴍ: {service['max']}
 💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
@@ -1647,32 +1850,32 @@ Enter quantity:"""
 def process_facebook_quantity(message, service):
     """Process Facebook order quantity"""
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Returning to Facebook services...", reply_markup=facebook_services_markup)
+        bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Fᴀᴄᴇʙᴏᴏᴋ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=facebook_services_markup)
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=facebook_services_markup)
+            bot.reply_to(message, f"❌ Mɪɴɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['min']}", reply_markup=facebook_services_markup)
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=facebook_services_markup)
+            bot.reply_to(message, f"❌ Mᴀxɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['max']}", reply_markup=facebook_services_markup)
             return
             
         cost = (quantity * service['price']) // 1000
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=facebook_services_markup)
+            bot.reply_to(message, f"❌ Iɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ ʙᴀʟᴀɴᴄᴇ. Yᴏᴜ ɴᴇᴇᴅ {cost} ᴄᴏɪɴꜱ.", reply_markup=facebook_services_markup)
             return
             
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        bot.reply_to(message, f"🔗 Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ {service['link_hint']}:", reply_markup=cancel_markup)
         bot.register_next_step_handler(
             message, 
             process_facebook_link, 
@@ -1682,17 +1885,17 @@ def process_facebook_quantity(message, service):
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Please enter a valid number", reply_markup=facebook_services_markup)
+        bot.reply_to(message, "❌ Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ", reply_markup=facebook_services_markup)
 
 def process_facebook_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     
     link = message.text.strip()
     
     if not re.match(r'^https?://(www\.|m\.)?(facebook\.com|fb\.watch)/', link):
-        bot.reply_to(message, "❌ Invalid Facebook link format", reply_markup=facebook_services_markup)
+        bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ Fᴀᴄᴇʙᴏᴏᴋ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=facebook_services_markup)
         return
     
     try:
@@ -1740,7 +1943,7 @@ def process_facebook_link(message, service, quantity, cost):
             bot.reply_to(
                 message,
                 f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
-                
+             
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
@@ -1775,7 +1978,8 @@ def process_facebook_link(message, service, quantity, cost):
 🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
 ⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>{result.get('status', 'pending').capitalize()}</code>
 🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
-                    disable_web_page_preview=True
+                    disable_web_page_preview=True,
+                    parse_mode='HTML'
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
@@ -1849,7 +2053,8 @@ def handle_whatsapp_order(message):
     )
     
     msg = f"""📊 Order {service['name']}:
-    
+
+📌 Oʀᴅᴇʀ Iᴅ: {service['service_id']}    
 📌 Mɪɴɪᴍᴜᴍ: {service['min']}
 📌 Mᴀxɪᴍᴜᴍ: {service['max']}
 💰 Pʀɪᴄᴇ: {service['price']} coins/{service['unit']}
@@ -1868,32 +2073,32 @@ Enter quantity:"""
 def process_whatsapp_quantity(message, service):
     """Process WhatsApp order quantity"""
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     elif message.text == "↩️ Go Back":
-        bot.reply_to(message, "Returning to WhatsApp services...", reply_markup=whatsapp_services_markup)
+        bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ WʜᴀᴛꜱAᴘᴘ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=whatsapp_services_markup)
         return
     
     try:
         quantity = int(message.text)
         if quantity < service['min']:
-            bot.reply_to(message, f"❌ Minimum order is {service['min']}", reply_markup=whatsapp_services_markup)
+            bot.reply_to(message, f"❌ Mɪɴɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['min']}", reply_markup=whatsapp_services_markup)
             return
         if quantity > service['max']:
-            bot.reply_to(message, f"❌ Maximum order is {service['max']}", reply_markup=whatsapp_services_markup)
+            bot.reply_to(message, f"❌ Mᴀxɪᴍᴜᴍ ᴏʀᴅᴇʀ ɪꜱ {service['max']}", reply_markup=whatsapp_services_markup)
             return
             
         cost = (quantity * service['price']) // 1000
         user_data = getData(str(message.from_user.id))
         
         if float(user_data['balance']) < cost:
-            bot.reply_to(message, f"❌ Insufficient balance. You need {cost} coins.", reply_markup=whatsapp_services_markup)
+            bot.reply_to(message, f"❌ Iɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ ʙᴀʟᴀɴᴄᴇ. Yᴏᴜ ɴᴇᴇᴅ {cost} ᴄᴏɪɴꜱ.", reply_markup=whatsapp_services_markup)
             return
             
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_markup.add(KeyboardButton("✘ Cancel"))
         
-        bot.reply_to(message, f"🔗 Please send the {service['link_hint']}:", reply_markup=cancel_markup)
+        bot.reply_to(message, f"🔗 Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ {service['link_hint']}:", reply_markup=cancel_markup)
         bot.register_next_step_handler(
             message, 
             process_whatsapp_link, 
@@ -1903,18 +2108,17 @@ def process_whatsapp_quantity(message, service):
         )
         
     except ValueError:
-        bot.reply_to(message, "❌ Please enter a valid number", reply_markup=whatsapp_services_markup)
+        bot.reply_to(message, "❌ Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ", reply_markup=whatsapp_services_markup)
 
 def process_whatsapp_link(message, service, quantity, cost):
     if message.text == "✘ Cancel":
-        bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
+        bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
     
     link = message.text.strip()
     
     if not re.match(r'^https?://(chat\.whatsapp\.com|wa\.me)/', link):
-        bot.reply_to(message, "❌ Invalid WhatsApp link format", reply_markup=whatsapp_services_markup)
-        return
+        bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ WʜᴀᴛꜱAᴘᴘ ʟɪɴᴋ ꜰᴏʀᴍᴀᴛ", reply_markup=whatsapp_services_markup)
     
     try:
         response = requests.post(
@@ -1961,7 +2165,7 @@ def process_whatsapp_link(message, service, quantity, cost):
             bot.reply_to(
                 message,
                 f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
-                
+             
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
@@ -1995,7 +2199,8 @@ def process_whatsapp_link(message, service, quantity, cost):
 🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
 ⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>{result.get('status', 'pending').capitalize()}</code>
 🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
-                    disable_web_page_preview=True
+                    disable_web_page_preview=True,
+                    parse_mode='HTML'
                 )
             except Exception as e:
                 print(f"Failed to send to payment channel: {e}")
@@ -2051,31 +2256,116 @@ def handle_back_buttons(message):
         # Cancel goes straight to main menu
         bot.reply_to(message, "Oᴘᴇʀᴀᴛɪᴏɴ Cᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
 
+
+#=================== The back button handler =========================================
+@bot.message_handler(func=lambda message: message.text == "🔙 Main Menu")
+def back_to_main(message):
+    if message.from_user.id in admin_user_ids:
+        # For admins, show both admin and user keyboards
+        combined_markup = ReplyKeyboardMarkup(resize_keyboard=True)
+        combined_markup.row("🛒 Buy Services", "👤 My Account")
+        combined_markup.row("💳 Pricing", "📊 Order Stats")
+        combined_markup.row("🗣 Invite", "🏆 Leaderboard")
+        combined_markup.row("📜 Help")
+        
+        bot.reply_to(message,
+            "🔄 *Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Mᴀɪɴ Mᴇɴᴜ*\n\n",
+            parse_mode="Markdown",
+            reply_markup=combined_markup)
+    else:
+        # For regular users, show normal keyboard
+        bot.reply_to(message,
+            "🔄 *Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Mᴀɪɴ Mᴇɴᴜ*",
+            parse_mode="Markdown",
+            reply_markup=main_markup)
+
 # ================= ADMIN COMMANDS ================== #
+
+@bot.message_handler(commands=['adminpanel'])
+def admin_panel(message):
+    if message.from_user.id not in admin_user_ids:
+        bot.reply_to(message,
+            "🔒 *Rᴇꜱᴛʀɪᴄᴛᴇᴅ Aʀᴇᴀ*\n\n"
+            "Tʜɪꜱ Pᴀɴᴇʟ ɪꜱ ꜰᴏʀ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ Aᴅᴍɪɴɪꜱᴛʀᴀᴛᴏʀꜱ ᴏɴʟʏ\n\n"
+            "⚠️ Yᴏᴜʀ ᴀᴄᴄᴇꜱꜱ ᴀᴛᴛᴇᴍᴘᴛ ʜᴀꜱ ʙᴇᴇɴ ʟᴏɢɢᴇᴅ",
+            parse_mode="Markdown")
+        return
+    
+    bot.reply_to(message,
+        "⚡ *SMM Bᴏᴏꜱᴛᴇʀ Aᴅᴍɪɴ Cᴇɴᴛᴇʀ*\n\n"
+        "▸ Uꜱᴇʀ Mᴀɴᴀɢᴇᴍᴇɴᴛ\n"
+        "▸ Cᴏɪɴ Tʀᴀɴꜱᴀᴄᴛɪᴏɴꜱ\n"
+        "▸ Sʏꜱᴛᴇᴍ Cᴏɴᴛʀᴏʟꜱ\n\n"
+        "Sᴇʟᴇᴄᴛ ᴀɴ ᴏᴘᴛɪᴏɴ ʙᴇʟᴏᴡ:",
+        parse_mode="Markdown",
+        reply_markup=admin_markup)
+    
+
+#============================= Add and Remove Coins ==============================================#
+@bot.message_handler(func=lambda message: message.text in ["➕ Add Coins", "➖ Remove Coins"] and message.from_user.id in admin_user_ids)
+def admin_actions(message):
+    """Enhanced admin command guidance"""
+    if "Add" in message.text:
+        bot.reply_to(message,
+            "💎 *Aᴅᴅ Cᴏɪɴꜱ Gᴜɪᴅᴇ*\n\n"
+            "Cᴏᴍᴍᴀɴᴅ: `/addcoins <user_id> <amount>`\n\n"
+            "Exᴀᴍᴘʟᴇ:\n"
+            "`/addcoins 123456789 500.00`\n\n"
+            "⚠️ Wɪʟʟ ᴄʀᴇᴀᴛᴇ ᴀᴄᴄᴏᴜɴᴛ ɪꜰ ɴᴏᴛ ᴇxɪꜱᴛꜱ",
+            parse_mode="Markdown",
+            reply_markup=ForceReply(selective=True))
+    elif "Remove" in message.text:
+        bot.reply_to(message,
+            "⚡ *Rᴇᴍᴏᴠᴇ Cᴏɪɴꜱ Gᴜɪᴅᴇ*\n\n"
+            "Cᴏᴍᴍᴀɴᴅ: `/removecoins <user_id> <amount>`\n\n"
+            "Exᴀᴍᴘʟᴇ:\n"
+            "`/removecoins 123456789 250.50`\n\n"
+            "⚠️ Fᴀɪʟꜱ ɪꜰ ɪɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ ʙᴀʟᴀɴᴄᴇ",
+            parse_mode="Markdown",
+            reply_markup=ForceReply(selective=True))
+
 @bot.message_handler(commands=['addcoins', 'removecoins'])
 def handle_admin_commands(message):
     if message.from_user.id not in admin_user_ids:
-        bot.reply_to(message, "❌ Y̶o̶u̶ ̶a̶r̶e̶ ̶n̶o̶t̶ ̶a̶u̶t̶h̶o̶r̶i̶z̶e̶d̶ ̶t̶o̶ ̶u̶s̶e̶ ̶t̶h̶i̶s̶ ̶c̶o̶m̶m̶a̶n̶d̶.")
+        bot.reply_to(message, 
+            "⛔ *Aᴅᴍɪɴ Aᴄᴄᴇꜱꜱ Dᴇɴɪᴇᴅ*\n\n"
+            "Tʜɪꜱ ᴄᴏᴍᴍᴀɴᴅ ɪꜱ ʀᴇꜱᴛʀɪᴄᴛᴇᴅ ᴛᴏ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ ꜱᴛᴀꜰꜰ ᴏɴʟʏ\n"
+            "Uɴᴀᴜᴛʜᴏʀɪᴢᴇᴅ ᴀᴄᴄᴇꜱꜱ ᴀᴛᴛᴇᴍᴘᴛꜱ ᴀʀᴇ ʟᴏɢɢᴇᴅ",
+            parse_mode="Markdown")
         return
     
     try:
         args = message.text.split()
         if len(args) != 3:
-            bot.reply_to(message, f"⚠️ Usage: {args[0]} <user_id> <amount>")
+            bot.reply_to(message,
+"⚡ *Uꜱᴀɢᴇ Gᴜɪᴅᴇ*\n\n"
+"▸ Aᴅᴅ ᴄᴏɪɴꜱ: `/addcoins <user_id> <amount>`\n"
+"▸ Rᴇᴍᴏᴠᴇ ᴄᴏɪɴꜱ: `/removecoins <user_id> <amount>`\n\n"
+"💡 Exᴀᴍᴘʟᴇ: `/addcoins 123456789 100.50`",
+parse_mode="Markdown")
             return
             
         user_id = args[1]
         try:
-            amount = float(args[2])
+            # Handle both integer and float inputs
+            amount = float(args[2]) if '.' in args[2] else int(args[2])
+            if amount <= 0:
+                raise ValueError
         except ValueError:
-            bot.reply_to(message, "⚠️ Aᴍᴏᴜɴᴛ Mᴜꜱᴛ Bᴇ ᴀ Nᴜᴍʙᴇʀ")
+            bot.reply_to(message,
+"⚠️ *Iɴᴠᴀʟɪᴅ Aᴍᴏᴜɴᴛ*\n\n"
+"Amount must be:\n"
+"▸ A ᴘᴏꜱɪᴛɪᴠᴇ ɴᴜᴍʙᴇʀ\n"
+"▸ Dᴇᴄɪᴍᴀʟ ᴠᴀʟᴜᴇꜱ ᴀʟʟᴏᴡᴇᴅ\n"
+"▸ Mɪɴɪᴍᴜᴍ: 0.01",
+parse_mode="Markdown")
             return
             
         if args[0] == '/addcoins':
             if not isExists(user_id):
                 initial_data = {
                     "user_id": user_id,
-                    "balance": "0.00",
+                    "balance": 0.00,  # Changed from string to float
                     "ref_by": "none",
                     "referred": 0,
                     "welcome_bonus": 0,
@@ -2084,120 +2374,427 @@ def handle_admin_commands(message):
                 insertUser(user_id, initial_data)
                 
             if addBalance(user_id, amount):
-                bot.reply_to(message, f"✅ Added {amount} coins to user {user_id}")
+                user_data = getData(user_id)
+                new_balance = user_data.get('balance', 0) if user_data else 0
+                
+                bot.reply_to(message,
+f"💎 *Cᴏɪɴꜱ Aᴅᴅᴇᴅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ*\n\n"
+f"▸ Uꜱᴇʀ ID: `{user_id}`\n"
+f"▸ Aᴍᴏᴜɴᴛ: +{amount:.2f} ᴄᴏɪɴꜱ\n"
+f"▸ Nᴇᴡ Bᴀʟᴀɴᴄᴇ: {new_balance:.2f}\n\n"
+"📝 _Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ʟᴏɢɢᴇᴅ ɪɴ ᴅᴀᴛᴀʙᴀꜱᴇ_",
+parse_mode="Markdown")
+                
+                # Premium user notification
                 try:
-                    bot.send_message(user_id, f"📢 Aᴅᴍɪɴ Aᴅᴅᴇᴅ {amount} Cᴏɪɴꜱ Tᴏ Yᴏᴜʀ Aᴄᴄᴏᴜɴᴛ!")
-                except:
-                    pass
+                    bot.send_message(
+                        user_id,
+f"🎉 *Aᴄᴄᴏᴜɴᴛ Cʀᴇᴅɪᴛᴇᴅ*\n\n"
+f"Yᴏᴜʀ SMM Bᴏᴏꜱᴛᴇʀ ᴡᴀʟʟᴇᴛ ʜᴀꜱ ʙᴇᴇɴ ᴛᴏᴘᴘᴇᴅ ᴜᴘ!\n\n"
+f"▸ Aᴍᴏᴜɴᴛ: +{amount:.2f} ᴄᴏɪɴꜱ\n"
+f"▸ Nᴇᴡ Bᴀʟᴀɴᴄᴇ: {new_balance:.2f}\n"
+f"▸ Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID: {int(time.time())}\n\n"
+"💎 Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ʙᴇɪɴɢ ᴀ ᴠᴀʟᴜᴇᴅ ᴄᴜꜱᴛᴏᴍᴇʀ!",
+parse_mode="Markdown",
+                        reply_markup=InlineKeyboardMarkup().add(
+                            InlineKeyboardButton("🛍️ Shop Now", callback_data="show_send_orders")
+                        )
+                    )
+                except Exception as e:
+                    print(f"Credit notification failed: {e}")
             else:
-                bot.reply_to(message, "❌ Failed to add coins")
+                bot.reply_to(message,
+"❌ *Tʀᴀɴꜱᴀᴄᴛɪᴏɴ Fᴀɪʟᴇᴅ*\n\n"
+"Cᴏᴜʟᴅ ɴᴏᴛ ᴀᴅᴅ ᴄᴏɪɴꜱ ᴛᴏ ᴜꜱᴇʀ ᴀᴄᴄᴏᴜɴᴛ\n"
+"Pᴏꜱꜱɪʙʟᴇ ʀᴇᴀꜱᴏɴꜱ:\n"
+"▸ Dᴀᴛᴀʙᴀꜱᴇ ᴇʀʀᴏʀ\n"
+"▸ Iɴᴠᴀʟɪᴅ ᴜꜱᴇʀ ID",
+parse_mode="Markdown")
                 
         elif args[0] == '/removecoins':
             if cutBalance(user_id, amount):
-                bot.reply_to(message, f"✅ Removed {amount} coins from user {user_id}")
+                user_data = getData(user_id)
+                new_balance = user_data.get('balance', 0) if user_data else 0
+                
+                bot.reply_to(message,
+f"⚡ *Cᴏɪɴꜱ Dᴇᴅᴜᴄᴛᴇᴅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ*\n\n"
+f"▸ Uꜱᴇʀ ID: `{user_id}`\n"
+f"▸ Aᴍᴏᴜɴᴛ: -{amount:.2f} ᴄᴏɪɴꜱ\n"
+f"▸ Nᴇᴡ Bᴀʟᴀɴᴄᴇ: {new_balance:.2f}\n\n"
+"📝 _Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ʟᴏɢɢᴇᴅ ɪɴ ᴅᴀᴛᴀʙᴀꜱᴇ_",
+parse_mode="Markdown")
+                
+                # Premium user notification
                 try:
-                    bot.send_message(user_id, f"📢 Aᴅᴍɪɴ Rᴇᴍᴏᴠᴇᴅ {amount} Cᴏɪɴꜱ Fʀᴏᴍ Yᴏᴜʀ Aᴄᴄᴏᴜɴᴛ!")
-                except:
-                    pass
+                    bot.send_message(
+                        user_id,
+f"🔔 *Aᴄᴄᴏᴜɴᴛ Dᴇʙɪᴛᴇᴅ*\n\n"
+f"Cᴏɪɴꜱ ʜᴀᴠᴇ ʙᴇᴇɴ ᴅᴇᴅᴜᴄᴛᴇᴅ ꜰʀᴏᴍ ʏᴏᴜʀ SMM Bᴏᴏꜱᴛᴇʀ ᴡᴀʟʟᴇᴛ\n\n"
+f"▸ Aᴍᴏᴜɴᴛ: -{amount:.2f} ᴄᴏɪɴꜱ\n"
+f"▸ Nᴇᴡ Bᴀʟᴀɴᴄᴇ: {new_balance:.2f}\n"
+f"▸ Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID: {int(time.time())}\n\n"
+"⚠️ Cᴏɴᴛᴀᴄᴛ Sᴜᴘᴘᴏʀᴛ ɪꜰ ᴛʜɪꜱ ᴡᴀꜱ ᴜɴᴇxᴘᴇᴄᴛᴇᴅ",
+parse_mode="Markdown",
+                        reply_markup=InlineKeyboardMarkup().add(
+                            InlineKeyboardButton("📩 Contact Support", url="https://t.me/SocialHubBoosterTMbot")
+                        )
+                    )
+                except Exception as e:
+                    print(f"Debit notification failed: {e}")
             else:
-                bot.reply_to(message, "❌ Failed to remove coins (insufficient balance or user doesn't exist)")
+                bot.reply_to(message,
+"❌ *Tʀᴀɴꜱᴀᴄᴛɪᴏɴ Fᴀɪʟᴇᴅ*\n\n"
+"Cᴏᴜʟᴅ ɴᴏᴛ ʀᴇᴍᴏᴠᴇ ᴄᴏɪɴꜱ ꜰʀᴏᴍ ᴜꜱᴇʀ ᴀᴄᴄᴏᴜɴᴛ\n"
+"Pᴏꜱꜱɪʙʟᴇ ʀᴇᴀꜱᴏɴꜱ:\n"
+"▸ Iɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ ʙᴀʟᴀɴᴄᴇ\n"
+"▸ Iɴᴠᴀʟɪᴅ ᴜꜱᴇʀ ID\n"
+"▸ Dᴀᴛᴀʙᴀꜱᴇ ᴇʀʀᴏʀ",
+parse_mode="Markdown")
                 
     except Exception as e:
-        bot.reply_to(message, f"⚠️ Error: {str(e)}")
+        bot.reply_to(message,
+            f"⚠️ *System Error*\n\n"
+            f"Command failed: {str(e)}\n\n"
+            "Please try again or contact developer",
+            parse_mode="Markdown")
         print(f"Admin command error: {traceback.format_exc()}")
 
-@bot.message_handler(func=lambda message: message.text == "🛠 Admin Panel")
-def admin_panel(message):
+#=========================== Batch Coin Commands =================================#
+@bot.message_handler(func=lambda m: m.text == "📦 Batch Coins")
+def show_batch_coins_help(message):
     if message.from_user.id not in admin_user_ids:
-        bot.reply_to(message, "❌ Y̶o̶u̶ ̶a̶r̶e̶ ̶n̶o̶t̶ ̶a̶u̶t̶h̶o̶r̶i̶z̶e̶d̶ ̶t̶o̶ ̶a̶c̶c̶e̶s̶s̶ ̶t̶h̶i̶s̶ ̶p̶a̶n̶e̶l̶.")
         return
-    
-    bot.reply_to(message, "🛠 Admin Panel:", reply_markup=admin_markup)
+    bot.reply_to(message,
+        "🧮 *Bᴀᴛᴄʜ Cᴏɪɴꜱ Pᴀɴᴇʟ*\n\n"
+        "Uꜱᴇ ᴛʜᴇ ꜰᴏʟʟᴏᴡɪɴɢ ᴄᴏᴍᴍᴀɴᴅꜱ ᴛᴏ ᴀᴅᴅ ᴏʀ ʀᴇᴍᴏᴠᴇ ᴄᴏɪɴꜱ ꜰᴏʀ ᴀʟʟ ᴜꜱᴇʀꜱ:\n\n"
+        "▸ `/alladdcoins <amount>`\n"
+        "▸ `/allremovecoins <amount>`\n\n"
+        "⚠️ *Nᴏᴛᴇ:* Aʟʟ ᴜꜱᴇʀꜱ ᴡɪʟʟ ʙᴇ ɴᴏᴛɪꜰɪᴇᴅ.",
+        parse_mode="Markdown")
 
-@bot.message_handler(func=lambda message: message.text in ["➕ Add Coins", "➖ Remove Coins"] and message.from_user.id in admin_user_ids)
-def admin_actions(message):
-    """Guide admin to use addcoins or removecoins commands"""
-    if "Add" in message.text:
-        bot.reply_to(message, "Send: /addcoins <user_id> <amount>")
-    elif "Remove" in message.text:
-        bot.reply_to(message, "Send: /removecoins <user_id> <amount>")
+@bot.message_handler(commands=['alladdcoins', 'allremovecoins'])
+def handle_batch_coins(message):
+    if message.from_user.id not in admin_user_ids:
+        bot.reply_to(message,
+            "⛔ *Aᴅᴍɪɴ Aᴄᴄᴇꜱꜱ Dᴇɴɪᴇᴅ*\n\n"
+            "Tʜɪꜱ ᴄᴏᴍᴍᴀɴᴅ ɪꜱ ʀᴇꜱᴛʀɪᴄᴛᴇᴅ ᴛᴏ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ ꜱᴛᴀꜰꜰ ᴏɴʟʏ\n"
+            "Uɴᴀᴜᴛʜᴏʀɪᴢᴇᴅ ᴀᴄᴄᴇꜱꜱ ᴀᴛᴛᴇᴍᴘᴛꜱ ᴀʀᴇ ʟᴏɢɢᴇᴅ",
+            parse_mode="Markdown")
+        return
 
-@bot.message_handler(func=lambda message: message.text == "🔙 Main Menu")
-def back_to_main(message):
-    bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Mᴀɪɴ Mᴇɴᴜ...", reply_markup=main_markup)
+    args = message.text.split()
+    if len(args) != 2:
+        bot.reply_to(message,
+"⚡ *Uꜱᴀɢᴇ Gᴜɪᴅᴇ*\n\n"
+"▸ Aᴅᴅ ᴄᴏɪɴꜱ: `/alladdcoins <amount>`\n"
+"▸ Rᴇᴍᴏᴠᴇ ᴄᴏɪɴꜱ: `/allremovecoins <amount>`\n\n"
+"💡 Exᴀᴍᴘʟᴇ: `/alladdcoins 100`",
+            parse_mode="Markdown")
+        return
 
-#========== New Commands ==============#
-# Admin Stats Command
+    try:
+        amount = float(args[1]) if '.' in args[1] else int(args[1])
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        bot.reply_to(message,
+"⚠️ *Iɴᴠᴀʟɪᴅ Aᴍᴏᴜɴᴛ*\n\n"
+"Amount must be:\n"
+"▸ A positive number\n"
+"▸ Decimal values allowed\n"
+"▸ Minimum: 0.01",
+            parse_mode="Markdown")
+        return
+
+    users = get_all_users()
+    success = 0
+    failed = 0
+
+    for uid in users:
+        try:
+            if args[0] == '/alladdcoins':
+                if addBalance(uid, amount):
+                    data = getData(uid)
+                    bot.send_message(
+                        uid,
+f"🎉 *Aᴄᴄᴏᴜɴᴛ Cʀᴇᴅɪᴛᴇᴅ*\n\n"
+f"Yᴏᴜʀ SMM Bᴏᴏꜱᴛᴇʀ ᴡᴀʟʟᴇᴛ ʜᴀꜱ ʙᴇᴇɴ ᴛᴏᴘᴘᴇᴅ ᴜᴘ!\n\n"
+f"▸ Aᴍᴏᴜɴᴛ: +{amount:.2f} ᴄᴏɪɴꜱ\n"
+f"▸ Nᴇᴡ Bᴀʟᴀɴᴄᴇ: {data['balance']:.2f}\n"
+f"▸ Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID: {int(time.time())}\n\n"
+"💎 Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ʙᴇɪɴɢ ᴀ ᴠᴀʟᴜᴇᴅ ᴄᴜꜱᴛᴏᴍᴇʀ!",
+                        parse_mode="Markdown",
+                        reply_markup=InlineKeyboardMarkup().add(
+                            InlineKeyboardButton("🛍️ Shop Now", callback_data="show_send_orders")
+                        )
+                    )
+                    success += 1
+                else:
+                    failed += 1
+            elif args[0] == '/allremovecoins':
+                if cutBalance(uid, amount):
+                    data = getData(uid)
+                    bot.send_message(
+                        uid,
+                    f"🔔 *ACCOUNT DEBITED*\n\n"
+                    f"Coins have been deducted from your SMM Booster wallet\n\n"
+                    f"▸ Amount: -{amount:.2f} coins\n"
+                    f"▸ New Balance: {data['balance']:.2f}\n"
+                    f"▸ Transaction ID: {int(time.time())}\n\n"
+                    "⚠️ Contact support if this was unexpected",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup().add(
+                        InlineKeyboardButton("📩 Contact Support", url="https://t.me/SocialHubBoosterTMbot")
+                        )
+                    )
+                    success += 1
+                else:
+                    failed += 1
+        except Exception as e:
+            print(f"Batch update failed for {uid}: {e}")
+            failed += 1
+
+    bot.reply_to(message,
+        f"📊 *Bᴀᴛᴄʜ Oᴘᴇʀᴀᴛɪᴏɴ Cᴏᴍᴘʟᴇᴛᴇᴅ*\n\n"
+        f"✅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟ: {success}\n"
+        f"❌ Fᴀɪʟᴇᴅ: {failed}",
+        parse_mode="Markdown")
+
+#=============================== Admin Stats Command =====================================#
 @bot.message_handler(func=lambda m: m.text == "📊 Analytics" and m.from_user.id in admin_user_ids)
 def show_analytics(message):
-    """Show comprehensive bot analytics"""
+    """Show comprehensive bot analytics with premium dashboard"""
     try:
+        # Store the original message ID if this is a new request
+        if not hasattr(message, 'is_callback'):
+            message.original_message_id = message.message_id + 1  # Next message will be +1
+            
+        show_analytics_dashboard(message)
+        
+    except Exception as e:
+        print(f"Analytics error: {e}")
+        bot.reply_to(message, 
+"⚠️ <b>Aɴᴀʟʏᴛɪᴄꜱ Dᴀꜱʜʙᴏᴀʀᴅ Uɴᴀᴠᴀɪʟᴀʙʟᴇ</b>\n\n"
+"Our ᴘʀᴇᴍɪᴜᴍ ᴍᴇᴛʀɪᴄꜱ ꜱʏꜱᴛᴇᴍ ɪꜱ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ᴏꜰꜰʟɪɴᴇ\n"
+"Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ",
+            parse_mode='HTML')
+
+def show_analytics_dashboard(message, is_refresh=False):
+    """Show or update the analytics dashboard"""
+    try:
+        # Get all stats
         total_users = get_user_count()
         active_users = get_active_users(7)
+        new_users_24h = get_new_users(1)
         total_orders = get_total_orders()
+        completed_orders = get_completed_orders()
         total_deposits = get_total_deposits()
         top_referrer = get_top_referrer()
         
-        # Format top referrer display
+        # Format top referrer
         if top_referrer['user_id']:
             username = f"@{top_referrer['username']}" if top_referrer['username'] else f"User {top_referrer['user_id']}"
-            referrer_display = f"{username} ({top_referrer['count']} invites)"
+            referrer_display = f"🏆 {username} (Invited {top_referrer['count']} users)"
         else:
-            referrer_display = "No referrals yet"
+            referrer_display = "📭 No referrals yet"
         
-        msg = f"""📊 <b>Bot Analytics</b>
+        # Calculate conversion rates
+        conversion_rate = (completed_orders/total_orders)*100 if total_orders > 0 else 0
+        deposit_per_user = total_deposits/total_users if total_users > 0 else 0
         
-👤 <b>Tᴏᴛᴀʟ Uꜱᴇʀꜱ:</b> {total_users}
-🔥 <b>Aᴄᴛɪᴠᴇ Uꜱᴇʀꜱ (7 Days):</b> {active_users}
-🚀 <b>Tᴏᴛᴀʟ Oʀᴅᴇʀꜱ Pʀᴏᴄᴇꜱꜱᴇᴅ:</b> {total_orders}
-💰 <b>Tᴏᴛᴀʟ Dᴇᴘᴏꜱɪᴛꜱ:</b> {total_deposits:.2f} coins
-🎯 <b>Tᴏᴘ Rᴇꜰᴇʀʀᴇʀ:</b> {referrer_display}"""
+        # Create premium dashboard
+        msg = f"""
+<blockquote>
+📈 <b>SMM Bᴏᴏꜱᴛᴇʀ Aɴᴀʟʏᴛɪᴄꜱ</b>
+━━━━━━━━━━━━━━━━━━━━
+
+👥 <b>Uꜱᴇʀ Sᴛᴀᴛɪꜱᴛɪᴄꜱ</b>
+├ 👤 Tᴏᴛᴀʟ Uꜱᴇʀꜱ: <code>{total_users}</code>
+├ 🔥 Aᴄᴛɪᴠᴇ (7ᴅ): <code>{active_users}</code>
+├ 🆕 Nᴇᴡ (24ʜ): <code>{new_users_24h}</code>
+└ 💰 Aᴠɢ Dᴇᴘᴏꜱɪᴛ/Uꜱᴇʀ: <code>{deposit_per_user:.2f}</code> ᴄᴏɪɴꜱ
+
+🛒 <b>Oʀᴅᴇʀ Mᴇᴛʀɪᴄꜱ</b>
+├ 🚀 Tᴏᴛᴀʟ Oʀᴅᴇʀꜱ: <code>{total_orders}</code>
+├ ✅ Cᴏᴍᴘʟᴇᴛᴇᴅ: <code>{completed_orders}</code>
+├ 📊 Cᴏɴᴠᴇʀꜱɪᴏɴ: <code>{conversion_rate:.1f}%</code>
+└ 💸 Tᴏᴛᴀʟ Dᴇᴘᴏꜱɪᴛꜱ: <code>{total_deposits:.2f}</code> ᴄᴏɪɴꜱ
+
+🔗 <b>Rᴇꜰᴇʀʀᴀʟ Pʀᴏɢʀᴀᴍ</b>
+└ {referrer_display}
+
+⏳ <i>Lᴀꜱᴛ Uᴘᴅᴀᴛᴇᴅ: {datetime.now().strftime('%Y-%m-%d %H:%M')}</i>
+</blockquote>
+"""
         
-        bot.reply_to(message, msg, parse_mode='HTML')
+        # Add quick action buttons
+        markup = InlineKeyboardMarkup()
+        markup.row(
+            InlineKeyboardButton("🔄 Refresh", callback_data="refresh_analytics"),
+            InlineKeyboardButton("📊 Full Report", callback_data="full_report")
+        )
+        
+        if hasattr(message, 'is_callback') or is_refresh:
+            # Edit existing message
+            bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=message.message_id,
+                text=msg,
+                parse_mode='HTML',
+                reply_markup=markup
+            )
+        else:
+            # Send new message
+            sent_msg = bot.send_message(
+                message.chat.id,
+                msg,
+                parse_mode='HTML',
+                reply_markup=markup
+            )
+            message.original_message_id = sent_msg.message_id
+        
     except Exception as e:
-        print(f"Error showing analytics: {e}")
-        bot.reply_to(message, "❌ Failed to load analytics. Please try again later.")
+        print(f"Analytics dashboard error: {e}")
+
+# Handle Refresh Analytics button
+@bot.callback_query_handler(func=lambda call: call.data == "refresh_analytics")
+def handle_refresh_analytics(call):
+    try:
+        call.message.is_callback = True
+        show_analytics_dashboard(call.message, is_refresh=True)
+        bot.answer_callback_query(call.id, "🔄 Data refreshed")
+    except Exception as e:
+        print(f"Error refreshing analytics: {e}")
+        bot.answer_callback_query(call.id, "⚠️ Failed to refresh", show_alert=True)
+
+# Handle Back button in analytics
+@bot.callback_query_handler(func=lambda call: call.data == "analytics_back")
+def handle_analytics_back(call):
+    try:
+        call.message.is_callback = True
+        show_analytics_dashboard(call.message)
+        bot.answer_callback_query(call.id)
+    except Exception as e:
+        print(f"Error going back in analytics: {e}")
+        bot.answer_callback_query(call.id, "⚠️ Failed to go back", show_alert=True)
+
+# Handle Full Report button
+@bot.callback_query_handler(func=lambda call: call.data == "full_report")
+def handle_full_report(call):
+    try:
+        bot.answer_callback_query(call.id, "📊 Generating report...")
+
+        total_users = get_user_count()
+        active_users = get_active_users(7)
+        new_users_24h = get_new_users(1)
+        total_orders = get_total_orders()
+        completed_orders = get_completed_orders()
+        total_deposits = get_total_deposits()
+        top_referrer = get_top_referrer()
+        banned_users = len(get_banned_users())
+
+        conversion_rate = (completed_orders/total_orders)*100 if total_orders > 0 else 0
+        deposit_per_user = total_deposits/total_users if total_users > 0 else 0
+        active_rate = (active_users/total_users)*100 if total_users > 0 else 0
+
+        if top_referrer['user_id']:
+            username = f"@{top_referrer['username']}" if top_referrer['username'] else f"User {top_referrer['user_id']}"
+            referrer_display = f"🏆 {username} (Invited {top_referrer['count']} users)"
+        else:
+            referrer_display = "📭 No referrals yet"
+
+        msg = f"""
+<blockquote>
+📊 <b>Fᴜʟʟ Aɴᴀʟʏᴛɪᴄꜱ Rᴇᴘᴏʀᴛ</b>
+━━━━━━━━━━━━━━━━━━━━
+
+👥 <b>Uꜱᴇʀ Sᴛᴀᴛɪꜱᴛɪᴄꜱ</b>
+├ Tᴏᴛᴀʟ Uꜱᴇʀꜱ: <code>{total_users}</code>
+├ Aᴄᴛɪᴠᴇ (7ᴅ): <code>{active_users}</code> ({active_rate:.1f}%)
+├ Nᴇᴡ (24ʜ): <code>{new_users_24h}</code>
+├ Bᴀɴɴᴇᴅ Uꜱᴇʀꜱ: <code>{banned_users}</code>
+└ Aᴠɢ Dᴇᴘᴏꜱɪᴛ/Uꜱᴇʀ: <code>{deposit_per_user:.2f}</code> ᴄᴏɪɴꜱ
+
+🛒 <b>Oʀᴅᴇʀ Mᴇᴛʀɪᴄꜱ</b>
+├ Tᴏᴛᴀʟ Oʀᴅᴇʀꜱ: <code>{total_orders}</code>
+├ Cᴏᴍᴘʟᴇᴛᴇᴅ: <code>{completed_orders}</code>
+└ Cᴏɴᴠᴇʀꜱɪᴏɴ Rᴀᴛᴇ: <code>{conversion_rate:.1f}%</code>
+
+💰 <b>Fɪɴᴀɴᴄɪᴀʟꜱ</b>
+├ Tᴏᴛᴀʟ Dᴇᴘᴏꜱɪᴛꜱ: <code>{total_deposits:.2f}</code> ᴄᴏɪɴꜱ
+└ Aᴠɢ Oʀᴅᴇʀ Vᴀʟᴜᴇ: <code>{(total_deposits/total_orders):.2f}</code> ᴄᴏɪɴꜱ
+
+🔗 <b>Rᴇꜰᴇʀʀᴀʟ Pʀᴏɢʀᴀᴍ</b>
+└ {referrer_display}
+
+📅 Gᴇɴᴇʀᴀᴛᴇᴅ: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+</blockquote>
+"""
+
+        # Add back button
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("🔙 Back to Overview", callback_data="analytics_back"))
+
+        # Overwrite the current message
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=msg,
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+
+    except Exception as e:
+        print(f"Error sending full report: {e}")
+        bot.answer_callback_query(call.id, "⚠️ Failed to load full report", show_alert=True)
 
 # =========================== Broadcast Command ================= #
 @bot.message_handler(func=lambda m: m.text == "📤 Broadcast" and m.from_user.id in admin_user_ids)
 def broadcast_start(message):
     """Start normal broadcast process (unpinned)"""
-    msg = bot.reply_to(message, "📢 ✨ <b>Compose Your Broadcast Message</b> ✨\n\n"
-                              "Please enter the message you'd like to send to all users.\n"
-                              "This will be sent as a regular (unpinned) message.\n\n"
-                              "🖋️ You can include text, photos, or documents.\n"
-                              "❌ Type <code>✘ Cancel</code> to abort.", 
+    msg = bot.reply_to(message, "📢 ✨ <b>Cᴏᴍᴘᴏꜱᴇ Yᴏᴜʀ Bʀᴏᴀᴅᴄᴀꜱᴛ Mᴇꜱꜱᴀɢᴇ</b> ✨\n\n"
+                              "Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴛʜᴇ ᴍᴇꜱꜱᴀɢᴇ ʏᴏᴜ'ᴅ ʟɪᴋᴇ ᴛᴏ ꜱᴇɴᴅ ᴛᴏ ᴀʟʟ ᴜꜱᴇʀꜱ.\n"
+                              "Tʜɪꜱ ᴡɪʟʟ ʙᴇ ꜱᴇɴᴛ ᴀꜱ ᴀ ʀᴇɢᴜʟᴀʀ (ᴜɴᴘɪɴɴᴇᴅ) ᴍᴇꜱꜱᴀɢᴇ.\n\n"
+                              "🖋️ Yᴏᴜ ᴄᴀɴ ɪɴᴄʟᴜᴅᴇ ᴛᴇxᴛ, ᴘʜᴏᴛᴏꜱ, ᴏʀ ᴅᴏᴄᴜᴍᴇɴᴛꜱ.\n"
+                              "❌ Tʏᴘᴇ <code>✘ Cᴀɴᴄᴇʟ</code> ᴛᴏ ᴀʙᴏʀᴛ.", 
                        parse_mode="HTML")
     bot.register_next_step_handler(msg, process_broadcast)
 
 def process_broadcast(message):
     """Process and send the broadcast message (unpinned)"""
-    if message.text == "✘ Cancel":
+    if message.text == "Cancel":
         bot.reply_to(message, "🛑 <b>Broadcast cancelled.</b>", 
                      parse_mode="HTML", reply_markup=admin_markup)
         return
     
     users = get_all_users()
+    if not users:
+        bot.reply_to(message, "❌ No users found to broadcast to", reply_markup=admin_markup)
+        return
+    
     success = 0
     failed = 0
     
     # Enhanced sending notification with progress bar concept
-    progress_msg = bot.reply_to(message, f"""📨 <b>Broadcast Initiated</b>
+    progress_msg = bot.reply_to(message, f"""📨 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Iɴɪᴛɪᴀᴛᴇᴅ</b>
     
-📊 Total Recipients: <code>{len(users)}</code>
-⏳ Status: <i>Processing...</i>
+📊 Tᴏᴛᴀʟ Rᴇᴄɪᴘɪᴇɴᴛꜱ: <code>{len(users)}</code>
+⏳ Sᴛᴀᴛᴜꜱ: <i>Processing...</i>
 
 [░░░░░░░░░░] 0%""", parse_mode="HTML")
+    
+    # Calculate update interval (at least 1)
+    update_interval = max(1, len(users) // 10)
     
     for index, user_id in enumerate(users):
         try:
             if message.content_type == 'text':
                 # Enhanced text message format
-                formatted_text = f"""✨ <b>Announcement</b> ✨\n\n{message.text}\n\n"""
+                formatted_text = f"""✨ <b>Aɴɴᴏᴜɴᴄᴇᴍᴇɴᴛ</b> ✨\n\n{message.text}\n\n"""
                 if not message.text.endswith(('🌐', '📢', '🔔', '📣', '📩')):
                     formatted_text += "━━━━━━━━━━━━━━\n"
-                    formatted_text += "💌 Thank you for being part of our community!\n"
-                    formatted_text += "🔔 Stay tuned for more updates."
+                    formatted_text += "💌 Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ʙᴇɪɴɢ ᴘᴀʀᴛ ᴏꜰ ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ!\n"
+                    formatted_text += "🔔 Sᴛᴀʏ ᴛᴜɴᴇᴅ ꜰᴏʀ ᴍᴏʀᴇ ᴜᴘᴅᴀᴛᴇꜱ."
                 bot.send_message(user_id, formatted_text, parse_mode="HTML")
             elif message.content_type == 'photo':
                 # Enhanced photo caption
@@ -2212,190 +2809,445 @@ def process_broadcast(message):
             print(f"Failed to send to {user_id}: {e}")
             failed += 1
         
-        # Update progress every 10%
-        if (index+1) % (len(users)//10) == 0 or index+1 == len(users):
+        # Update progress periodically
+        if (index+1) % update_interval == 0 or index+1 == len(users):
             progress = int((index+1)/len(users)*100)
             progress_bar = '█' * (progress//10) + '░' * (10 - progress//10)
             try:
-                bot.edit_message_text(f"""📨 <b>Broadcast Progress</b>
+                bot.edit_message_text(f"""📨 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Pʀᴏɢʀᴇꜱꜱ</b>
                 
-📊 Total Recipients: <code>{len(users)}</code>
-✅ Successful: <code>{success}</code>
-❌ Failed: <code>{failed}</code>
-⏳ Status: <i>Sending...</i>
+📊 Tᴏᴛᴀʟ Rᴇᴄɪᴘɪᴇɴᴛꜱ: <code>{len(users)}</code>
+✅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟ: <code>{success}</code>
+❌ Fᴀɪʟᴇᴅ: <code>{failed}</code>
+⏳ Sᴛᴀᴛᴜꜱ: <i>Sᴇɴᴅɪɴɢ...</i>
 
 [{progress_bar}] {progress}%""", 
                     message.chat.id, progress_msg.message_id, parse_mode="HTML")
-            except:
-                pass
+            except Exception as e:
+                print(f"Failed to update progress: {e}")
         
         time.sleep(0.1)  # Rate limiting
     
-    # Enhanced completion message
-    bot.reply_to(message, f"""📣 <b>Broadcast Completed Successfully!</b>
+# Enhanced completion message
+    bot.reply_to(message, f"""📣 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Cᴏᴍᴘʟᴇᴛᴇᴅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ!</b>
     
-📊 <b>Statistics:</b>
-├ 📤 <i>Sent:</i> <code>{success}</code>
-└ ❌ <i>Failed:</i> <code>{failed}</code>
+📊 <b>Sᴛᴀᴛɪꜱᴛɪᴄꜱ:</b>
+├ 📤 <i>Sᴇɴᴛ:</i> <code>{success}</code>
+└ ❌ <i>Fᴀɪʟᴇᴅ:</i> <code>{failed}</code>
 
-⏱️ <i>Finished at:</i> <code>{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>
+⏱️ <i>Fɪɴɪꜱʜᴇᴅ ᴀᴛ:</i> <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>
 
-✨ <i>Thank you for using our broadcast system!</i>""", 
+✨ <i>Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ᴜꜱɪɴɢ ᴏᴜʀ ʙʀᴏᴀᴅᴄᴀꜱᴛ ꜱʏꜱᴛᴇᴍ!</i>""", 
                  parse_mode="HTML", reply_markup=admin_markup)
 
 #====================== Ban User Command ================================#
+# ============================= Enhanced Ban User Command ============================= #
 @bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id in admin_user_ids)
 def ban_user_start(message):
     """Start ban user process"""
-    msg = bot.reply_to(message, "Eɴᴛᴇʀ Uꜱᴇʀ Iᴅ Tᴏ Bᴀɴ:")
+    msg = bot.reply_to(message, 
+        "⚡ *SMM Aᴅᴍɪɴ Pᴀɴᴇʟ - Bᴀɴ Uꜱᴇʀ*\n\n"
+        "Eɴᴛᴇʀ Uꜱᴇʀ Iᴅ Tᴏ Bᴀɴ:\n"
+        "▸ *Fᴏʀᴍᴀᴛ*: `123456789`\n"
+        "▸ *Nᴏᴛᴇ*: Uꜱᴇʀ ᴡɪʟʟ ʟᴏꜱᴇ ᴀʟʟ ꜱᴇʀᴠɪᴄᴇ ᴀᴄᴄᴇꜱꜱ\n\n"
+        "✘ Tʏᴘᴇ *'Cᴀɴᴄᴇʟ'* ᴛᴏ ᴀʙᴏʀᴛ",
+        parse_mode="Markdown",
+        reply_markup=ForceReply(selective=True))
     bot.register_next_step_handler(msg, process_ban_user)
 
 def process_ban_user(message):
-    """Ban a user"""
-    if message.text == "✘ Cancel":
+    """Ban a user with enhanced features"""
+    if message.text == "Cancel":
         bot.reply_to(message, "❌ Ban cancelled.", reply_markup=admin_markup)
         return
     
     user_id = message.text.strip()
     
     if not user_id.isdigit():
-        bot.reply_to(message, "❌ Invalid user ID. Must be numeric.", reply_markup=admin_markup)
+        bot.reply_to(message, 
+            "❌ *Iɴᴠᴀʟɪᴅ Iɴᴘᴜᴛ*\n"
+            "Uꜱᴇʀ Iᴅ ᴍᴜꜱᴛ ᴄᴏɴᴛᴀɪɴ ᴏɴʟʏ ɴᴜᴍʙᴇʀꜱ\n"
+            "Exᴀᴍᴘʟᴇ: `123456789`",
+            parse_mode="Markdown",
+            reply_markup=admin_markup)
         return
     
     if is_banned(user_id):
-        bot.reply_to(message, "⚠️ User is already banned.", reply_markup=admin_markup)
+        bot.reply_to(message, 
+            "⚠️ *User Already Banned*\n"
+            f"User `{user_id}` is already in ban list",
+            parse_mode="Markdown",
+            reply_markup=admin_markup)
         return
     
     ban_user(user_id)
     
-    # Send notification to banned user
+    # Enhanced ban notification to user
     try:
         appeal_markup = InlineKeyboardMarkup()
-        appeal_markup.add(InlineKeyboardButton("📩 Send Appeal", url="https://t.me/SocialHubBoosterHelper"))
+        appeal_markup.row(
+            InlineKeyboardButton("📩 Appeal Ban", url="https://t.me/SocialHubBoosterTMbot"),
+            InlineKeyboardButton("📋 View Terms", callback_data="ban_terms")
+        )
+
         
         bot.send_message(
             user_id,
-            f"⛔ 𝙔𝙤𝙪 𝙝𝙖𝙫𝙚 𝙗𝙚𝙚𝙣 𝙗𝙖𝙣𝙣𝙚𝙙 𝙛𝙧𝙤𝙢 𝙪𝙨𝙞𝙣𝙜 𝙩𝙝𝙞𝙨 𝙗𝙤𝙩.\n\n"
-            f"𝙄𝙛 𝙮𝙤𝙪 𝙗𝙚𝙡𝙞𝙚𝙫𝙚 𝙩𝙝𝙞𝙨 𝙬𝙖𝙨 𝙖 𝙢𝙞𝙨𝙩𝙖𝙠𝙚, 𝙮𝙤𝙪 𝙘𝙖𝙣 𝙖𝙥𝙥𝙚𝙖𝙡 𝙮𝙤𝙪𝙧 𝙗𝙖𝙣:",
-            reply_markup=appeal_markup
+            f"⛔ *ACCOUNT SUSPENDED*\n\n"
+f"⛔ *Aᴄᴄᴏᴜɴᴛ Sᴜꜱᴘᴇɴᴅᴇᴅ*\n\n"
+f"Yᴏᴜʀ ᴀᴄᴄᴇꜱꜱ ᴛᴏ *SMM Bᴏᴏꜱᴛᴇʀ* ꜱᴇʀᴠɪᴄᴇꜱ ʜᴀꜱ ʙᴇᴇɴ ʀᴇꜱᴛʀɪᴄᴛᴇᴅ.\n\n"
+f"▸ *Rᴇᴀꜱᴏɴ*: Vɪᴏʟᴀᴛɪᴏɴ ᴏꜰ Tᴇʀᴍꜱ\n"
+f"▸ *Aᴘᴘᴇᴀʟ*: Aᴠᴀɪʟᴀʙʟᴇ ᴠɪᴀ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ\n"
+f"▸ *Sᴛᴀᴛᴜꜱ*: Pᴇʀᴍᴀɴᴇɴᴛ (ᴜɴᴛɪʟ ᴀᴘᴘᴇᴀʟ)\n\n"
+f"⚠️ Aᴛᴛᴇᴍᴘᴛɪɴɢ ᴛᴏ ʙʏᴘᴀꜱꜱ ᴡɪʟʟ ʀᴇꜱᴜʟᴛ ɪɴ IP ʙʟᴀᴄᴋʟɪꜱᴛ",
+parse_mode="Markdown",
+reply_markup=appeal_markup
         )
+        notified_success = True
     except Exception as e:
-        print(f"Could not notify banned user: {e}")
+        print(f"Ban notification error: {e}")
+        notified_success = False
     
-    bot.reply_to(message, f"✅ User {user_id} has been banned.", reply_markup=admin_markup)
+    # Enhanced admin confirmation
+    bot.reply_to(message,
+    f"✅ *Uꜱᴇʀ Bᴀɴɴᴇᴅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ*\n\n"
+    f"▸ Uꜱᴇʀ Iᴅ: `{user_id}`\n"
+    f"▸ Aᴄᴛɪᴏɴ: Fᴜʟʟ ꜱᴇʀᴠɪᴄᴇ ʀᴇꜱᴛʀɪᴄᴛɪᴏɴ\n"
+    f"▸ Nᴏᴛɪꜰɪᴇᴅ: {'Yᴇꜱ' if notified_success else 'Fᴀɪʟᴇᴅ'}\n\n"
+    f"📝 _Tʜɪꜱ ᴜꜱᴇʀ ʜᴀꜱ ʙᴇᴇɴ ᴀᴅᴅᴇᴅ ᴛᴏ ʙᴀɴ ᴅᴀᴛᴀʙᴀꜱᴇ_",
+    parse_mode="Markdown",
+    reply_markup=admin_markup)
 
-#================================= Unban User Command =============================================#
+# Add this callback handler for the terms button 
+@bot.callback_query_handler(func=lambda call: call.data == "ban_terms")
+def show_ban_terms(call):
+    """Show the policy message when View Terms is clicked"""
+    try:
+        # Get the policy message from the policy_command function
+        policy_text = """
+<blockquote>
+📜 <b>🤖 Bᴏᴛ Uꜱᴀɢᴇ Pᴏʟɪᴄʏ & Gᴜɪᴅᴇʟɪɴᴇꜱ</b> 📜
+━━━━━━━━━━━━━━━━━━━━
+
+🔹 <b>1. Aᴄᴄᴇᴘᴛᴀʙʟᴇ Uꜱᴇ</b>
+   ├ ✅ Pᴇʀᴍɪᴛᴛᴇᴅ: Lᴇɢᴀʟ, ɴᴏɴ-ʜᴀʀᴍꜰᴜʟ ᴄᴏɴᴛᴇɴᴛ
+   └ ❌ Pʀᴏʜɪʙɪᴛᴇᴅ: Sᴘᴀᴍ, ʜᴀʀᴀꜱꜱᴍᴇɴᴛ, ɪʟʟᴇɢᴀʟ ᴍᴀᴛᴇʀɪᴀʟ
+
+🔹 <b>2. Fᴀɪʀ Uꜱᴀɢᴇ Pᴏʟɪᴄʏ</b>
+   ├ ⚖️ Aʙᴜꜱᴇ ᴍᴀʏ ʟᴇᴀᴅ ᴛᴏ ʀᴇꜱᴛʀɪᴄᴛɪᴏɴꜱ
+   └ 📊 Exᴄᴇꜱꜱɪᴠᴇ ᴜꜱᴀɢᴇ ᴍᴀʏ ʙᴇ ʀᴀᴛᴇ-ʟɪᴍɪᴛᴇᴅ
+
+🔹 <b>3. Fɪɴᴀɴᴄɪᴀʟ Pᴏʟɪᴄʏ</b>
+   ├ 💳 Aʟʟ ᴛʀᴀɴꜱᴀᴄᴛɪᴏɴꜱ ᴀʀᴇ ꜰɪɴᴀʟ
+   └ 🔄 Nᴏ ʀᴇꜰᴜɴᴅꜱ ꜰᴏʀ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ꜱᴇʀᴠɪᴄᴇꜱ
+
+🔹 <b>4. Pʀɪᴠᴀᴄʏ Cᴏᴍᴍɪᴛᴍᴇɴᴛ</b>
+   ├ 🔒 Yᴏᴜʀ ᴅᴀᴛᴀ ꜱᴛᴀʏꜱ ᴄᴏɴꜰɪᴅᴇɴᴛɪᴀʟ
+   └ 🤝 Nᴇᴠᴇʀ ꜱʜᴀʀᴇᴅ ᴡɪᴛʜ ᴛʜɪʀᴅ ᴘᴀʀᴛɪᴇꜱ
+
+🔹 <b>5. Pʟᴀᴛꜰᴏʀᴍ Cᴏᴍᴘʟɪᴀɴᴄᴇ</b>
+   ├ ✋ Mᴜꜱᴛ ꜰᴏʟʟᴏᴡ Tᴇʟᴇɢʀᴀᴍ'ꜱ TᴏS
+   └ 🌐 Aʟʟ ᴄᴏɴᴛᴇɴᴛ ᴍᴜꜱᴛ ʙᴇ ʟᴇɢᴀʟ ɪɴ ʏᴏᴜʀ ᴊᴜʀɪꜱᴅɪᴄᴛɪᴏɴ
+
+⚠️ <b>CᴏɴꜱᴇQᴜᴇɴᴄᴇꜱ ᴏꜰ Vɪᴏʟᴀᴛɪᴏɴ</b>
+   ├ ⚠️ Fɪʀꜱᴛ ᴏꜰꜰᴇɴꜱᴇ: Wᴀʀɴɪɴɢ
+   ├ 🔇 Rᴇᴘᴇᴀᴛᴇᴅ ᴠɪᴏʟᴀᴛɪᴏɴꜱ: Tᴇᴍᴘᴏʀᴀʀʏ ꜱᴜꜱᴘᴇɴꜱɪᴏɴ
+   └ 🚫 Sᴇᴠᴇʀᴇ ᴄᴀꜱᴇꜱ: Pᴇʀᴍᴀɴᴇɴᴛ ʙᴀɴ
+
+📅 <i>Lᴀꜱᴛ ᴜᴘᴅᴀᴛᴇᴅ: {update_date}</i>
+━━━━━━━━━━━━━━━━━━━━
+💡 Nᴇᴇᴅ ʜᴇʟᴘ? Cᴏɴᴛᴀᴄᴛ @SocialHubBoosterTMbot
+</blockquote>
+""".format(update_date=datetime.now().strftime('%Y-%m-%d'))
+
+        
+        # Answer the callback first
+        bot.answer_callback_query(call.id)
+        
+        # Send the policy message
+        bot.send_message(
+            call.message.chat.id,
+            policy_text,
+            parse_mode="HTML"
+        )
+        
+    except Exception as e:
+        print(f"Error showing ban terms: {e}")
+        bot.answer_callback_query(call.id, "⚠️ Failed to load terms", show_alert=True)
+    
+
+# ============================= Premium Unban Command ============================= #
 @bot.message_handler(func=lambda m: m.text == "✅ Unban User" and m.from_user.id in admin_user_ids)
 def unban_user_start(message):
     """Start unban user process"""
-    msg = bot.reply_to(message, "Eɴᴛᴇʀ Uꜱᴇʀ Iᴅ Tᴏ Uɴʙᴀɴ:")
+    msg = bot.reply_to(message,
+"⚡ *SMM Aᴅᴍɪɴ Pᴀɴᴇʟ - Uɴʙᴀɴ Uꜱᴇʀ*\n\n"
+"Eɴᴛᴇʀ Uꜱᴇʀ Iᴅ Tᴏ Uɴʙᴀɴ:\n"
+"▸ Wɪʟʟ ʀᴇꜱᴛᴏʀᴇ ᴀʟʟ ꜱᴇʀᴠɪᴄᴇꜱ\n"
+"▸ Aᴜᴛᴏᴍᴀᴛɪᴄ ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴ ꜱᴇɴᴛ\n\n"
+"✘ Tʏᴘᴇ *'Cancel'* ᴛᴏ ᴀʙᴏʀᴛ",
+        parse_mode="Markdown",
+        reply_markup=ForceReply(selective=True))
     bot.register_next_step_handler(msg, process_unban_user)
 
 def process_unban_user(message):
-    """Unban a user"""
-    if message.text == "✘ Cancel":
+    """Unban a user with premium features"""
+    if message.text == "Cancel":
         bot.reply_to(message, "❌ Unban cancelled.", reply_markup=admin_markup)
         return
     
     user_id = message.text.strip()
     
     if not user_id.isdigit():
-        bot.reply_to(message, "❌ Invalid user ID. Must be numeric.", reply_markup=admin_markup)
+        bot.reply_to(message,
+            "❌ *Iɴᴠᴀʟɪᴅ Iɴᴘᴜᴛ*\n"
+            "Uꜱᴇʀ Iᴅ ᴍᴜꜱᴛ ᴄᴏɴᴛᴀɪɴ ᴏɴʟʏ Nᴜᴍʙᴇʀꜱ\n"
+            "Exᴀᴍᴘʟᴇ: `987654321`",
+            parse_mode="Markdown",
+            reply_markup=admin_markup)
         return
     
     if not is_banned(user_id):
-        bot.reply_to(message, "⚠️ User is not currently banned.", reply_markup=admin_markup)
+        bot.reply_to(message,
+            f"ℹ️ *User Not Banned*\n"
+            f"User `{user_id}` isn't in ban records",
+            parse_mode="Markdown",
+            reply_markup=admin_markup)
         return
     
     unban_user(user_id)
     
-    # Notify unbanned user
+    # Premium unban notification
     try:
-        bot.send_message(user_id, "✅ 𝗬𝗼𝘂𝗿 𝗯𝗮𝗻 𝗵𝗮𝘀 𝗯𝗲𝗲𝗻 𝗹𝗶𝗳𝘁𝗲𝗱. 𝗬𝗼𝘂 𝗰𝗮𝗻 𝗻𝗼𝘄 𝘂𝘀𝗲 𝘁𝗵𝗲 𝗯𝗼𝘁 𝗮𝗴𝗮𝗶𝗻.")
+        markup = InlineKeyboardMarkup()
+        # Changed callback_data to trigger the send_orders_menu directly
+        markup.add(InlineKeyboardButton("🛒 Return to Services", callback_data="show_send_orders"))
+        
+        bot.send_message(
+            user_id,
+            f"✅ *Aᴄᴄᴏᴜɴᴛ Rᴇɪɴꜱᴛᴀᴛᴇᴅ*\n\n"
+            f"Yᴏᴜʀ *SMM Bᴏᴏꜱᴛᴇʀ* ᴀᴄᴄᴇꜱꜱ ʜᴀꜱ ʙᴇᴇɴ ʀᴇꜱᴛᴏʀᴇᴅ!\n\n"
+            f"▸ Aʟʟ ꜱᴇʀᴠɪᴄᴇꜱ: Rᴇᴀᴄᴛɪᴠᴀᴛᴇᴅ\n"
+            f"▸ Oʀᴅᴇʀ ʜɪꜱᴛᴏʀʏ: Pʀᴇꜱᴇʀᴠᴇᴅ\n"
+            f"▸ Bᴀʟᴀɴᴄᴇ: Uɴᴀꜰꜰᴇᴄᴛᴇᴅ\n\n"
+            f"⚠️ Pʟᴇᴀꜱᴇ ʀᴇᴠɪᴇᴡ ᴏᴜʀ ᴛᴇʀᴍꜱ ᴛᴏ ᴀᴠᴏɪᴅ ꜰᴜᴛᴜʀᴇ ɪꜱꜱᴜᴇꜱ",
+            parse_mode="Markdown",
+            reply_markup=markup
+        )
+        notified_success = True
     except Exception as e:
-        print(f"Could not notify unbanned user: {e}")
+        print(f"Unban notification error: {e}")
+        notified_success = False
     
-    bot.reply_to(message, f"✅ User {user_id} has been unbanned.", reply_markup=admin_markup)
+    # Admin confirmation with flair
+    bot.reply_to(message,
+        f"✨ *Uꜱᴇʀ Uɴʙᴀɴɴᴇᴅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ*\n\n"
+        f"▸ Uꜱᴇʀ Iᴅ: `{user_id}`\n"
+        f"▸ Sᴇʀᴠɪᴄᴇꜱ: Rᴇᴀᴄᴛɪᴠᴀᴛᴇᴅ\n"
+        f"▸ Nᴏᴛɪꜰɪᴇᴅ: {'Yᴇꜱ' if notified_success else 'Fᴀɪʟᴇᴅ'}\n\n"
+        f"📝 _Rᴇᴍᴏᴠᴇᴅ ꜰʀᴏᴍ ʙᴀɴ ᴅᴀᴛᴀʙᴀꜱᴇ_",
+        parse_mode="Markdown",
+        reply_markup=admin_markup)
 
-# List Banned Command
+# Add this new handler for showing send orders menu
+@bot.callback_query_handler(func=lambda call: call.data == "show_send_orders")
+def show_send_orders_menu(call):
+    """Show the send orders menu when 'Return to Services' is clicked"""
+    try:
+        # Delete the unban notification message
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except:
+            pass
+            
+        # Show the send orders menu
+        bot.send_message(
+            call.message.chat.id,
+            "📤 Sᴇʟᴇᴄᴛ Pʟᴀᴛꜰᴏʀᴍ Tᴏ Sᴇɴᴅ Oʀᴅᴇʀꜱ:",
+            reply_markup=send_orders_markup
+        )
+        
+        # Answer the callback
+        bot.answer_callback_query(call.id)
+        
+    except Exception as e:
+        print(f"Error showing send orders menu: {e}")
+        bot.answer_callback_query(call.id, "⚠️ Failed to load services", show_alert=True)
+
+# ============================= VIP Banned Users List ============================= #
 @bot.message_handler(func=lambda m: m.text == "📋 List Banned" and m.from_user.id in admin_user_ids)
 def list_banned(message):
-    """Show list of banned users"""
+    """Show enhanced list of banned users"""
     banned_users = get_banned_users()
     
     if not banned_users:
-        bot.reply_to(message, "ℹ️ 𝗡𝗼 𝘂𝘀𝗲𝗿𝘀 𝗮𝗿𝗲 𝗰𝘂𝗿𝗿𝗲𝗻𝘁𝗹𝘆 𝗯𝗮𝗻𝗻𝗲𝗱.", reply_markup=admin_markup)
+        bot.reply_to(message,
+            "🛡️ *Bᴀɴ Lɪꜱᴛ Sᴛᴀᴛᴜꜱ*\n\n"
+            "Nᴏ ᴜꜱᴇʀꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʀᴇꜱᴛʀɪᴄᴛᴇᴅ\n\n"
+            "▸ Dᴀᴛᴀʙᴀꜱᴇ: 0 Entries\n"
+            "▸ Lᴀꜱᴛ ʙᴀɴ: None",
+            parse_mode="Markdown",
+            reply_markup=admin_markup)
         return
     
-    msg = "⛔ Banned Users:\n\n" + "\n".join(banned_users)
-    bot.reply_to(message, msg, reply_markup=admin_markup)
+    # Enhanced list formatting
+    msg = [
+        "⛔ *SMM Bᴏᴏꜱᴛᴇʀ Bᴀɴ Lɪꜱᴛ*\n",
+        f"▸ Tᴏᴛᴀʟ Bᴀɴɴᴇᴅ: {len(banned_users)}",
+        f"▸ Lᴀꜱᴛ Uᴘᴅᴀᴛᴇᴅ: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n",
+        "━━━━━━━━━━━━━━━━━━━━"
+    ]
+    
+    # Paginate if more than 10 banned users
+    if len(banned_users) > 10:
+        msg.append("\n*Showing first 10 entries:*\n")
+        banned_users = banned_users[:10]
+    
+    for i, user_id in enumerate(banned_users, 1):
+        try:
+            user = bot.get_chat(user_id)
+            name = user.first_name or f"User {user_id}"
+            msg.append(f"{i}. {name} (`{user_id}`)")
+        except:
+            msg.append(f"{i}. User `{user_id}`")
+    
+    msg.append("\n🔍 Use /baninfo [ID] for details")
+    
+    bot.reply_to(message, "\n".join(msg), 
+                parse_mode="Markdown",
+                reply_markup=admin_markup)
 
-#==================== Leaderboard Command ==========================#
+# ============================= Premium Leaderboard ============================= #
 @bot.message_handler(func=lambda m: m.text == "🏆 Leaderboard")
 def show_leaderboard(message):
-    """Show top 10 users by orders"""
+    """Show VIP leaderboard with enhanced features"""
     top_users = get_top_users(10)
     
     if not top_users:
-        bot.reply_to(message, "🏆 𝙉𝙤 𝙤𝙧𝙙𝙚𝙧 𝙙𝙖𝙩𝙖 𝙖𝙫𝙖𝙞𝙡𝙖𝙗𝙡𝙚 𝙮𝙚𝙩.", reply_markup=main_markup)
+        bot.reply_to(message,
+            "🌟 * SMM Bᴏᴏꜱᴛᴇʀ Lᴇᴀᴅᴇʀʙᴏᴀʀᴅ*\n\n"
+            "Nᴏ ᴏʀᴅᴇʀ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ʏᴇᴛ\n\n"
+            "Bᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴛᴏ ᴀᴘᴘᴇᴀʀ ʜᴇʀᴇ!",
+            parse_mode="Markdown",
+            reply_markup=main_markup)
         return
     
-    leaderboard = ["🏆 𝗧𝗼𝗽 𝗨𝘀𝗲𝗿𝘀 𝗯𝘆 𝗢𝗿𝗱𝗲𝗿𝘀:"]
+    leaderboard = [
+        "🏆 *SMM Bᴏᴏꜱᴛᴇʀ Tᴏᴘ Cʟɪᴇɴᴛꜱ*",
+        "Rᴀɴᴋᴇᴅ ʙʏ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀᴅᴇʀꜱ\n",
+        "━━━━━━━━━━━━━━━━━━━━"
+    ]
+    
+    medal_emoji = ["🥇", "🥈", "🥉", "🔹", "🔹", "🔹", "🔹", "🔹", "🔹", "🔹"]
+    
     for i, (user_id, count) in enumerate(top_users, 1):
         try:
             user = bot.get_chat(user_id)
             name = user.first_name or f"User {user_id}"
-            leaderboard.append(f"{i}. {name}: {count} orders")
+            leaderboard.append(f"{medal_emoji[i-1]} {name}: *{count}* orders")
         except:
-            leaderboard.append(f"{i}. User {user_id}: {count} orders")
+            leaderboard.append(f"{medal_emoji[i-1]} User {user_id}: *{count}* orders")
     
-    bot.reply_to(message, "\n".join(leaderboard), reply_markup=main_markup)
+    leaderboard.extend([
+        "\n💎 *Vɪᴘ Bᴇɴᴇꜰɪᴛꜱ Aᴠᴀɪʟᴀʙʟᴇ*",
+        "Tᴏᴘ 3 Cʟɪᴇɴᴛꜱ ɢᴇᴛ ᴍᴏɴᴛʜʟʏ ʙᴏɴᴜꜱᴇꜱ!"
+    ])
+    
+    bot.reply_to(message, "\n".join(leaderboard),
+                parse_mode="Markdown",
+                reply_markup=main_markup)
 
 #======================= Function to Pin Annoucement Messages ====================#
 @bot.message_handler(func=lambda m: m.text == "📌 Pin Message" and m.from_user.id in admin_user_ids)
 def pin_message_start(message):
     """Start pin message process"""
     msg = bot.reply_to(message, 
-                      "📌 Sᴇɴᴅ Tʜᴇ Mᴇꜱꜱᴀɢᴇ Yᴏᴜ Wᴀɴᴛ Tᴏ Pɪɴ Iɴ Aʟʟ Uꜱᴇʀ Cʜᴀᴛꜱ:\n"
-                      "(ᴛʜɪꜱ ᴡɪʟʟ ᴘɪɴ ᴛʜᴇ ᴍᴇꜱꜱᴀɢᴇ ᴀᴛ ᴛʜᴇ ᴛᴏᴘ ᴏꜰ ᴇᴀᴄʜ ᴜꜱᴇʀ'ꜱ ᴄʜᴀᴛ ᴡɪᴛʜ ᴛʜᴇ ʙᴏᴛ)\n\n"
-                      "Tʏᴘᴇ 'Cancel' Tᴏ Aʙᴏʀᴛ.")
+                      "📌 Sᴇɴᴅ ᴛʜᴇ ᴍᴇꜱꜱᴀɢᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴘɪɴ ɪɴ ᴀʟʟ ᴜꜱᴇʀꜱ' ᴄʜᴀᴛꜱ:\n\n"
+                      "Tʏᴘᴇ 'Cancel' ᴛᴏ ᴀʙᴏʀᴛ.",
+                      reply_markup=admin_markup)
     bot.register_next_step_handler(msg, process_pin_message)
 
 def process_pin_message(message):
     """Process and send the pinned message to all users"""
-    if message.text == "Cancel":
-        bot.reply_to(message, "❌ Pɪɴ Cᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=admin_markup)
+    if message.text.lower() == "cancel":
+        bot.reply_to(message, "❌ Pin cancelled.", reply_markup=admin_markup)
         return
     
     users = get_all_users()
-    success = 0
-    failed = 0
+    success, failed = 0, 0
     
-    bot.reply_to(message, "⏳ Sᴛᴀʀᴛɪɴɢ Tᴏ Pɪɴ Mᴇꜱꜱᴀɢᴇꜱ Iɴ Uꜱᴇʀ Cʜᴀᴛꜱ...", reply_markup=admin_markup)
+    bot.reply_to(message, "⏳ Pɪɴɴɪɴɢ ᴍᴇꜱꜱᴀɢᴇꜱ...")
     
     for user_id in users:
         try:
-            # Send and pin the message based on content type
             if message.content_type == 'text':
-                sent_msg = bot.send_message(user_id, message.text, parse_mode="Markdown")
+                sent = bot.send_message(user_id, message.text, parse_mode="Markdown")
             elif message.content_type == 'photo':
-                sent_msg = bot.send_photo(user_id, message.photo[-1].file_id, caption=message.caption)
+                sent = bot.send_photo(user_id, message.photo[-1].file_id, caption=message.caption)
             elif message.content_type == 'document':
-                sent_msg = bot.send_document(user_id, message.document.file_id, caption=message.caption)
-            
-            # Pin the message in the user's chat
-            bot.pin_chat_message(user_id, sent_msg.message_id)
+                sent = bot.send_document(user_id, message.document.file_id, caption=message.caption)
+            else:
+                continue
+
+            bot.pin_chat_message(user_id, sent.message_id)
+            save_pinned_message(user_id, sent.message_id)  # Save in MongoDB
             success += 1
         except Exception as e:
-            print(f"Failed to pin message for {user_id}: {e}")
+            print(f"Error pinning for {user_id}: {e}")
             failed += 1
-        time.sleep(0.1)  # Rate limiting
-    
+        
+        time.sleep(0.1)
+
     bot.reply_to(message, 
                  f"📌 𝗣𝗶𝗻𝗻𝗶𝗻𝗴 𝗖𝗼𝗺𝗽𝗹𝗲𝘁𝗲:\n"
                  f"✅ Successfully pinned in {success} chats\n"
                  f"❌ Failed in {failed} chats",
                  reply_markup=admin_markup)
+
+# --- UNPIN Button Handler ---
+@bot.message_handler(func=lambda m: m.text == "📍 Unpin" and m.from_user.id in admin_user_ids)
+def unpin_and_delete_all(message):
+    """Unpin and delete pinned messages for all users"""
+    
+    # Give guidance first
+    confirm_msg = bot.reply_to(
+        message,
+        "📍 You are about to unpin and delete pinned messages from ALL users.\n\n"
+        "⚠️ This action cannot be undone.\n\n"
+        "➤ Type 'CONFIRM' to proceed or 'Cancel' to abort."
+    )
+    bot.register_next_step_handler(confirm_msg, confirm_unpin_process)
+
+def confirm_unpin_process(message):
+    """Confirm and perform the unpinning"""
+    if message.text.strip().lower() != "confirm":
+        bot.reply_to(message, "❌ Unpin cancelled.", reply_markup=admin_markup)
+        return
+    
+    users_pins = get_all_pinned_messages()
+    success, failed = 0, 0
+    
+    bot.reply_to(message, "⏳ Unpinning and deleting pinned messages...")
+    
+    for user_id, message_id in users_pins.items():
+        try:
+            bot.unpin_chat_message(user_id, message_id=message_id)
+            bot.delete_message(user_id, message_id)
+            success += 1
+        except Exception as e:
+            print(f"Error unpinning for {user_id}: {e}")
+            failed += 1
+        
+        time.sleep(0.1)
+    
+    clear_all_pinned_messages()  # Clear from MongoDB
+    
+    bot.reply_to(message,
+                 f"📌 𝗨ɴᴘɪɴɴɪɴɢ 𝗖𝗼𝗺𝗽𝗹𝗲𝘁𝗲:\n"
+                 f"✅ Successfully unpinned and deleted in {success} chats\n"
+                 f"❌ Failed in {failed} chats",
+                 reply_markup=admin_markup)
+
 
 
 #================= Check User Info by ID ===================================#
@@ -2417,7 +3269,8 @@ def process_user_info(message):
         user_data = getData(user_id) or {}
         
         info = f"""
-┌─────────────────────────
+<blockquote>
+┌──────────────────────
 │ 🔍 <b>𝗨𝘀𝗲𝗿 𝗜𝗻𝗳𝗼𝗿𝗺𝗮𝘁𝗶𝗼𝗻</b>:
 │ ━━━━━━━━━━━━━━━━━━━━━━
 │ 🆔 Iᴅ: <code>{user_id}</code>
@@ -2427,8 +3280,8 @@ def process_user_info(message):
 │ 📊 Oʀᴅᴇʀꜱ: {user_data.get('orders_count', 0)}
 │ 👥 Rᴇꜰᴇʀʀᴀʟꜱ: {user_data.get('total_refs', 0)}
 │ 🔨 Sᴛᴀᴛᴜꜱ: {"BANNED ⛔" if is_banned(user_id) else "ACTIVE ✅"}
-└────────────────────────
-
+└─────────────────────
+</blockquote>
         """
         bot.reply_to(message, info, parse_mode="HTML")
     except ValueError:
@@ -2458,7 +3311,8 @@ def server_status(message):
         mongo_stats = db.command("dbstats")
         
         status = f"""
-┌────────────────────────
+<blockquote>
+┌─────────────────────
 │ 🖥 <b>𝙎𝙮𝙨𝙩𝙚𝙢 𝙎𝙩𝙖𝙩𝙪𝙨</b>
 │ ━━━━━━━━━━━━━━━━━━━━━━
 │ 💻 <b>Sʏꜱᴛᴇᴍ</b>: {uname.system} {uname.release}
@@ -2472,8 +3326,8 @@ def server_status(message):
 │ 📦 Dᴀᴛᴀ ꜱɪᴢᴇ: {mongo_stats['dataSize']/1024/1024:.1f}MB
 │ 🗃 Sᴛᴏʀᴀɢᴇ: {mongo_stats['storageSize']/1024/1024:.1f}MB
 │ 📂 Cᴏʟʟᴇᴄᴛɪᴏɴꜱ: {mongo_stats['collections']}
-└───────────────────────
-
+└─────────────────────
+</blockquote>
         """
         bot.reply_to(message, status, parse_mode="HTML")
     except Exception as e:
@@ -2576,6 +3430,7 @@ def process_check_order(message):
         if order:
             status_time = datetime.fromtimestamp(order.get('timestamp', time.time())).strftime('%Y-%m-%d %H:%M')
             status = f"""
+<blockquote>
 ┌─────────────────────
 │ 📦 <b>Order #{order_id}</b>
 │ ━━━━━━━━━━━━━━
@@ -2587,6 +3442,7 @@ def process_check_order(message):
 │ 🔄 Sᴛᴀᴛᴜꜱ: {order.get('status', 'N/A')}
 │ ⏱ Dᴀᴛᴇ: {status_time}
 └─────────────────────
+</blockquote>
             """
             bot.reply_to(message, status, parse_mode="HTML", disable_web_page_preview=True)
         else:
@@ -2596,25 +3452,76 @@ def process_check_order(message):
 
 
 #========================== Add this handler for the /policy command =================#
+
 @bot.message_handler(commands=['policy'])
 def policy_command(message):
     """Show the bot's usage policy"""
     policy_text = """
-📜 𝘽𝙤𝙩 𝙐𝙨𝙖𝙜𝙚 𝙋𝙤𝙡𝙞𝙘𝙮 📜
+<blockquote>
+📜 <b> Bᴏᴛ Uꜱᴀɢᴇ Pᴏʟɪᴄʏ & Gᴜɪᴅᴇʟɪɴᴇꜱ</b>
+━━━━━━━━━━━━━━━━━━━━
 
-1. **Prohibited Content**: Do not use this bot to promote illegal content, spam, or harassment.
+🔹 <b>1. Aᴄᴄᴇᴘᴛᴀʙʟᴇ Uꜱᴇ</b>
+  ├ ✅ Pᴇʀᴍɪᴛᴛᴇᴅ: Lᴇɢᴀʟ, ɴᴏɴ-ʜᴀʀᴍꜰᴜʟ ᴄᴏɴᴛᴇɴᴛ
+  └ ❌ Pʀᴏʜɪʙɪᴛᴇᴅ: Sᴘᴀᴍ, ʜᴀʀᴀꜱꜱᴍᴇɴᴛ, ɪʟʟᴇɢᴀʟ ᴍᴀᴛᴇʀɪᴀʟ
 
-2. **Fair Use**: Abuse of the bot's services may result in account suspension.
+🔹 <b>2. Fᴀɪʀ Uꜱᴀɢᴇ Pᴏʟɪᴄʏ</b>
+   ├ ⚖️ Aʙᴜꜱᴇ ᴍᴀʏ ʟᴇᴀᴅ ᴛᴏ ʀᴇꜱᴛʀɪᴄᴛɪᴏɴꜱ
+   └ 📊 Exᴄᴇꜱꜱɪᴠᴇ ᴜꜱᴀɢᴇ ᴍᴀʏ ʙᴇ ʀᴀᴛᴇ-ʟɪᴍɪᴛᴇᴅ
 
-3. **Refunds**: All purchases are final. No refunds will be issued for completed orders.
+🔹 <b>3. Fɪɴᴀɴᴄɪᴀʟ Pᴏʟɪᴄʏ</b>
+   ├ 💳 Aʟʟ ᴛʀᴀɴꜱᴀᴄᴛɪᴏɴꜱ ᴀʀᴇ ꜰɪɴᴀʟ
+   └ 🔄 Nᴏ ʀᴇꜰᴜɴᴅꜱ ꜰᴏʀ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ꜱᴇʀᴠɪᴄᴇꜱ
 
-4. **Privacy**: We respect your privacy. Your data will not be shared with third parties.
+🔹 <b>4. Pʀɪᴠᴀᴄʏ Cᴏᴍᴍɪᴛᴍᴇɴᴛ</b>
+   ├ 🔒 Yᴏᴜʀ ᴅᴀᴛᴀ ꜱᴛᴀʏꜱ ᴄᴏɴꜰɪᴅᴇɴᴛɪᴀʟ
+   └ 🤝 Nᴇᴠᴇʀ ꜱʜᴀʀᴇᴅ ᴡɪᴛʜ ᴛʜɪʀᴅ ᴘᴀʀᴛɪᴇꜱ
 
-5. **Compliance**: Users must comply with all Telegram Terms of Service.
+🔹 <b>5. Pʟᴀᴛꜰᴏʀᴍ Cᴏᴍᴘʟɪᴀɴᴄᴇ</b>
+   ├ ✋ Mᴜꜱᴛ ꜰᴏʟʟᴏᴡ Tᴇʟᴇɢʀᴀᴍ'ꜱ TᴏS
+   └ 🌐 Aʟʟ ᴄᴏɴᴛᴇɴᴛ ᴍᴜꜱᴛ ʙᴇ ʟᴇɢᴀʟ ɪɴ ʏᴏᴜʀ ᴊᴜʀɪꜱᴅɪᴄᴛɪᴏɴ
 
-Violations of these policies may result in permanent bans.
-"""
-    bot.reply_to(message, policy_text, parse_mode="Markdown")
+⚠️ <b>CᴏɴꜱᴇQᴜᴇɴᴄᴇꜱ ᴏꜰ Vɪᴏʟᴀᴛɪᴏɴ</b>
+   ├ ⚠️ Fɪʀꜱᴛ ᴏꜰꜰᴇɴꜱᴇ: Wᴀʀɴɪɴɢ
+   ├ 🔇 Rᴇᴘᴇᴀᴛᴇᴅ ᴠɪᴏʟᴀᴛɪᴏɴꜱ: Tᴇᴍᴘᴏʀᴀʀʏ ꜱᴜꜱᴘᴇɴꜱɪᴏɴ
+   └ 🚫 Sᴇᴠᴇʀᴇ ᴄᴀꜱᴇꜱ: Pᴇʀᴍᴀɴᴇɴᴛ ʙᴀɴ
+
+📅 <i> Lᴀꜱᴛ ᴜᴘᴅᴀᴛᴇᴅ: {update_date}</i>
+━━━━━━━━━━━━━━━━━━━━
+💡 Nᴇᴇᴅ ʜᴇʟᴘ? Cᴏɴᴛᴀᴄᴛ @SocialHubBoosterTMbot
+</blockquote>
+""".format(update_date=datetime.now().strftime('%Y-%m-%d'))  # Fixed datetime reference
+    
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton(text="✅ Accept Policy", callback_data="accept_policy"))
+    
+    bot.reply_to(message, policy_text, parse_mode="HTML", reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: call.data == "accept_policy")
+def accept_policy_callback(call):
+    bot.answer_callback_query(
+        call.id,
+        text="🙏 Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ʏᴏᴜʀ Cᴏᴏᴘᴇʀᴀᴛɪᴏɴ!",
+        show_alert=True
+    )
+
+    try:
+        # Remove the button
+        bot.edit_message_reply_markup(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            reply_markup=None
+        )
+
+        # Delete the message after a short delay (optional)
+        bot.delete_message(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id
+        )
+    except Exception as e:
+        print(f"Error deleting policy message: {e}")
+
+
 
 
 #======================= Function to periodically check order status ====================#
@@ -2664,18 +3571,6 @@ def start_status_updater():
 
 threading.Thread(target=start_status_updater, daemon=True).start()
 
-#======================== Logging Setup =====================#
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    filename='bot.log'
-)
-logger = logging.getLogger(__name__)
-
-print(f"Account folder exists: {os.path.exists('Account')}")
-print(f"Files in Account: {os.listdir('Account')}")
-
-print(f"Can write to Account: {os.access('Account', os.W_OK)}")
 
 #======================== Set Bot Commands =====================#
 def get_formatted_datetime():
@@ -2695,12 +3590,14 @@ def send_startup_message(is_restart=False):
         status = "Rᴇsᴛᴀʀᴛᴇᴅ" if is_restart else "Sᴛᴀʀᴛᴇᴅ"
         
         message = f"""
+<blockquote>
 🚀 <b>Bᴏᴛ {status}</b> !
 
 📅 Dᴀᴛᴇ : {dt['date']}
 ⏰ Tɪᴍᴇ : {dt['time']}
 🌐 Tɪᴍᴇᴢᴏɴᴇ : {dt['timezone']}
 🛠️ Bᴜɪʟᴅ Sᴛᴀᴛᴜs: v2 [ Sᴛᴀʙʟᴇ ]
+</blockquote>
 """
         bot.send_message(
             chat_id=payment_channel,  # Or your specific logs channel ID
