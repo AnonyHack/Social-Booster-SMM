@@ -4,6 +4,7 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 import logging
+from datetime import datetime, timedelta
 
 
 # Load environment variables
@@ -37,10 +38,22 @@ def insertUser(user_id, data):
     """Insert user data if user doesn't exist."""
     try:
         user_id = str(user_id)
+        
         # Ensure balance is stored as float, not string
         if 'balance' in data:
             data['balance'] = float(data['balance'])
+        
+        # Add default fields for new users
         data['user_id'] = user_id
+        data['join_date'] = data.get('join_date', datetime.now())  # Add join_date if not provided
+        data['total_deposits'] = data.get('total_deposits', 0.0)  # Default total deposits
+        data['orders_count'] = data.get('orders_count', 0)  # Default order count
+        data['total_refs'] = data.get('total_refs', 0)  # Default referral count
+        data['welcome_bonus'] = data.get('welcome_bonus', 0)  # Default welcome bonus status
+        data['referred'] = data.get('referred', 0)  # Default referral status
+        data['banned'] = data.get('banned', False)  # Default banned status
+        
+        # Insert the user into the database
         result = users_collection.insert_one(data)
         return result.inserted_id is not None
     except PyMongoError as e:
@@ -183,20 +196,6 @@ def add_order(user_id, order_data):
         logger.error(f"Error adding order for {user_id}: {e}")
         return False
 
-def update_order_status(user_id, order_id, new_status):
-    """Update status of a specific order."""
-    try:
-        result = orders_collection.update_one(
-            {"user_id": str(user_id), "order_id": order_id},
-            {"$set": {
-                "status": new_status,
-                "status_update_time": time.time()
-            }}
-        )
-        return result.modified_count > 0
-    except PyMongoError as e:
-        logger.error(f"Error updating order status {order_id}: {e}")
-        return False
 
 def get_user_orders_stats(user_id):
     """Get order statistics for a specific user."""
@@ -241,6 +240,21 @@ def get_user_orders_stats(user_id):
         # Return default stats with all zeros if there's an error
     
     return stats
+
+def update_order_status(user_id, order_id, new_status):
+    """Update status of a specific order."""
+    try:
+        result = orders_collection.update_one(
+            {"user_id": str(user_id), "order_id": order_id},
+            {"$set": {
+                "status": new_status,
+                "status_update_time": time.time()
+            }}
+        )
+        return result.modified_count > 0
+    except PyMongoError as e:
+        logger.error(f"Error updating order status {order_id}: {e}")
+        return False
 
 # Admin functions
 def get_all_users():
@@ -378,5 +392,91 @@ def get_top_referrer():
         logger.error(f"Error getting top referrer: {e}")
         return {'user_id': None, 'username': None, 'count': 0}
 
+def get_completed_orders():
+    """Get the total number of completed orders."""
+    try:
+        return orders_collection.count_documents({"status": "completed"})
+    except PyMongoError as e:
+        logger.error(f"Error getting completed orders: {e}")
+        return 0
+
+
+def get_new_users(days=1):
+    """Get the number of new users who joined within the last `days`."""
+    try:
+        # Calculate the cutoff date
+        cutoff_date = datetime.now() - timedelta(days=days)
+        
+        # Query the database for users who joined after the cutoff date
+        return users_collection.count_documents({"join_date": {"$gte": cutoff_date}})
+    except PyMongoError as e:
+        logger.error(f"Error getting new users: {e}")
+        return 0
+
+# -- Pinned messages MongoDB -- #
+
+def save_pinned_message(user_id, message_id):
+    """Save pinned message ID for a user"""
+    try:
+        users_collection.update_one(
+            {"user_id": str(user_id)},
+            {"$set": {"pinned_message_id": message_id}},
+            upsert=True
+        )
+    except Exception as e:
+        print(f"Error saving pinned message for {user_id}: {e}")
+
+def get_all_pinned_messages():
+    """Get all users with pinned message IDs"""
+    pinned = {}
+    try:
+        users = users_collection.find({"pinned_message_id": {"$exists": True}})
+        for user in users:
+            pinned[user['user_id']] = user['pinned_message_id']
+    except Exception as e:
+        print(f"Error loading pinned messages: {e}")
+    return pinned
+
+def clear_all_pinned_messages():
+    """Clear pinned message IDs from all users"""
+    try:
+        users_collection.update_many(
+            {"pinned_message_id": {"$exists": True}},
+            {"$unset": {"pinned_message_id": ""}}
+        )
+    except Exception as e:
+        print(f"Error clearing pinned messages: {e}")
+
+#========= Show how much the user spent ==========#
+def get_confirmed_spent(user_id):
+    try:
+        pipeline = [
+            {"$match": {
+                "user_id": str(user_id),
+                "status": {"$in": ["completed", "partial"]}
+            }},
+            {"$group": {"_id": None, "total": {"$sum": "$cost"}}}
+        ]
+        result = list(orders_collection.aggregate(pipeline))
+        return result[0]["total"] if result else 0.0
+    except Exception as e:
+        print(f"Error in get_confirmed_spent: {e}")
+        return 0.0
+
+def get_pending_spent(user_id):
+    try:
+        pipeline = [
+            {"$match": {
+                "user_id": str(user_id),
+                "status": {"$in": ["pending", "processing"]}
+            }},
+            {"$group": {"_id": None, "total": {"$sum": "$cost"}}}
+        ]
+        result = list(orders_collection.aggregate(pipeline))
+        return result[0]["total"] if result else 0.0
+    except Exception as e:
+        print(f"Error in get_pending_spent: {e}")
+        return 0.0
 
 print("functions.py loaded with MongoDB support")
+
