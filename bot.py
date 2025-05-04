@@ -1302,7 +1302,7 @@ def process_instagram_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
-⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>{result.get('status', 'pending').capitalize()}</code>
 🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
                     disable_web_page_preview=True
                 )
@@ -1532,7 +1532,7 @@ def process_youtube_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
-⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>{result.get('status', 'pending').capitalize()}</code>
 🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
                     disable_web_page_preview=True
                 )
@@ -1773,7 +1773,7 @@ def process_facebook_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
-⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>{result.get('status', 'pending').capitalize()}</code>
 🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
                     disable_web_page_preview=True
                 )
@@ -1993,7 +1993,7 @@ def process_whatsapp_link(message, service, quantity, cost):
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> <code>{result['order']}</code>
-⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>Pʀᴏᴄᴇꜱꜱɪɴɢ...</code>
+⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>{result.get('status', 'pending').capitalize()}</code>
 🤖 <b>Bᴏᴛ:</b> @{bot.get_me().username}""",
                     disable_web_page_preview=True
                 )
