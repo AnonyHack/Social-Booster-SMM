@@ -189,7 +189,7 @@ def add_order(user_id, order_data):
 #==================================== Channel Membership Check =======================#
 #================================== Force Join Method =======================================#
 #================================== Force Join Method =======================================#
-required_channels = ["smmserviceslogs"]  # Channel usernames without "@"
+required_channels = ["SmmBoosterz", "Megahubbots", "Freenethubz", "Freenethubchannel", "smmserviceslogs"]  # Channel usernames without "@"
 payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
@@ -237,12 +237,12 @@ def check_membership_and_prompt(user_id, message):
 </blockquote>""",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📢 MAIN CHANNEL", url="https://t.me/smmserviceslogs")],
-                #[InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
-                #[InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
-                #[InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
-                #[InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/smmserviceslogs")],
-                #[InlineKeyboardButton("📱 WHATSAPP CHANNEL", url="https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")],
+                [InlineKeyboardButton("📢 MAIN CHANNEL", url="https://t.me/SmmBoosterz")],
+                [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
+                [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
+                [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
+                [InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/smmserviceslogs")],
+                [InlineKeyboardButton("📱 WHATSAPP CHANNEL", url="https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")],
                 [InlineKeyboardButton("✨ ✅ VERIFY MEMBERSHIP", callback_data="verify_membership")],
                 [InlineKeyboardButton("❓ Why Join These Channels?", callback_data="why_join_info")]
             ])
@@ -2542,11 +2542,11 @@ f"▸ Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID: {int(time.time())}\n\n"
                     bot.send_message(
                         uid,
                     f"🔔 *ACCOUNT DEBITED*\n\n"
-                    f"Coins have been deducted from your SMM Booster wallet\n\n"
-                    f"▸ Amount: -{amount:.2f} coins\n"
-                    f"▸ New Balance: {data['balance']:.2f}\n"
-                    f"▸ Transaction ID: {int(time.time())}\n\n"
-                    "⚠️ Contact support if this was unexpected",
+                    f"Cᴏɪɴꜱ ʜᴀᴠᴇ ʙᴇᴇɴ Dᴇᴅᴜᴄᴛᴇᴅ ꜰʀᴏᴍ ʏᴏᴜʀ Sᴍᴍ Bᴏᴏꜱᴛᴇʀ Wᴀʟʟᴇᴛ\n\n"
+                    f"▸ Aᴍᴏᴜɴᴛ: -{amount:.2f} coins\n"
+                    f"▸ Nᴇᴡ Bᴀʟᴀɴᴄᴇ: {data['balance']:.2f}\n"
+                    f"▸ Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID: {int(time.time())}\n\n"
+                    "⚠️ Cᴏɴᴛᴀᴄᴛ Sᴜᴘᴘᴏʀᴛ ɪꜰ ᴛʜɪꜱ ᴡᴀꜱ ᴜɴᴇxᴘᴇᴄᴛᴇᴅ",
                     parse_mode="Markdown",
                     reply_markup=InlineKeyboardMarkup().add(
                         InlineKeyboardButton("📩 Contact Support", url="https://t.me/SocialHubBoosterTMbot")
