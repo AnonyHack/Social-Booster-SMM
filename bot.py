@@ -44,7 +44,7 @@ admin_user_ids = [int(id.strip()) for id in os.getenv("ADMIN_USER_IDS", "").spli
 bot = telebot.TeleBot(bot_token)
 
 
-welcome_bonus = 100
+welcome_bonus = 50
 ref_bonus = 50
 
 # Main keyboard markup
