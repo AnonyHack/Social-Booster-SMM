@@ -7,6 +7,7 @@ import traceback
 import logging
 import psutil
 import threading
+from threading import Thread
 import datetime
 from datetime import datetime
 import pytz
@@ -359,7 +360,7 @@ def set_bot_commands():
         print(f"Error setting bot commands: {e}")
   
 #======================= Start Command =======================#
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['start']) 
 @check_ban
 def send_welcome(message):
     user_id = str(message.from_user.id)
@@ -454,7 +455,7 @@ Wɪᴛʜ ᴏᴜʀ ʙᴏᴛ, ʏᴏᴜ ᴄᴀɴ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ꜱᴏ�
             parse_mode='HTML',
             reply_markup=main_markup
         )
-        
+
         # Send welcome bonus message separately if applicable
         if userData['welcome_bonus'] == 0:
             bot.send_message(
@@ -462,16 +463,21 @@ Wɪᴛʜ ᴏᴜʀ ʙᴏᴛ, ʏᴏᴜ ᴄᴀɴ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ꜱᴏ�
                 f"🎁 <b>You received +{welcome_bonus} coins welcome bonus!</b>",
                 parse_mode='HTML'
             )
-            
+
+        # ✅ ADDITION: Check for pending orders and notify the user
+        stats = get_user_orders_stats(user_id)
+        if stats['pending'] > 0:
+            bot.send_message(
+                user_id,
+                f"⏳ You have {stats['pending']} pending orders",
+                reply_markup=InlineKeyboardMarkup().add(
+                    InlineKeyboardButton("View Orders", callback_data="order_history")
+                )
+            )
+
     except Exception as e:
-        print(f"Error sending welcome message: {e}")
-        # Fallback to text message if image fails
-        bot.send_message(
-            user_id,
-            welcome_caption,
-            parse_mode='HTML',
-            reply_markup=main_markup
-        )
+        print(f"Error in send_welcome: {e}")
+
 #====================== My Account =====================#
 @bot.message_handler(func=lambda message: message.text == "👤 My Account")
 def my_account(message):
@@ -686,7 +692,7 @@ def show_order_stats(message):
         msg = f"""
 📦 <b>Yᴏᴜʀ SMM Oʀᴅᴇʀ Pᴏʀᴛꜰᴏʟɪᴏ</b>
 ━━━━━━━━━━━━━━━━━━━━
-<blockquote>
+
 📊 <b>Pᴇʀꜰᴏʀᴍᴀɴᴄᴇ Oᴠᴇʀᴠɪᴇᴡ</b>
 ├ 🔄 Tᴏᴛᴀʟ Oʀᴅᴇʀꜱ: <code>{stats['total']}</code>
 ├ ✅ Cᴏᴍᴘʟᴇᴛɪᴏɴ Rᴀᴛᴇ: <code>{completion_rate:.1f}%</code>
@@ -696,7 +702,6 @@ def show_order_stats(message):
 📌 <b>NOTE:</b> Iꜰ ʏᴏᴜ ʜᴀᴠᴇ ᴀ Fᴀɪʟᴇᴅ Oʀᴅᴇʀ ᴀɴᴅ ʏᴏᴜʀ Cᴏɪɴꜱ ᴡᴇʀᴇ Dᴇᴅᴜᴄᴛᴇᴅ, 
 Vɪꜱɪᴛ ᴛʜᴇ @smmserviceslogs ᴀɴᴅ ɢᴇᴛ ʏᴏᴜʀ Oʀᴅᴇʀ Iᴅ. 
 Tʜᴇɴ ꜱᴇɴᴅ ɪᴛ ᴛᴏ ᴛʜᴇ Aᴅᴍɪɴ ꜰᴏʀ Aꜱꜱɪꜱᴛᴀɴᴄᴇ @SocialHubBoosterTMbot.
-</blockquote>
 """
 
         markup = InlineKeyboardMarkup()
@@ -724,9 +729,9 @@ Tʜᴇɴ ꜱᴇɴᴅ ɪᴛ ᴛᴏ ᴛʜᴇ Aᴅᴍɪɴ ꜰᴏʀ Aꜱꜱɪꜱᴛ�
     except Exception as e:
         print(f"Order stats error: {e}")
         bot.reply_to(message,
-            "⚠️ <blockquote><b>Oʀᴅᴇʀ Sᴛᴀᴛɪꜱᴛɪᴄꜱ Uɴᴀᴠᴀɪʟᴀʙʟᴇ</b>\n\n"
+            "⚠️ <b>Oʀᴅᴇʀ Sᴛᴀᴛɪꜱᴛɪᴄꜱ Uɴᴀᴠᴀɪʟᴀʙʟᴇ</b>\n\n"
             "ᴡWᴇ ᴄᴏᴜʟᴅɴ'ᴛ ʀᴇᴛʀɪᴇᴠᴇ ʏᴏᴜʀ Oʀᴅᴇʀ Dᴀᴛᴀ ᴀᴛ ᴛʜɪꜱ ᴛɪᴍᴇ\n"
-            "Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ</blockquote>",
+            "Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ",
             parse_mode='HTML')
 
 @bot.callback_query_handler(func=lambda call: call.data == "order_history")
@@ -738,7 +743,7 @@ def show_recent_orders(call):
         recent_orders = list(orders_collection.find(
             {
                 "user_id": user_id,
-                "status": "pending",
+                "status": {"$in": ["pending", "processing"]},
                 "hidden": {"$ne": True}
             },
             {"service": 1, "quantity": 1, "status": 1, "timestamp": 1, "_id": 0}
@@ -787,7 +792,7 @@ def callback_show_order_stats(call):
     except Exception as e:
         print(f"Callback show_order_stats error: {e}")
         bot.answer_callback_query(call.id, "⚠️ Failed to go back", show_alert=True)
-
+      
 def delete_after_delay(chat_id, message_id, delay):
     time.sleep(delay)
     try:
@@ -1082,7 +1087,7 @@ def handle_tiktok_order(message):
             "name": "TikTok Views",
             "quality": "Fast Speed",
             "link_hint": "Tiktok Post Link",
-            "min": 100,
+            "min": 500,
             "max": 100000,
             "price": 200,
             "unit": "1k views",
@@ -1328,7 +1333,7 @@ def handle_instagram_order(message):
         "❤️ Insta Likes": {
             "name": "Instagram Likes",
             "quality": "Power Quality",
-            "min": 10,
+            "min": 50,
             "max": 10000,
             "price": 1000,
             "unit": "1k likes",
@@ -3526,51 +3531,42 @@ def accept_policy_callback(call):
 
 #======================= Function to periodically check order status ====================#
 def update_order_statuses():
-
+    """Periodically check SMM panel and update order statuses in MongoDB"""
     try:
-        pending_orders = list(orders_collection.find({"status": "pending"}))
-        if not pending_orders:
-            return
-
+        # Get pending/processing orders from MongoDB
+        pending_orders = orders_collection.find({
+            "status": {"$in": ["pending", "processing"]}
+        })
+        
         for order in pending_orders:
-            order_id = order.get("order_id")
-            if not order_id:
-                continue
-
+            # Check status with SMM panel API
             response = requests.post(
                 SmmPanelApiUrl,
                 data={
                     'key': SmmPanelApi,
                     'action': 'status',
-                    'order': order_id
-                },
-                timeout=30
+                    'order': order['order_id']
+                }
             )
             result = response.json()
-
-            if result and result.get("status"):
-                new_status = result["status"].lower()
-                if new_status != "pending":
-                    orders_collection.update_one(
-                        {"order_id": order_id},
-                        {"$set": {
-                            "status": new_status,
-                            "status_update_time": time.time()
-                        }}
-                    )
-                    print(f"✅ Order {order_id} updated to {new_status}")
-
+            
+            # Update status in MongoDB if different
+            if result.get('status') and result['status'] != order['status']:
+                orders_collection.update_one(
+                    {"_id": order['_id']},
+                    {"$set": {"status": result['status'].lower()}}
+                )
+                
     except Exception as e:
-        print(f"[Order Status Check Error] {e}")
+        print(f"Error updating order statuses: {e}")
 
-# Schedule it to run every 2 minutes
-def start_status_updater():
+def status_updater():
     while True:
         update_order_statuses()
-        time.sleep(120)  # every 2 minutes
+        time.sleep(300)  # Check every 5 minutes
 
-threading.Thread(target=start_status_updater, daemon=True).start()
-
+# Start the updater in a separate thread
+Thread(target=status_updater, daemon=True).start()
 
 #======================== Set Bot Commands =====================#
 def get_formatted_datetime():
