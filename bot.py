@@ -637,12 +637,12 @@ def pricing_command(message):
 <i> Cʜᴏᴏꜱᴇ Oɴᴇ Oꜰ Tʜᴇ Cᴏɪɴꜱ Pᴀᴄᴋᴀɢᴇꜱ Aɴᴅ Pᴀʏ Iᴛꜱ Cᴏꜱᴛ Vɪᴀ Pʀᴏᴠɪᴅᴇᴅ Pᴀʏᴍᴇɴᴛ Mᴇᴛʜᴏᴅꜱ.</i>
 <blockquote>
 <b><u>📜 𝐏𝐚𝐜𝐤𝐚𝐠𝐞𝐬:</u></b>
-<b>➊ 📦 10K coins – $1.00
-➋ 📦 30K coins – $2.50
-➌ 📦 50K coins – $4.00
-➍ 📦 100K coins – $7.00
-➎ 📦 150K coins – $10.00
-➏ 📦 300K coins – $15.00 </b>
+<b>➊ 📦 10K coins – $1.00 - 4k UGX
+➋ 📦 30K coins – $2.50 - 10k UGX
+➌ 📦 50K coins – $4.40 - 16k UGX
+➍ 📦 100K coins – $7.00 - 26k UGX
+➎ 📦 150K coins – $10.00 - 37k UGX
+➏ 📦 300K coins – $15.00 - 55k UGX </b>
 </blockquote>
 <b>💡NOTE: 𝘙𝘦𝘮𝘦𝘮𝘣𝘦𝘳 𝘵𝘰 𝘴𝘦𝘯𝘥 𝘺𝘰𝘶𝘳 𝘈𝘤𝘤𝘰𝘶𝘯𝘵 𝘐𝘋 𝘵𝘰 𝘳𝘦𝘤𝘦𝘪𝘷𝘦 𝘤𝘰𝘪𝘯𝘴</b>
 
