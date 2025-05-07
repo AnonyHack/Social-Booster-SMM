@@ -1345,7 +1345,7 @@ def handle_instagram_order(message):
             "quality": "Old Accounts With Posts",
             "min": 100,
             "max": 10000,
-            "price": 13000
+            "price": 13000,
             "unit": "1k followers",
             "service_id": "18968",
             "link_hint": "Instagram profile link"
