@@ -637,12 +637,12 @@ def pricing_command(message):
 <i> Cʜᴏᴏꜱᴇ Oɴᴇ Oꜰ Tʜᴇ Cᴏɪɴꜱ Pᴀᴄᴋᴀɢᴇꜱ Aɴᴅ Pᴀʏ Iᴛꜱ Cᴏꜱᴛ Vɪᴀ Pʀᴏᴠɪᴅᴇᴅ Pᴀʏᴍᴇɴᴛ Mᴇᴛʜᴏᴅꜱ.</i>
 <blockquote>
 <b><u>📜 𝐏𝐚𝐜𝐤𝐚𝐠𝐞𝐬:</u></b>
-<b>➊ 📦 10K coins – $1.00 - 4k UGX
-➋ 📦 30K coins – $2.50 - 10k UGX
-➌ 📦 50K coins – $4.40 - 16k UGX
-➍ 📦 100K coins – $7.00 - 26k UGX
-➎ 📦 150K coins – $10.00 - 37k UGX
-➏ 📦 300K coins – $15.00 - 55k UGX </b>
+<b>➊ 📦 5K coins – $1.4 - 5k UGX
+➋ 📦 10K coins – $2.8 - 10k UGX
+➌ 📦 20K coins – $5.5 - 20k UGX
+➍ 📦 40K coins – $11 - 40k UGX
+➎ 📦 60K coins – $17 - 60k UGX
+➏ 📦 100K coins – $28 - 100k UGX </b>
 </blockquote>
 <b>💡NOTE: 𝘙𝘦𝘮𝘦𝘮𝘣𝘦𝘳 𝘵𝘰 𝘴𝘦𝘯𝘥 𝘺𝘰𝘶𝘳 𝘈𝘤𝘤𝘰𝘶𝘯𝘵 𝘐𝘋 𝘵𝘰 𝘳𝘦𝘤𝘦𝘪𝘷𝘦 𝘤𝘰𝘪𝘯𝘴</b>
 
@@ -834,7 +834,7 @@ def handle_telegram_order(message):
             "quality": "Super Fast",
             "min": 1000,
             "max": 100000,
-            "price": 200,
+            "price": 100,
             "unit": "1k views",
             "service_id": "10576",  # Your SMM panel service ID for views
             "link_hint": "Telegram post link"
@@ -842,9 +842,9 @@ def handle_telegram_order(message):
         "❤️ Post Reactions": {
             "name": "Positive Reactions",
             "quality": "No Refil",
-            "min": 60,
+            "min": 100,
             "max": 1000,
-            "price": 1500,
+            "price": 989,
             "unit": "1k reactions",
             "service_id": "12209",  # Replace with actual service ID
             "link_hint": "Telegram post link"
@@ -855,7 +855,7 @@ def handle_telegram_order(message):
             "quality": "Refill 90 Days",
             "min": 500,
             "max": 10000,
-            "price": 10000,
+            "price": 9560,
             "unit": "1k members",
             "service_id": "18578", # Replace with actual service ID
             "link_hint": "Telegram channel link"  # Replace with actual service ID
@@ -1087,9 +1087,9 @@ def handle_tiktok_order(message):
             "name": "TikTok Views",
             "quality": "Fast Speed",
             "link_hint": "Tiktok Post Link",
-            "min": 500,
+            "min": 1000,
             "max": 100000,
-            "price": 200,
+            "price": 14,
             "unit": "1k views",
             "service_id": "18454"
         },
@@ -1099,7 +1099,7 @@ def handle_tiktok_order(message):
             "link_hint": "Tiktok Post Link",
             "min": 100,
             "max": 10000,
-            "price": 1500,
+            "price": 1164,
             "unit": "1k likes",
             "service_id": "17335"
         },
@@ -1109,7 +1109,7 @@ def handle_tiktok_order(message):
             "link_hint": "Tiktok Profile Link",
             "min": 100,
             "max": 10000,
-            "price": 15000,
+            "price": 16943,
             "unit": "1k followers",
             "service_id": "18383"
         }
@@ -1325,7 +1325,7 @@ def handle_instagram_order(message):
             "quality": "Real Accounts",
             "min": 1000,
             "max": 100000,
-            "price": 300,
+            "price": 72,
             "unit": "1k views",
             "service_id": "17316",
             "link_hint": "Instagram video link"
@@ -1333,9 +1333,9 @@ def handle_instagram_order(message):
         "❤️ Insta Likes": {
             "name": "Instagram Likes",
             "quality": "Power Quality",
-            "min": 50,
+            "min": 100,
             "max": 10000,
-            "price": 1000,
+            "price": 225,
             "unit": "1k likes",
             "service_id": "17375",
             "link_hint": "Instagram post link"
@@ -1345,7 +1345,7 @@ def handle_instagram_order(message):
             "quality": "Old Accounts With Posts",
             "min": 100,
             "max": 10000,
-            "price": 13000,
+            "price": 12353,
             "unit": "1k followers",
             "service_id": "18968",
             "link_hint": "Instagram profile link"
@@ -1557,7 +1557,7 @@ def handle_youtube_order(message):
             "quality": "100% Real",
             "min": 40000,
             "max": 1000000,
-            "price": 7000,
+            "price": 7713,
             "unit": "1k views",
             "service_id": "11272",
             "link_hint": "YouTube video link"
@@ -1565,9 +1565,9 @@ def handle_youtube_order(message):
         "👍 YT Likes": {
             "name": "YouTube Likes [Real]",
             "quality": "No Refill",
-            "min": 500,
+            "min": 100,
             "max": 10000,
-            "price": 2000,
+            "price": 1607,
             "unit": "1k likes",
             "service_id": "18144",
             "link_hint": "YouTube video link"
@@ -1575,9 +1575,9 @@ def handle_youtube_order(message):
         "👥 YT Subscribers": {
             "name": "YouTube Subscribers [Cheapest]",
             "quality": "Refill 30 days",
-            "min": 500,
+            "min": 100,
             "max": 10000,
-            "price": 12000,
+            "price": 11078,
             "unit": "1k subscribers",
             "service_id": "16912",
             "link_hint": "YouTube channel link"
@@ -1787,9 +1787,9 @@ def handle_facebook_order(message):
         "👤 Profile Followers": {
             "name": "FB Profile Followers",
             "quality": "High Quality",
-            "min": 500,
+            "min": 100,
             "max": 100000,
-            "price": 10000,
+            "price": 7704,
             "unit": "1k followers",
             "service_id": "18977",
             "link_hint": "Facebook profile link"
@@ -1797,9 +1797,9 @@ def handle_facebook_order(message):
         "📄 Page Followers": {
             "name": "FB Page Followers",
             "quality": "Refill 30 Days",
-            "min": 500,
+            "min": 100,
             "max": 10000,
-            "price": 6000,
+            "price": 5597,
             "unit": "1k followers",
             "service_id": "18984",
             "link_hint": "Facebook page link"
@@ -1807,9 +1807,9 @@ def handle_facebook_order(message):
         "🎥 Video/Reel Views": {
             "name": "FB Video/Reel Views",
             "quality": "Non Drop",
-            "min": 500,
+            "min": 1000,
             "max": 10000,
-            "price": 500,
+            "price": 579,
             "unit": "1k views",
             "service_id": "17859",
             "link_hint": "Facebook video/reel link"
@@ -1819,7 +1819,7 @@ def handle_facebook_order(message):
             "quality": "No Refill",
             "min": 100,
             "max": 10000,
-            "price": 5000,
+            "price": 4567,
             "unit": "1k likes",
             "service_id": "18990",
             "link_hint": "Facebook post link"
@@ -2032,7 +2032,7 @@ def handle_whatsapp_order(message):
             "quality": "EU Users",
             "min": 100,
             "max": 40000,
-            "price": 16000,
+            "price": 20856,
             "unit": "1k members",
             "service_id": "18848",
             "link_hint": "WhatsApp channel invite link"
@@ -2042,7 +2042,7 @@ def handle_whatsapp_order(message):
             "quality": "Mixed",
             "min": 100,
             "max": 10000,
-            "price": 3000,
+            "price": 10627,
             "unit": "1k reactions",
             "service_id": "18846",
             "link_hint": "WhatsApp channel message link"
