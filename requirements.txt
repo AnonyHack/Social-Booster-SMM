@@ -23,3 +23,7 @@ pymongo[srv]
 python-dateutil
 tzlocal
 pyyaml
+
+# Add missing dependencies
+Pillow
+pyrogram
