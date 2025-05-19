@@ -1173,7 +1173,7 @@ def handle_tiktok_order(message):
             "max": 10000,
             "price": 16943,
             "unit": "1k followers",
-            "service_id": "18383"
+            "service_id": "19122"
         }
     }
     
