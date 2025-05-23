@@ -2100,7 +2100,7 @@ def handle_facebook_order(message):
             "max": 10000,
             "price": 4567,
             "unit": "1k likes",
-            "service_id": "18990",
+            "service_id": "19163",
             "link_hint": "Facebook post link"
         }
     }
