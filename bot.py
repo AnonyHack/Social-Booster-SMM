@@ -636,15 +636,23 @@ def pricing_command(message):
 
 <i> Cʜᴏᴏꜱᴇ Oɴᴇ Oꜰ Tʜᴇ Cᴏɪɴꜱ Pᴀᴄᴋᴀɢᴇꜱ Aɴᴅ Pᴀʏ Iᴛꜱ Cᴏꜱᴛ Vɪᴀ Pʀᴏᴠɪᴅᴇᴅ Pᴀʏᴍᴇɴᴛ Mᴇᴛʜᴏᴅꜱ.</i>
 <blockquote>
-<b><u>📜 𝐏𝐚𝐜𝐤𝐚𝐠𝐞𝐬:</u></b>
-<b>➊ 📦 10K coins – $1.00
-➋ 📦 30K coins – $2.50
-➌ 📦 50K coins – $4.00
-➍ 📦 100K coins – $7.00
-➎ 📦 150K coins – $10.00
-➏ 📦 300K coins – $15.00 </b>
+<b><u>📉 𝐍𝐨𝐫𝐦𝐚𝐥 𝐏𝐚𝐜𝐤𝐚𝐠𝐞𝐬:</u></b>
+<b>➊ 📦 1K coins – 1k UGX
+➋ 📦 2K coins – 2k UGX
+➌ 📦 3K coins – 3k UGX
+➍ 📦 4K coins – 4k UGX
+➎ 📦 5K coins – 5k UGX </b>
 </blockquote>
-<b>💡NOTE: 𝘙𝘦𝘮𝘦𝘮𝘣𝘦𝘳 𝘵𝘰 𝘴𝘦𝘯𝘥 𝘺𝘰𝘶𝘳 𝘈𝘤𝘤𝘰𝘶𝘯𝘵 𝘐𝘋 𝘵𝘰 𝘳𝘦𝘤𝘦𝘪𝘷𝘦 𝘤𝘰𝘪𝘯𝘴</b>
+
+<blockquote>
+<b><u>👑 𝐏𝐫𝐞𝐦𝐢𝐮𝐦 𝐏𝐚𝐜𝐤𝐚𝐠𝐞𝐬:</u></b>
+<b>➊ 📦 10K coins – $2.8 - 10k UGX
+➋ 📦 20K coins – $5.5 - 20k UGX
+➌ 📦 40K coins – $11 - 40k UGX
+➍ 📦 60K coins – $17 - 60k UGX
+➎ 📦 100K coins – $28 - 100k UGX </b>
+</blockquote>
+<b>💡NOTE: 𝘞𝘦 𝘳𝘦𝘤𝘰𝘮𝘮𝘦𝘯𝘥 𝘵𝘰 𝘶𝘴𝘦 𝘶𝘱 𝘢𝘭𝘭 𝘺𝘰𝘶𝘳 𝘊𝘰𝘪𝘯𝘴 𝘰𝘯𝘤𝘦 𝘣𝘰𝘶𝘨𝘩𝘵 𝘤𝘶𝘻 𝘸𝘦 𝘳𝘦𝘴𝘦𝘵 𝘢𝘭𝘭 𝘶𝘴𝘦𝘳𝘴 𝘊𝘰𝘪𝘯𝘴 𝘸𝘩𝘦𝘯 𝘸𝘦 𝘥𝘰 𝘜𝘱𝘥𝘢𝘵𝘦𝘴.</b>
 
 <b>🆔 Your id:</b> <code>{user_id}</code>
 """
