@@ -27,7 +27,8 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                        get_top_users, get_user_count, get_active_users, get_total_orders, 
                        get_total_deposits, get_top_referrer, get_user_orders_stats, get_new_users,
                        get_completed_orders, get_all_users, save_pinned_message, get_all_pinned_messages,
-                         clear_all_pinned_messages, orders_collection, get_confirmed_spent, get_pending_spent) # Import your functions from functions.py
+                         clear_all_pinned_messages, orders_collection, get_confirmed_spent, get_pending_spent, 
+                         get_affiliate_earnings, add_affiliate_earning, get_affiliate_users, update_affiliate_earning ) # Import your functions from functions.py
 
 
 
@@ -45,17 +46,17 @@ admin_user_ids = [int(id.strip()) for id in os.getenv("ADMIN_USER_IDS", "").spli
 bot = telebot.TeleBot(bot_token)
 
 
-welcome_bonus = 30
-ref_bonus = 30
+welcome_bonus = 60
+ref_bonus = 50
 
 # Main keyboard markup
 main_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-button1 = KeyboardButton("🛒 Buy Services")  # Changed from "👁‍🗨 Order View"
+button1 = KeyboardButton("🛒 Buy Services")
 button2 = KeyboardButton("👤 My Account")
 button3 = KeyboardButton("💳 Pricing")
 button4 = KeyboardButton("📊 Order Stats")
-button5 = KeyboardButton("🗣 Invite")
-button6 = KeyboardButton("🏆 Leaderboard")
+button5 = KeyboardButton("💰 Refer&Earn")
+button6 = KeyboardButton("🏆 Leaderboard")  # New Affiliate button
 button7 = KeyboardButton("📜 Help")
 
 main_markup.add(button1, button2)
@@ -65,7 +66,7 @@ main_markup.add(button7)
 
 # Admin keyboard markup
 admin_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-admin_markup.row("➕ Add Coins", "➖ Remove Coins")
+admin_markup.row("➕ Add", "➖ Remove")
 admin_markup.row("📌 Pin Message", "📍 Unpin")
 admin_markup.row("🔒 Ban User", "✅ Unban User")
 admin_markup.row("📋 List Banned", "👤 User Info")  # New
@@ -188,7 +189,7 @@ def add_order(user_id, order_data):
         print(f"Error adding order to MongoDB: {e}")
         return False
 #================================== Force Join Method =======================================#
-required_channels = ["smmserviceslogs"]  # Channel usernames without "@"
+required_channels = ["SmmBoosterz, Megahubbots, smmserviceslogs, Freenethubz, Freenethubchannel, iCoinStores"]  # Channel usernames without "@"
 payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
@@ -240,8 +241,8 @@ def check_membership_and_prompt(user_id, message):
                 [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
                 [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
                 [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
-                [InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/smmserviceslogs")],
                 [InlineKeyboardButton("🛒 COINS STORE", url="https://t.me/iCoinStores")],
+                [InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/smmserviceslogs")],
                 [InlineKeyboardButton("📱 WHATSAPP CHANNEL", url="https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")],
                 [InlineKeyboardButton("✨ ✅ VERIFY MEMBERSHIP", callback_data="verify_membership")],
                 [InlineKeyboardButton("❓ Why Join These Channels?", callback_data="why_join_info")]
@@ -366,19 +367,32 @@ def send_welcome(message):
     user_id = str(message.from_user.id)
     first_name = message.from_user.first_name
     username = f"@{message.from_user.username}" if message.from_user.username else "No Username"
-    ref_by = message.text.split()[1] if len(message.text.split()) > 1 and message.text.split()[1].isdigit() else None
+    
+    ref_by = None
+    is_affiliate = False
+
+    # Parse referral parameter
+    if len(message.text.split()) > 1:
+        ref_param = message.text.split()[1]
+        if ref_param.startswith('aff_'):
+            ref_by = ref_param.replace('aff_', '')
+            is_affiliate = True
+        elif ref_param.isdigit():
+            ref_by = ref_param
+            is_affiliate = False
 
     # Check channel membership
     if not check_membership_and_prompt(user_id, message):
         return
 
-    # Referral system logic
+    # Referral tracking logic
     if ref_by and int(ref_by) != int(user_id) and track_exists(ref_by):
         if not isExists(user_id):
             initial_data = {
                 "user_id": user_id,
                 "balance": "0.00",
                 "ref_by": ref_by,
+                "is_affiliate": is_affiliate,
                 "referred": 0,
                 "welcome_bonus": 0,
                 "total_refs": 0,
@@ -386,11 +400,13 @@ def send_welcome(message):
             insertUser(user_id, initial_data)
             addRefCount(ref_by)
 
+    # If new user and not referred
     if not isExists(user_id):
         initial_data = {
             "user_id": user_id,
             "balance": "0.00",
             "ref_by": "none",
+            "is_affiliate": False,
             "referred": 0,
             "welcome_bonus": 0,
             "total_refs": 0,
@@ -399,26 +415,26 @@ def send_welcome(message):
 
     # Welcome bonus logic
     userData = getData(user_id)
-    if userData['welcome_bonus'] == 0:
+    if userData.get('welcome_bonus', 0) == 0:
         addBalance(user_id, welcome_bonus)
         setWelcomeStaus(user_id)
 
-    # Professional Referral bonus logic
+    # Referral bonus logic
     data = getData(user_id)
-    if data['ref_by'] != "none" and data['referred'] == 0:
+    if data['ref_by'] != "none" and data.get('referred') == 0:
         referrer_data = getData(data['ref_by'])
         referral_message = f"""
 <blockquote>
 🎉 <b>Rᴇꜰᴇʀʀᴀʟ Rᴇᴡᴀʀᴅ Nᴏᴛɪꜰɪᴄᴀᴛɪᴏɴ</b> 🎉
 
-Wᴇ'ʀᴇ ᴘʟᴇᴀꜱᴇᴅ ᴛᴏ ɪɴꜰᴏʀᴍ ʏᴏᴜ ᴛʜᴀᴛ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ <b>{first_name}</b> ʜᴀꜱ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴊᴏɪɴᴇᴅ ᴜꜱɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ʟɪɴᴋ.
+Wᴇ'ʀᴇ ᴘʟᴇᴀꜱᴇᴅ ᴛᴏ ɪɴꜰᴏʀᴍ ʏᴏᴜ ᴛʜᴀᴛ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ <b>{first_name}</b> ʜᴀꜱ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴊᴏɪɴᴇᴅ ᴜꜱɪɴɢ ʏᴏᴜʀ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ.
 
 💰 <b>Rᴇᴡᴀʀᴅ Cʀᴇᴅɪᴛᴇᴅ:</b> +{ref_bonus} ᴄᴏɪɴꜱ
 📈 <b>Yᴏᴜʀ Tᴏᴛᴀʟ Rᴇꜰᴇʀʀᴀʟꜱ:</b> {int(referrer_data.get('total_refs', 0)) + 1}
 💎 <b>Cᴜʀʀᴇɴᴛ Bᴀʟᴀɴᴄᴇ:</b> {float(referrer_data.get('balance', 0)) + float(ref_bonus):.2f} ᴄᴏɪɴꜱ
 
-Kᴇᴇᴘ ꜱʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ ʀᴇᴡᴀʀᴅꜱ!
-Yᴏᴜʀ ᴜɴɪQᴜᴇ ʟɪɴᴋ: https://t.me/{bot.get_me().username}?start={data['ref_by']}
+Kᴇᴇᴘ ꜱʜᴀʀɪɴɢ ʏᴏᴜʀ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ ʀᴇᴡᴀʀᴅꜱ & ᴄᴀꜱʜ!
+Yᴏᴜʀ ᴜɴɪQᴜᴇ ʟɪɴᴋ: https://t.me/{bot.get_me().username}?start=aff_{data['ref_by']}
 
 Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ʜᴇʟᴘɪɴɢ ɢʀᴏᴡ ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ!
 </blockquote>
@@ -432,7 +448,7 @@ Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ʜᴇʟᴘɪɴɢ ɢʀᴏᴡ ᴏᴜʀ ᴄᴏᴍᴍ�
         addBalance(data['ref_by'], ref_bonus)
         setReferredStatus(user_id)
 
-    # Send welcome image with caption
+    # Welcome message
     welcome_image_url = "https://t.me/smmserviceslogs/20"  # Replace with your image URL
     welcome_caption = f"""
 <blockquote>
@@ -457,14 +473,14 @@ Wɪᴛʜ ᴏᴜʀ ʙᴏᴛ, ʏᴏᴜ ᴄᴀɴ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ꜱᴏ�
         )
 
         # Send welcome bonus message separately if applicable
-        if userData['welcome_bonus'] == 0:
+        if userData.get('welcome_bonus', 0) == 0:
             bot.send_message(
                 user_id,
                 f"🎁 <b>You received +{welcome_bonus} coins welcome bonus!</b>",
                 parse_mode='HTML'
             )
 
-        # ✅ ADDITION: Check for pending orders and notify the user
+        # Notify about pending orders
         stats = get_user_orders_stats(user_id)
         if stats['pending'] > 0:
             bot.send_message(
@@ -477,6 +493,7 @@ Wɪᴛʜ ᴏᴜʀ ʙᴏᴛ, ʏᴏᴜ ᴄᴀɴ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ꜱᴏ�
 
     except Exception as e:
         print(f"Error in send_welcome: {e}")
+
 
 #====================== My Account =====================#
 @bot.message_handler(func=lambda message: message.text == "👤 My Account")
@@ -544,48 +561,164 @@ def my_account(message):
     )
 
 #======================= Invite Friends =======================#
-@bot.message_handler(func=lambda message: message.text == "🗣 Invite")
+
+#======================= Affiliate Program =======================#
+@bot.message_handler(func=lambda message: message.text == "💰 Refer&Earn")
 @check_ban
-def invite_friends(message):
+def affiliate_program(message):
     user_id = str(message.chat.id)
     bot_username = bot.get_me().username
-    referral_link = f"https://t.me/{bot_username}?start={user_id}"
+    affiliate_link = f"https://t.me/{bot_username}?start=aff_{user_id}"
     data = getData(user_id)
     
     if not data:
         bot.reply_to(message, "❌ Account not found. Please /start again.")
         return
         
-    total_refs = data['total_refs']
+    # Get affiliate stats (you'll need to implement these in functions.py)
+    total_refs = data.get('total_refs', 0)
+    affiliate_earnings = data.get('affiliate_earnings', 0)
     
-    # Enhanced referral message
-    referral_message = f"""
-📢 <b>𝗜𝗻𝘃𝗶𝘁𝗲 𝗙𝗿𝗶𝗲𝗻𝗱𝘀 &amp; 𝗘𝗮𝗿𝗻 𝗙𝗿𝗲𝗲 𝗖𝗼𝗶𝗻𝘀!</b>  
-
-🔗 <b>Yᴏᴜʀ Rᴇꜰᴇʀʀᴀʟ Lɪɴᴋ:</b>  
-<code>{referral_link}</code>  
+    # Enhanced affiliate message
+    affiliate_message = f"""
 <blockquote>
-💎 <b>𝙃𝙤𝙬 𝙞𝙩 𝙒𝙤𝙧𝙠𝙨:</b>  
-1️⃣ Sʜᴀʀᴇ ʏᴏᴜʀ ᴜɴɪQᴜᴇ ʟɪɴᴋ ᴡɪᴛʜ ꜰʀɪᴇɴᴅꜱ  
-2️⃣ Wʜᴇɴ ᴛʜᴇʏ ᴊᴏɪɴ ᴜꜱɪɴɢ ʏᴏᴜʀ ʟɪɴᴋ, <b>Bᴏᴛʜ ᴏꜰ ʏᴏᴜ ɢᴇᴛ {ref_bonus} ᴄᴏɪɴꜱ</b> ɪɴꜱᴛᴀɴᴛʟʏ!  
-3️⃣ Eᴀʀɴ ᴜɴʟɪᴍɪᴛᴇᴅ ᴄᴏɪɴꜱ - <b>Nᴏ ʟɪᴍɪᴛꜱ ᴏɴ ʀᴇꜰᴇʀʀᴀʟꜱ!</b>  
+🏆 <b>Uɴʟᴏᴄᴋ Eɴᴅʟᴇꜱꜱ Eᴀʀɴɪɴɢꜱ ᴡɪᴛʜ SMMHUB Booster ᴀꜰꜰɪʟɪᴀᴛᴇ ᴘʀᴏɢʀᴀᴍ!</b>  
 
-🏆 <b>Bᴏɴᴜꜱ:</b> Tᴏᴘ ʀᴇꜰᴇʀʀᴇʀꜱ ɢᴇᴛ ꜱᴘᴇᴄɪᴀʟ ʀᴇᴡᴀʀᴅꜱ!  
+🌐 <b>Wʜᴀᴛ'ꜱ ᴛʜᴇ ᴀꜰꜰɪʟɪᴀᴛᴇ ᴘʀᴏɢʀᴀᴍ?</b>  
+ᴛʜᴇ ꜱᴍᴍ ᴍᴇɴᴜ ᴀꜰꜰɪʟɪᴀᴛᴇ ᴘʀᴏɢʀᴀᴍ ɪꜱ ʏᴏᴜʀ ᴄʜᴀɴᴄᴇ ᴛᴏ ᴇᴀʀɴ ᴍᴏɴᴇʏ ᴇꜰꜰᴏʀᴛʟᴇꜱꜱʟʏ ʙʏ ᴘʀᴏᴍᴏᴛɪɴɢ ᴏᴜʀ ᴘᴏᴡᴇʀꜰᴜʟ ꜱᴏᴄɪᴀʟ ᴍᴇᴅɪᴀ ᴍᴀʀᴋᴇᴛɪɴɢ ʙᴏᴛ. ᴡʜᴇᴛʜᴇʀ ʏᴏᴜ'ʀᴇ ᴀ ᴄᴏɴᴛᴇɴᴛ ᴄʀᴇᴀᴛᴏʀ, ɪɴꜰʟᴜᴇɴᴄᴇʀ, ᴏʀ ᴊᴜꜱᴛ ꜱᴏᴍᴇᴏɴᴇ ᴡɪᴛʜ ᴀ ɴᴇᴛᴡᴏʀᴋ, ᴛʜɪꜱ ɪꜱ ʏᴏᴜʀ ᴏᴘᴘᴏʀᴛᴜɴɪᴛʏ ᴛᴏ ᴛᴜʀɴ ᴄᴏɴɴᴇᴄᴛɪᴏɴꜱ ɪɴᴛᴏ ᴄᴀꜱʜ – ᴡɪᴛʜᴏᴜᴛ ᴀɴʏ ʜᴀʀᴅ ᴡᴏʀᴋ!  
 
-💰 <b>Wʜʏ Wᴀɪᴛ?</b> Sᴛᴀʀᴛ ɪɴᴠɪᴛɪɴɢ ɴᴏᴡ ᴀɴᴅ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ʙᴀʟᴀɴᴄᴇ ꜰᴏʀ ꜰʀᴇᴇ!  
+🔍 <b>Hᴏᴡ ᴅᴏᴇꜱ ɪᴛ ᴡᴏʀᴋ?</b>  
+1️⃣ <b>Gᴇᴛ ʏᴏᴜʀ ʟɪɴᴋ</b> - Uꜱᴇ ʏᴏᴜʀ ᴘᴇʀꜱᴏɴᴀʟɪᴢᴇᴅ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ʙᴇʟᴏᴡ  
+2️⃣ <b>Sᴘʀᴇᴀᴅ ᴛʜᴇ ᴡᴏʀᴅ</b> - Sʜᴀʀᴇ ɪᴛ ᴏɴ ᴛᴇʟᴇɢʀᴀᴍ ɢʀᴏᴜᴘꜱ, ꜱᴏᴄɪᴀʟ ᴍᴇᴅɪᴀ, ᴡʜᴀᴛꜱᴀᴘᴘ, ᴏʀ ᴀɴʏᴡʜᴇʀᴇ ʏᴏᴜʀ ᴀᴜᴅɪᴇɴᴄᴇ ʜᴀɴɢꜱ ᴏᴜᴛ.  
+3️⃣ <b>Eᴀʀɴ ꜰᴏʀᴇᴠᴇʀ</b> - Gᴇᴛ 5% ᴏꜰ ᴇᴠᴇʀʏ ᴏʀᴅᴇʀ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟꜱ ᴍᴀᴋᴇ - ꜰᴏʀ ʟɪꜰᴇ!  
 
-📌 <b>Pʀᴏ Tɪᴘ:</b> Sʜᴀʀᴇ ʏᴏᴜʀ ʟɪɴᴋ ɪɴ ɢʀᴏᴜᴘꜱ/ᴄʜᴀᴛꜱ ᴡʜᴇʀᴇ ᴘᴇᴏᴘʟᴇ ɴᴇᴇᴅ ꜱᴏᴄɪᴀʟ ᴍᴇᴅɪᴀ ɢʀᴏᴡᴛʜ!
+💰 <b>Yᴏᴜʀ ᴀꜰꜰɪʟɪᴀᴛᴇ ꜱᴛᴀᴛꜱ:</b>
+├ 👥 Tᴏᴛᴀʟ ʀᴇꜰᴇʀʀᴀʟꜱ: <code>{total_refs}</code>
+└ 💰 Tᴏᴛᴀʟ ᴇᴀʀɴɪɴɢꜱ: <code>ᴜɢx {affiliate_earnings:.2f}</code>
 
-📊 <b>Yᴏᴜʀ ᴄᴜʀʀᴇɴᴛ ʀᴇꜰᴇʀʀᴀʟꜱ:</b> {total_refs}
+📈 <b>Eᴀʀɴɪɴɢꜱ ʙʀᴇᴀᴋᴅᴏᴡɴ:</b>  
+- A ʀᴇꜰᴇʀʀᴀʟ ᴏʀᴅᴇʀꜱ $50 ᴡᴏʀᴛʜ ᴏꜰ ꜱᴇʀᴠɪᴄᴇꜱ → Yᴏᴜ ᴇᴀʀɴ $2.50 / ~9,100 ᴜɢx
+- Tʜᴇʏ ᴏʀᴅᴇʀ $500 ᴏᴠᴇʀ ᴀ ᴍᴏɴᴛʜ → Yᴏᴜ ᴘᴏᴄᴋᴇᴛ $25.00 / ~91,008 ᴜɢx
+- Iᴍᴀɢɪɴᴇ 20 ᴀᴄᴛɪᴠᴇ ʀᴇꜰᴇʀʀᴀʟꜱ sᴘᴇɴᴅɪɴɢ $200 ᴇᴀᴄʜ → ᴛʜᴀᴛ'ꜱ $200.00 / ~728,064 ᴜɢx ɪɴ ʏᴏᴜʀ ᴡᴀʟʟᴇᴛ!
+
+🎁 <b>Exᴛʀᴀ ʙᴏɴᴜꜱ:</b> Yᴏᴜ ᴀʟꜱᴏ ᴇᴀʀɴ <code>{welcome_bonus}</code> ᴄᴏɪɴꜱ ᴡʜᴇɴ ꜱᴏᴍᴇᴏɴᴇ ꜱɪɢɴꜱ ᴜᴘ ᴜꜱɪɴɢ ʏᴏᴜʀ ʟɪɴᴋ!
+
+🔗 <b>Yᴏᴜʀ ᴜɴɪqᴜᴇ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ:</b>  
+<code>{affiliate_link}</code>
+
+📌 <b>Pʀᴏ ᴛɪᴘ:</b> Sʜᴀʀᴇ ᴛᴏ ᴘᴇᴏᴘʟᴇ ᴡʜᴏ ᴡᴀɴᴛ ꜱᴏᴄɪᴀʟ ᴍᴇᴅɪᴀ ɢʀᴏᴡᴛʜ ꜰᴏʀ ʙᴇꜱᴛ ʀᴇꜱᴜʟᴛꜱ!
 </blockquote>
 """
+
+    # Create inline buttons for sharing
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton("📤 ꜱʜᴀʀᴇ ʟɪɴᴋ", url=f"https://t.me/share/url?url={affiliate_link}&text=🚀 Earn money with this amazing SMM bot! Get social media growth services and earn 5% commission on all orders!"),
+        InlineKeyboardButton("📊 ᴠɪᴇᴡ ꜱᴛᴀᴛꜱ", callback_data="affiliate_stats")
+    )
     
     bot.reply_to(
         message,
-        referral_message,
+        affiliate_message,
         parse_mode='HTML',
-        disable_web_page_preview=True
+        disable_web_page_preview=True,
+        reply_markup=markup
     )
+
+@bot.callback_query_handler(func=lambda call: call.data == "affiliate_stats")
+def show_affiliate_stats(call):
+    user_id = str(call.from_user.id)
+    data = getData(user_id)
+    
+    total_refs = data.get('total_refs', 0)
+    affiliate_earnings = data.get('affiliate_earnings', 0)
+    
+    stats_message = f"""
+<blockquote>
+📊 <b>Yᴏᴜʀ ᴀꜰꜰɪʟɪᴀᴛᴇ ꜱᴛᴀᴛꜱ</b>
+
+👥 <b>Tᴏᴛᴀʟ ʀᴇꜰᴇʀʀᴀʟꜱ:</b> {total_refs}
+💰 <b>Tᴏᴛᴀʟ ᴇᴀʀɴɪɴɢꜱ:</b> ᴜɢx {affiliate_earnings:.2f}
+
+⚠️ <b>Wɪᴛʜᴅʀᴀᴡ ʀᴜʟᴇꜱ:</b>
+ʏᴏᴜ ᴄᴀɴ ᴡɪᴛʜᴅʀᴀᴡ ʏᴏᴜʀ ᴀꜰꜰɪʟɪᴀᴛᴇ ᴇᴀʀɴɪɴɢꜱ ᴛᴏ ʏᴏᴜʀ ʀᴇᴀʟ ᴡᴀʟʟᴇᴛ. ᴡɪᴛʜᴅʀᴀᴡᴀʟꜱ ᴀʀᴇ ᴘʀᴏᴄᴇꜱꜱᴇᴅ ᴍᴀɴᴜᴀʟʟʏ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴꜱ. <b>ɴᴏᴛᴇ:</b> ᴇɴꜱᴜʀᴇ ʏᴏᴜ ʜᴀᴠᴇ ᴀᴛ ʟᴇᴀꜱᴛ ᴜɢx 1000 ɪɴ ᴇᴀʀɴɪɴɢꜱ ᴛᴏ ᴡɪᴛʜᴅʀᴀᴡ.
+</blockquote>
+"""
+    
+    bot.answer_callback_query(call.id)
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=stats_message,
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup().add(
+            InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="back_to_affiliate"),
+            InlineKeyboardButton("📤 ᴡɪᴛʜᴅʀᴀᴡ ᴄᴀꜱʜ", url=f"https://t.me/SOCIALBOOSTERADMIN")
+        )
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data == "back_to_affiliate")
+def back_to_affiliate(call):
+    user_id = str(call.from_user.id)
+    bot_username = bot.get_me().username
+    affiliate_link = f"https://t.me/{bot_username}?start=aff_{user_id}"
+    data = getData(user_id)
+
+    if not data:
+        bot.answer_callback_query(call.id, "❌ Account not found.")
+        return
+
+    total_refs = data.get('total_refs', 0)
+    affiliate_earnings = data.get('affiliate_earnings', 0)
+
+    affiliate_message = f"""
+<blockquote>
+🏆 <b>Uɴʟᴏᴄᴋ ᴇɴᴅʟᴇꜱꜱ ᴇᴀʀɴɪɴɢꜱ ᴡɪᴛʜ ꜱᴍᴍ ᴍᴇɴᴜ ᴀꜰꜰɪʟɪᴀᴛᴇ ᴘʀᴏɢʀᴀᴍ!</b>  
+
+🌐 <b>Wʜᴀᴛ'ꜱ ᴛʜᴇ ᴀꜰꜰɪʟɪᴀᴛᴇ ᴘʀᴏɢʀᴀᴍ?</b>  
+Tʜᴇ SMMHUB Booster ᴀꜰꜰɪʟɪᴀᴛᴇ ᴘʀᴏɢʀᴀᴍ ɪꜱ ʏᴏᴜʀ ᴄʜᴀɴᴄᴇ ᴛᴏ ᴇᴀʀɴ ᴍᴏɴᴇʏ ᴇꜰꜰᴏʀᴛʟᴇꜱꜱʟʏ ʙʏ ᴘʀᴏᴍᴏᴛɪɴɢ ᴏᴜʀ ᴘᴏᴡᴇʀꜰᴜʟ ꜱᴏᴄɪᴀʟ ᴍᴇᴅɪᴀ ᴍᴀʀᴋᴇᴛɪɴɢ ʙᴏᴛ. ᴡʜᴇᴛʜᴇʀ ʏᴏᴜ'ʀᴇ ᴀ ᴄᴏɴᴛᴇɴᴛ ᴄʀᴇᴀᴛᴏʀ, ɪɴꜰʟᴜᴇɴᴄᴇʀ, ᴏʀ ᴊᴜꜱᴛ ꜱᴏᴍᴇᴏɴᴇ ᴡɪᴛʜ ᴀ ɴᴇᴛᴡᴏʀᴋ, ᴛʜɪꜱ ɪꜱ ʏᴏᴜʀ ᴏᴘᴘᴏʀᴛᴜɴɪᴛʏ ᴛᴏ ᴛᴜʀɴ ᴄᴏɴɴᴇᴄᴛɪᴏɴꜱ ɪɴᴛᴏ ᴄᴀꜱʜ – ᴡɪᴛʜᴏᴜᴛ ᴀɴʏ ʜᴀʀᴅ ᴡᴏʀᴋ!  !    
+
+🔍 <b>Hᴏᴡ ᴅᴏᴇꜱ ɪᴛ ᴡᴏʀᴋ?</b>  
+1️⃣ <b>Gᴇᴛ Yᴏᴜʀ Lɪɴᴋ</b> - Uꜱᴇ ʏᴏᴜʀ ᴘᴇʀꜱᴏɴᴀʟɪᴢᴇᴅ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ʙᴇʟᴏᴡ  
+2️⃣ <b>Sᴘʀᴇᴀᴅ ᴛʜᴇ Wᴏʀᴅ</b> - Sʜᴀʀᴇ ɪᴛ ᴏɴ ᴛᴇʟᴇɢʀᴀᴍ ɢʀᴏᴜᴘꜱ, ꜱᴏᴄɪᴀʟ ᴍᴇᴅɪᴀ, ᴡʜᴀᴛꜱᴀᴘᴘ, ᴏʀ ᴀɴʏᴡʜᴇʀᴇ ʏᴏᴜʀ ᴀᴜᴅɪᴇɴᴄᴇ ʜᴀɴɢꜱ ᴏᴜᴛ.  
+3️⃣ <b>Eᴀʀɴ ꜰᴏʀᴇᴠᴇʀ</b> - Gᴇᴛ 5% ᴏꜰ ᴇᴠᴇʀʏ ᴏʀᴅᴇʀ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟꜱ ᴍᴀᴋᴇ - ꜰᴏʀ ʟɪꜰᴇ!  
+
+💰 <b>Yᴏᴜʀ ᴀꜰꜰɪʟɪᴀᴛᴇ ꜱᴛᴀᴛꜱ:</b>
+├ 👥 Tᴏᴛᴀʟ ʀᴇꜰᴇʀʀᴀʟꜱ: <code>{total_refs}</code>
+└ 💰 Tᴏᴛᴀʟ ᴇᴀʀɴɪɴɢꜱ: <code>ᴜɢx {affiliate_earnings:.2f}</code>
+
+📈 <b>Eᴀʀɴɪɴɢꜱ ʙʀᴇᴀᴋᴅᴏᴡɴ:</b>  
+- A ʀᴇꜰᴇʀʀᴀʟ ᴏʀᴅᴇʀꜱ $50 ᴡᴏʀᴛʜ ᴏꜰ ꜱᴇʀᴠɪᴄᴇꜱ → Yᴏᴜ ᴇᴀʀɴ $2.50 / ~9,100 ᴜɢx
+- Tʜᴇʏ ᴏʀᴅᴇʀ $500 ᴏᴠᴇʀ ᴀ ᴍᴏɴᴛʜ → Yᴏᴜ ᴘᴏᴄᴋᴇᴛ $25.00 / ~91,008 ᴜɢx
+- Iᴍᴀɢɪɴᴇ 20 ᴀᴄᴛɪᴠᴇ ʀᴇꜰᴇʀʀᴀʟꜱ sᴘᴇɴᴅɪɴɢ $200 ᴇᴀᴄʜ → ᴛʜᴀᴛ'ꜱ $200.00 / ~728,064 ᴜɢx ɪɴ ʏᴏᴜʀ ᴡᴀʟʟᴇᴛ!
+
+🎁 <b>Exᴛʀᴀ ʙᴏɴᴜꜱ:</b> Yᴏᴜ ᴀʟꜱᴏ ᴇᴀʀɴ <code>{welcome_bonus}</code> ᴄᴏɪɴꜱ ᴡʜᴇɴ ꜱᴏᴍᴇᴏɴᴇ ꜱɪɢɴꜱ ᴜᴘ ᴜꜱɪɴɢ ʏᴏᴜʀ ʟɪɴᴋ!
+
+🔗 <b>Yᴏᴜʀ ᴜɴɪqᴜᴇ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ:</b>  
+<code>{affiliate_link}</code>
+
+📌 <b>Pʀᴏ ᴛɪᴘ:</b> Sʜᴀʀᴇ ᴛᴏ ᴘᴇᴏᴘʟᴇ ᴡʜᴏ ᴡᴀɴᴛ ꜱᴏᴄɪᴀʟ ᴍᴇᴅɪᴀ ɢʀᴏᴡᴛʜ ꜰᴏʀ ʙᴇꜱᴛ ʀᴇꜱᴜʟᴛꜱ!
+</blockquote>
+"""
+
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton("📤 ꜱʜᴀʀᴇ ʟɪɴᴋ", url=f"https://t.me/share/url?url={affiliate_link}&text=🚀 Earn money with this amazing SMM bot! Get social media growth services and earn 5% commission on all orders!"),
+        InlineKeyboardButton("📊 ᴠɪᴇᴡ ꜱᴛᴀᴛꜱ", callback_data="affiliate_stats")
+    )
+
+    # EDIT the current message instead of sending a new one
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=affiliate_message,
+        parse_mode='HTML',
+        disable_web_page_preview=True,
+        reply_markup=markup
+    )
+    
+    bot.answer_callback_query(call.id)
+
 
 #======================= Help =======================#
 @bot.message_handler(func=lambda message: message.text == "📜 Help")
@@ -600,6 +733,9 @@ def help_command(message):
 
 <b>• Wʜᴀᴛ'ꜱ ᴛʜᴇ ᴀᴠᴇʀᴀɢᴇ ꜱᴇʀᴠɪᴄᴇ ꜱᴘᴇᴇᴅ?</b>
 Dᴇʟɪᴠᴇʀʏ ꜱᴘᴇᴇᴅ ᴠᴀʀɪᴇꜱ ʙᴀꜱᴇᴅ ᴏɴ ɴᴇᴛᴡᴏʀᴋ ᴄᴏɴᴅɪᴛɪᴏɴꜱ ᴀɴᴅ ᴏʀᴅᴇʀ ᴠᴏʟᴜᴍᴇ, ʙᴜᴛ ᴡᴇ ᴇɴꜱᴜʀᴇ ꜰᴀꜱᴛ ᴅᴇʟɪᴠᴇʀʏ.
+
+<b>• Wɪʟʟ ɪ ʀᴇᴄᴇɪᴠᴇ ʀᴇᴀʟ ᴍᴏɴᴇʏ ꜰʀᴏᴍ ᴀꜰꜰɪʟɪᴀᴛᴇ ᴍᴀʀᴋᴇᴛɪɴɢ?</b>
+Yᴇꜱ, ᴀꜰᴛᴇʀ ʀᴇᴀᴄʜɪɴɢ 1000 ᴜɢx, ʏᴏᴜ ᴄᴀɴ ᴄᴏɴᴛᴀᴄᴛ ᴛʜᴇ ᴀᴅᴍɪɴ ᴡɪᴛʜ ᴛʜᴇ ꜱᴄʀᴇᴇɴꜱʜᴏᴛ ᴏꜰ ʏᴏᴜʀ ᴀꜰꜰɪʟɪᴀᴛᴇ ʙᴀʟᴀɴᴄᴇ ᴀɴᴅ ʏᴏᴜ ᴡɪʟʟ ʀᴇᴄᴇɪᴠᴇ ʏᴏᴜʀ ᴍᴏɴᴇʏ.
 
 <b>• Hᴏᴡ ᴛᴏ ɪɴᴄʀᴇᴀꜱᴇ ʏᴏᴜʀ ᴄᴏɪɴꜱ?</b>
 1️⃣ Iɴᴠɪᴛᴇ ꜰʀɪᴇɴᴅꜱ - Eᴀʀɴ {ref_bonus} ᴄᴏɪɴꜱ ᴘᴇʀ ʀᴇꜰᴇʀʀᴀʟ
@@ -618,7 +754,7 @@ Yᴇꜱ! Fᴏʀ ʙᴀʟᴀɴᴄᴇꜱ ᴏᴠᴇʀ 10,000 ᴄᴏɪɴꜱ, ᴄᴏɴ
 
     # Create inline button for support
     markup = InlineKeyboardMarkup()
-    support_button = InlineKeyboardButton("🆘 Contact Support", url="https://t.me/SocialHubBoosterTMbot")
+    support_button = InlineKeyboardButton("🆘 ᴄᴏɴᴛᴀᴄᴛ ꜱᴜᴘᴘᴏʀᴛ", url="https://t.me/SocialHubBoosterTMbot")
     markup.add(support_button)
 
     bot.reply_to(
@@ -636,36 +772,37 @@ def pricing_command(message):
 
 <i> Cʜᴏᴏꜱᴇ Oɴᴇ Oꜰ Tʜᴇ Cᴏɪɴꜱ Pᴀᴄᴋᴀɢᴇꜱ Aɴᴅ Pᴀʏ Iᴛꜱ Cᴏꜱᴛ Vɪᴀ Pʀᴏᴠɪᴅᴇᴅ Pᴀʏᴍᴇɴᴛ Mᴇᴛʜᴏᴅꜱ.</i>
 <blockquote>
-<b><u>📉 𝐍𝐨𝐫𝐦𝐚𝐥 𝐏𝐚𝐜𝐤𝐚𝐠𝐞𝐬:</u></b>
-<b>➊ 📦 1K coins – 1k UGX
-➋ 📦 2K coins – 2k UGX
-➌ 📦 3K coins – 3k UGX
-➍ 📦 4K coins – 4k UGX
-➎ 📦 5K coins – 5k UGX </b>
+<b><u>📜 𝐍𝐨𝐫𝐦𝐚𝐥 𝐏𝐚𝐜𝐤𝐚𝐠𝐞𝐬:</u></b>
+<b>➊ 📦 1K coins – 1k ᴜɢx
+➋ 📦 2K coins – 2k ᴜɢx
+➌ 📦 3K coins – 3k ᴜɢx
+➍ 📦 4K coins – 4k ᴜɢx
+➎ 📦 5K coins – 5k ᴜɢx </b>
 </blockquote>
 
 <blockquote>
 <b><u>👑 𝐏𝐫𝐞𝐦𝐢𝐮𝐦 𝐏𝐚𝐜𝐤𝐚𝐠𝐞𝐬:</u></b>
-<b>➊ 📦 10K coins – $2.8 - 10k UGX
-➋ 📦 20K coins – $5.5 - 20k UGX
-➌ 📦 40K coins – $11 - 40k UGX
-➍ 📦 60K coins – $17 - 60k UGX
-➎ 📦 100K coins – $28 - 100k UGX </b>
+<b>➊ 📦 10K coins – $2.8 - 10k ᴜɢx
+➋ 📦 20K coins – $5.5 - 20k ᴜɢx
+➌ 📦 40K coins – $11 - 40k ᴜɢx
+➍ 📦 60K coins – $17 - 60k ᴜɢx
+➎ 📦 100K coins – $28 - 100k ᴜɢx </b>
 </blockquote>
-<b>💡NOTE: 𝘞𝘦 𝘳𝘦𝘤𝘰𝘮𝘮𝘦𝘯𝘥 𝘵𝘰 𝘶𝘴𝘦 𝘶𝘱 𝘢𝘭𝘭 𝘺𝘰𝘶𝘳 𝘊𝘰𝘪𝘯𝘴 𝘰𝘯𝘤𝘦 𝘣𝘰𝘶𝘨𝘩𝘵 𝘤𝘶𝘻 𝘸𝘦 𝘳𝘦𝘴𝘦𝘵 𝘢𝘭𝘭 𝘶𝘴𝘦𝘳𝘴 𝘊𝘰𝘪𝘯𝘴 𝘸𝘩𝘦𝘯 𝘸𝘦 𝘥𝘰 𝘜𝘱𝘥𝘢𝘵𝘦𝘴.</b>
+
+<b>💡NOTE: 𝘙𝘦𝘮𝘦𝘮𝘣𝘦𝘳 𝘵𝘰 𝘴𝘦𝘯𝘥 𝘺𝘰𝘶𝘳 𝘈𝘤𝘤𝘰𝘶𝘯𝘵 𝘐𝘋 𝘵𝘰 𝘳𝘦𝘤𝘦𝘪𝘷𝘦 𝘤𝘰𝘪𝘯𝘴</b>
 
 <b>🆔 Your id:</b> <code>{user_id}</code>
 """
 
     markup = InlineKeyboardMarkup()
-    button1 = InlineKeyboardButton("💲 PayPal", url="https://t.me/SocialBoosterAdmin")
-    button2 = InlineKeyboardButton("💳 Mobile Money",
+    button1 = InlineKeyboardButton("💲 ᴘᴀʏᴘᴀʟ", url="https://t.me/SocialBoosterAdmin")
+    button2 = InlineKeyboardButton("💳 ᴍᴏʙɪʟᴇ ᴍᴏɴᴇʏ",
                                    url="https://t.me/SocialBoosterAdmin")
-    button6 = InlineKeyboardButton("💳 Webmoney", url="https://t.me/SocialBoosterAdmin")
-    button3 = InlineKeyboardButton("💎 Bitcoin, Litecoin, USDT...",
+    button6 = InlineKeyboardButton("💳 ᴡᴇʙᴍᴏɴᴇʏ", url="https://t.me/SocialBoosterAdmin")
+    button3 = InlineKeyboardButton("💎 ʙɪᴛᴄᴏɪɴ, ʟɪᴛᴇᴄᴏɪɴ, ᴜꜱᴅᴛ...",
                                    url="https://t.me/SocialBoosterAdmin")
-    button4 = InlineKeyboardButton("💸 Paytm", url="https://t.me/SocialBoosterAdmin")
-    button5 = InlineKeyboardButton("💰 Paytm", url="https://t.me/SocialBoosterAdmin")
+    button4 = InlineKeyboardButton("💸 ᴘᴀʏᴛᴍ", url="https://t.me/SocialBoosterAdmin")
+    button5 = InlineKeyboardButton("💰 ᴘᴀʏᴛᴍ", url="https://t.me/SocialBoosterAdmin")
 
     markup.add(button1)
     markup.add(button2, button6)
@@ -714,7 +851,7 @@ Tʜᴇɴ ꜱᴇɴᴅ ɪᴛ ᴛᴏ ᴛʜᴇ Aᴅᴍɪɴ ꜰᴏʀ Aꜱꜱɪꜱᴛ�
 
         markup = InlineKeyboardMarkup()
         markup.row(
-            InlineKeyboardButton("📜 Check Orders", callback_data="order_history")
+            InlineKeyboardButton("📜 ᴄʜᴇᴄᴋ ᴏʀᴅᴇʀꜱ", callback_data="order_history")
         )
 
         if hasattr(message, 'is_callback'):
@@ -1085,6 +1222,7 @@ f"""⭐️ ｢Nᴇᴡ {service['name'].upper()} Oʀᴅᴇʀ 」⭐️
             markup.add(check_status_button)
             
             # Stylish confirmation message
+            # Stylish confirmation message
             bot.reply_to(
                 message,
 f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
@@ -1099,12 +1237,12 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
 ━━━━━━━━━━━━━━━━━━━━━━━
 😊 <b>Tʜᴀɴᴋꜱ ꜰᴏʀ ᴏʀᴅᴇʀɪɴɢ!</b>
 ━━━━━━━━•❅•°•❈•°•❅•━━━━━━━━
-⚠️ <b>𝙒𝙖𝙧𝙣𝙞𝙣𝙜:</b> Dᴏ ɴᴏᴛ ꜱᴇɴᴅ ᴛʜᴇ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏɴᴇ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ʏᴏᴜ ᴍɪɡʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!""",
+⚠️ <b>𝙒𝙖𝙧𝙣𝙞𝙣𝙜:</b> Dᴏ ɴᴏᴛ ꜱᴇɴᴅ ᴛʜᴇ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴏɴᴇ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀ ʏᴏᴜ ᴍɪɢʜᴛ ɴᴏᴛ ʀᴇᴄᴇɪᴠᴇ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇ!""",
                 reply_markup=markup,
                 disable_web_page_preview=True,
                 parse_mode='HTML'
             )
-            
+
             # Update orders count
             user_id = str(message.from_user.id)
             data = getData(user_id)
@@ -1112,7 +1250,27 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 data['orders_count'] = 0
             data['orders_count'] += 1
             updateUser(user_id, data)
-            
+
+            # ✅ Affiliate Commission Tracking
+            if data.get('ref_by') and data['ref_by'] != "none":
+                try:
+                    commission = cost * 0.05  # 5% commission
+                    add_affiliate_earning(data['ref_by'], commission)
+
+                    bot.send_message(
+                        data['ref_by'],
+                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
+                        f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>UGX {commission:.2f}</code>\n"
+                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
+                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
+                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> UGX {cost:.2f}\n"
+                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
+                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
+                        parse_mode='HTML'
+                    )
+                except Exception as e:
+                    print(f"Failed to send affiliate notification: {e}")
+
         else:
             error_msg = result.get('error', 'Uɴᴋɴᴏᴡɴ ᴇʀʀᴏʀ ꜰʀᴏᴍ SMM ᴘᴀɴᴇʟ')
             raise Exception(error_msg)
@@ -1169,7 +1327,7 @@ def handle_tiktok_order(message):
             "link_hint": "Tiktok Post Link",
             "min": 100,
             "max": 10000,
-            "price": 1664,
+            "price": 1164,
             "unit": "1k likes",
             "service_id": "17335"
         },
@@ -1181,7 +1339,7 @@ def handle_tiktok_order(message):
             "max": 10000,
             "price": 16943,
             "unit": "1k followers",
-            "service_id": "19122"
+            "service_id": "18383"
         }
     }
     
@@ -1422,7 +1580,27 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 data['orders_count'] = 0
             data['orders_count'] += 1
             updateUser(user_id, data)
-            
+
+            # ✅ Affiliate Commission Tracking
+            if data.get('ref_by') and data['ref_by'] != "none":
+                try:
+                    commission = cost * 0.05  # 5% commission
+                    add_affiliate_earning(data['ref_by'], commission)
+
+                    bot.send_message(
+                        data['ref_by'],
+                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
+                        f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>UGX {commission:.2f}</code>\n"
+                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
+                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
+                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> UGX {cost:.2f}\n"
+                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
+                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
+                        parse_mode='HTML'
+                    )
+                except Exception as e:
+                    print(f"Failed to send affiliate notification: {e}")
+
         else:
             error_msg = result.get('error', 'Uɴᴋɴᴏᴡɴ ᴇʀʀᴏʀ ꜰʀᴏᴍ SMM ᴘᴀɴᴇʟ')
             raise Exception(error_msg)
@@ -2032,7 +2210,27 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 data['orders_count'] = 0
             data['orders_count'] += 1
             updateUser(user_id, data)
-            
+
+            # ✅ Affiliate Commission Tracking
+            if data.get('ref_by') and data['ref_by'] != "none":
+                try:
+                    commission = cost * 0.05  # 5% commission
+                    add_affiliate_earning(data['ref_by'], commission)
+
+                    bot.send_message(
+                        data['ref_by'],
+                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
+                        f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>UGX {commission:.2f}</code>\n"
+                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
+                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
+                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> UGX {cost:.2f}\n"
+                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
+                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
+                        parse_mode='HTML'
+                    )
+                except Exception as e:
+                    print(f"Failed to send affiliate notification: {e}")
+
         else:
             error_msg = result.get('error', 'Uɴᴋɴᴏᴡɴ ᴇʀʀᴏʀ ꜰʀᴏᴍ SMM ᴘᴀɴᴇʟ')
             raise Exception(error_msg)
@@ -2108,7 +2306,7 @@ def handle_facebook_order(message):
             "max": 10000,
             "price": 4567,
             "unit": "1k likes",
-            "service_id": "19163",
+            "service_id": "18990",
             "link_hint": "Facebook post link"
         }
     }
@@ -2346,7 +2544,27 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 data['orders_count'] = 0
             data['orders_count'] += 1
             updateUser(user_id, data)
-            
+
+            # ✅ Affiliate Commission Tracking
+            if data.get('ref_by') and data['ref_by'] != "none":
+                try:
+                    commission = cost * 0.05  # 5% commission
+                    add_affiliate_earning(data['ref_by'], commission)
+
+                    bot.send_message(
+                        data['ref_by'],
+                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
+                        f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>UGX {commission:.2f}</code>\n"
+                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
+                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
+                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> UGX {cost:.2f}\n"
+                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
+                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
+                        parse_mode='HTML'
+                    )
+                except Exception as e:
+                    print(f"Failed to send affiliate notification: {e}")
+
         else:
             error_msg = result.get('error', 'Uɴᴋɴᴏᴡɴ ᴇʀʀᴏʀ ꜰʀᴏᴍ SMM ᴘᴀɴᴇʟ')
             raise Exception(error_msg)
@@ -2639,7 +2857,27 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 data['orders_count'] = 0
             data['orders_count'] += 1
             updateUser(user_id, data)
-            
+
+            # ✅ Affiliate Commission Tracking
+            if data.get('ref_by') and data['ref_by'] != "none":
+                try:
+                    commission = cost * 0.05  # 5% commission
+                    add_affiliate_earning(data['ref_by'], commission)
+
+                    bot.send_message(
+                        data['ref_by'],
+                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
+                        f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>UGX {commission:.2f}</code>\n"
+                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
+                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
+                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> UGX {cost:.2f}\n"
+                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
+                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
+                        parse_mode='HTML'
+                    )
+                except Exception as e:
+                    print(f"Failed to send affiliate notification: {e}")
+
         else:
             error_msg = result.get('error', 'Uɴᴋɴᴏᴡɴ ᴇʀʀᴏʀ ꜰʀᴏᴍ SMM ᴘᴀɴᴇʟ')
             raise Exception(error_msg)
@@ -2700,9 +2938,9 @@ def back_to_main(message):
         combined_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         combined_markup.row("🛒 Buy Services", "👤 My Account")
         combined_markup.row("💳 Pricing", "📊 Order Stats")
-        combined_markup.row("🗣 Invite", "🏆 Leaderboard")
+        combined_markup.row("💰 Refer&Earn", "🏆 Leaderboard")
         combined_markup.row("📜 Help")
-        
+
         bot.reply_to(message,
             "🔄 *Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Mᴀɪɴ Mᴇɴᴜ*\n\n",
             parse_mode="Markdown",
@@ -2737,25 +2975,51 @@ def admin_panel(message):
     
 
 #============================= Add and Remove Coins ==============================================#
-@bot.message_handler(func=lambda message: message.text in ["➕ Add Coins", "➖ Remove Coins"] and message.from_user.id in admin_user_ids)
+@bot.message_handler(func=lambda message: message.text in ["➕ Add", "➖ Remove"] and message.from_user.id in admin_user_ids)
 def admin_actions(message):
-    """Enhanced admin command guidance"""
+    """Enhanced admin command guidance for coins and affiliate cash"""
     if "Add" in message.text:
         bot.reply_to(message,
-            "💎 *Aᴅᴅ Cᴏɪɴꜱ Gᴜɪᴅᴇ*\n\n"
-            "Cᴏᴍᴍᴀɴᴅ: `/addcoins <user_id> <amount>`\n\n"
-            "Exᴀᴍᴘʟᴇ:\n"
-            "`/addcoins 123456789 500.00`\n\n"
-            "⚠️ Wɪʟʟ ᴄʀᴇᴀᴛᴇ ᴀᴄᴄᴏᴜɴᴛ ɪꜰ ɴᴏᴛ ᴇxɪꜱᴛꜱ",
+            "💎 *Aᴅᴅ Cᴏɪɴꜱ & Cᴀꜱʜ Gᴜɪᴅᴇ*\n\n"
+            "📌 *To Add Coins:*\n"
+            "▸ `/addcoins <user_id> <amount>`\n"
+            "🧪 Example: `/addcoins 123456789 500.00`\n\n"
+            "📌 *To Add Affiliate Cash:*\n"
+            "▸ `/addcash <user_id> <amount>`\n"
+            "🧪 Example: `/addcash 123456789 5.00`\n\n"
+            "⚠️ Coins affect user balance. Cash affects affiliate earnings.",
             parse_mode="Markdown",
             reply_markup=ForceReply(selective=True))
+
     elif "Remove" in message.text:
         bot.reply_to(message,
-            "⚡ *Rᴇᴍᴏᴠᴇ Cᴏɪɴꜱ Gᴜɪᴅᴇ*\n\n"
-            "Cᴏᴍᴍᴀɴᴅ: `/removecoins <user_id> <amount>`\n\n"
+            "⚡ *Rᴇᴍᴏᴠᴇ Cᴏɪɴꜱ & Cᴀꜱʜ Gᴜɪᴅᴇ*\n\n"
+            "📌 *To Remove Coins:*\n"
+            "▸ `/removecoins <user_id> <amount>`\n"
+            "🧪 Example: `/removecoins 123456789 250.50`\n\n"
+            "📌 *To Remove Affiliate Cash:*\n"
+            "▸ `/removecash <user_id> <amount>`\n"
+            "🧪 Example: `/removecash 123456789 3.00`\n\n"
+            "⚠️ Use `/removecash` after a withdrawal is completed.",
+            parse_mode="Markdown",
+            reply_markup=ForceReply(selective=True))
+        
+    elif "Add Cash" in message.text:
+        bot.reply_to(message,
+            "💵 *Aᴅᴅ Aꜰꜰɪʟɪᴀᴛᴇ Cᴀꜱʜ Gᴜɪᴅᴇ*\n\n"
+            "Cᴏᴍᴍᴀɴᴅ: `/addcash <user_id> <amount>`\n\n"
             "Exᴀᴍᴘʟᴇ:\n"
-            "`/removecoins 123456789 250.50`\n\n"
-            "⚠️ Fᴀɪʟꜱ ɪꜰ ɪɴꜱᴜꜰꜰɪᴄɪᴇɴᴛ ʙᴀʟᴀɴᴄᴇ",
+            "`/addcash 123456789 5.00`\n\n"
+            "⚠️ Fᴏʀ ᴀᴅᴊᴜꜱᴛɪɴɢ ᴀꜰꜰɪʟɪᴀᴛᴇ ᴄᴏᴍᴍɪꜱꜱɪᴏɴꜱ",
+            parse_mode="Markdown",
+            reply_markup=ForceReply(selective=True))
+    elif "Remove Cash" in message.text:
+        bot.reply_to(message,
+            "💸 *Rᴇᴍᴏᴠᴇ Aꜰꜰɪʟɪᴀᴛᴇ Cᴀꜱʜ Gᴜɪᴅᴇ*\n\n"
+            "Cᴏᴍᴍᴀɴᴅ: `/removecash <user_id> <amount>`\n\n"
+            "Exᴀᴍᴘʟᴇ:\n"
+            "`/removecash 123456789 3.00`\n\n"
+            "⚠️ Uꜱᴇ ᴛʜɪꜱ ᴀꜰᴛᴇʀ ᴡɪᴛʜᴅʀᴀᴡᴀʟ ᴄᴏɴꜰɪʀᴍᴀᴛɪᴏɴ",
             parse_mode="Markdown",
             reply_markup=ForceReply(selective=True))
 
@@ -2893,6 +3157,69 @@ parse_mode="Markdown")
             "Please try again or contact developer",
             parse_mode="Markdown")
         print(f"Admin command error: {traceback.format_exc()}")
+
+@bot.message_handler(commands=['addcash', 'removecash'])
+def handle_cash_commands(message):
+    if message.from_user.id not in admin_user_ids:
+        return bot.reply_to(message, "⛔ *Aᴅᴍɪɴ Aᴄᴄᴇꜱꜱ Dᴇɴɪᴇᴅ*", parse_mode="Markdown")
+
+    try:
+        args = message.text.split()
+        if len(args) != 3:
+            return bot.reply_to(message,
+                "💡 *Uꜱᴀɢᴇ:*\n"
+                "`/addcash <user_id> <amount>`\n"
+                "`/removecash <user_id> <amount>`",
+                parse_mode="Markdown")
+
+        user_id = args[1]
+        amount = float(args[2])
+
+        if amount <= 0:
+            return bot.reply_to(message, "⚠️ Aᴍᴏᴜɴᴛ ᴍᴜꜱᴛ ʙᴇ ᴀ ᴘᴏꜱɪᴛɪᴠᴇ ɴᴜᴍʙᴇʀ", parse_mode="Markdown")
+
+        is_removal = message.text.startswith("/removecash")
+        tx_id = int(time.time())
+
+        if update_affiliate_earning(user_id, amount, subtract=is_removal, admin_id=message.from_user.id):
+            new_data = getData(user_id)
+            current = float(new_data.get("affiliate_earnings", 0.0))
+
+            bot.reply_to(message,
+f"{'💸 *Cᴀꜱʜ Dᴇᴅᴜᴄᴛɪᴏɴ*' if is_removal else '💵 *Cᴀꜱʜ Cʀᴇᴅɪᴛᴇᴅ*'}\n\n"
+f"▸ *Uꜱᴇʀ ID:* `{user_id}`\n"
+f"▸ *Aᴍᴏᴜɴᴛ:* {'-' if is_removal else '+'}UGX{amount:.2f}\n"
+f"▸ *Nᴇᴡ Aꜰꜰɪʟɪᴀᴛᴇ Bᴀʟᴀɴᴄᴇ:* UGX{current:.2f}\n"
+f"▸ *Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:* `{tx_id}`\n\n"
+"📝 _Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ʟᴏɢɢᴇᴅ ɪɴ ᴄᴀꜱʜ ʜɪꜱᴛᴏʀʏ_",
+            parse_mode="Markdown")
+
+            try:
+                bot.send_message(
+                    user_id,
+f"{'🔻 *Aꜰꜰɪʟɪᴀᴛᴇ Wɪᴛʜᴅʀᴀᴡᴀʟ Pʀᴏᴄᴇꜱꜱᴇᴅ*' if is_removal else '💰 *Aꜰꜰɪʟɪᴀᴛᴇ Eᴀʀɴɪɴɢ Cʀᴇᴅɪᴛᴇᴅ*'}\n\n"
+f"{'🧾 Yᴏᴜʀ ʀᴇǫᴜᴇꜱᴛᴇᴅ ᴡɪᴛʜᴅʀᴀᴡᴀʟ ʜᴀꜱ ʙᴇᴇɴ ᴘʀᴏᴄᴇꜱꜱᴇᴅ.' if is_removal else '🎉 Yᴏᴜ’ᴠᴇ ʀᴇᴄᴇɪᴠᴇᴅ ᴀ ᴄᴀꜱʜ ʙᴏɴᴜꜱ ꜰʀᴏᴍ ᴀᴅᴍɪɴ!'}\n\n"
+f"▸ *Aᴍᴏᴜɴᴛ:* {'-' if is_removal else '+'}UGX{amount:.2f}\n"
+f"▸ *Nᴇᴡ Bᴀʟᴀɴᴄᴇ:* UGX{current:.2f}\n"
+f"▸ *Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:* `{tx_id}`\n\n"
+"📌 _Yᴏᴜʀ ᴇᴀʀɴɪɴɢꜱ ʜᴀᴠᴇ ʙᴇᴇɴ ᴜᴘᴅᴀᴛᴇᴅ_",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup().add(
+                        InlineKeyboardButton("📊 View Earnings", callback_data="affiliate_stats")
+                    )
+                )
+            except Exception as e:
+                print(f"Affiliate notification failed: {e}")
+
+        else:
+            bot.reply_to(message, "❌ Fᴀɪʟᴇᴅ ᴛᴏ ᴜᴘᴅᴀᴛᴇ ᴀꜰꜰɪʟɪᴀᴛᴇ ʙᴀʟᴀɴᴄᴇ", parse_mode="Markdown")
+
+    except Exception as e:
+        bot.reply_to(message, f"❌ *Eʀʀᴏʀ:* `{str(e)}`", parse_mode="Markdown")
+
+
+
+#=========================== End of Add and Remove Coins =================================#
 
 #=========================== Batch Coin Commands =================================#
 @bot.message_handler(func=lambda m: m.text == "📦 Batch Coins")
