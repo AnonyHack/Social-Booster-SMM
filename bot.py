@@ -189,7 +189,7 @@ def add_order(user_id, order_data):
         print(f"Error adding order to MongoDB: {e}")
         return False
 #================================== Force Join Method =======================================#
-required_channels = ["SmmBoosterz, Megahubbots, smmserviceslogs, Freenethubz, Freenethubchannel, iCoinStores"]  # Channel usernames without "@"
+required_channels = ["SmmBoosterz", "Megahubbots", "smmserviceslogs", "Freenethubz", "Freenethubchannel", "iCoinStores"]  # Channel usernames without "@"
 payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
