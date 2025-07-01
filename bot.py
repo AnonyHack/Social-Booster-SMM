@@ -31,7 +31,6 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                          get_affiliate_earnings, add_affiliate_earning, get_affiliate_users, update_affiliate_earning ) # Import your functions from functions.py
 
 
-
 # Load environment variables from .env file
 load_dotenv()
 
@@ -75,12 +74,12 @@ admin_markup.row("📦 Order Manager", "📊 Analytics")  # New
 admin_markup.row("🔧 Maintenance", "📤 Broadcast")
 admin_markup.row("📦 Batch Coins")
 admin_markup.row("🔙 Main Menu")
+
 #======================= Send Orders main menu =======================#
 send_orders_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 send_orders_markup.row(
     KeyboardButton("📱 Order Telegram"),
     KeyboardButton("🎵 Order TikTok"),
-    KeyboardButton("")
 )
 
 send_orders_markup.row(
@@ -92,7 +91,26 @@ send_orders_markup.row(
     KeyboardButton("📘 Order Facebook"),
     KeyboardButton("💬 Order WhatsApp")
 )
+
+send_orders_markup.row(
+    KeyboardButton("🐦 Order Twitter/X"),
+    KeyboardButton("📛 Order Pinterest")
+)
+
+send_orders_markup.row(
+    KeyboardButton("👻 Order Snapchat"),
+    KeyboardButton("🎶 Order Spotify")
+)
+
 send_orders_markup.add(KeyboardButton("🔙 Main Menu"))
+
+#================== Force Join Method to check bans =================#
+required_channels = ["smmserviceslogs"]  # Channel usernames without "@"
+payment_channel = "@smmserviceslogs"  # Channel for payment notifications
+
+# === Import and register order handlers ===
+from orders import register_order_handlers
+register_order_handlers(bot, send_orders_markup, main_markup, payment_channel)
 
 # Telegram services menu
 telegram_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -168,6 +186,8 @@ whatsapp_services_markup.row(
 )
 whatsapp_services_markup.add(KeyboardButton("↩️ Go Back"))
 
+
+
 ############################ END OF NEW FEATURES #############################
 
 #==================================== MongoDB Integration =======================#
@@ -189,7 +209,7 @@ def add_order(user_id, order_data):
         print(f"Error adding order to MongoDB: {e}")
         return False
 #================================== Force Join Method =======================================#
-required_channels = ["SmmBoosterz", "Megahubbots", "smmserviceslogs", "Freenethubz", "Freenethubchannel", "iCoinStores"]  # Channel usernames without "@"
+required_channels = ["smmserviceslogs"]  # Channel usernames without "@"
 payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
@@ -237,11 +257,11 @@ def check_membership_and_prompt(user_id, message):
 </blockquote>""",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📢 MAIN CHANNEL", url="https://t.me/SmmBoosterz")],
-                [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
-                [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
-                [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
-                [InlineKeyboardButton("🛒 COINS STORE", url="https://t.me/iCoinStores")],
+              #  [InlineKeyboardButton("📢 MAIN CHANNEL", url="https://t.me/SmmBoosterz")],
+               # [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
+              #  [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
+               # [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
+              #  [InlineKeyboardButton("🛒 COINS STORE", url="https://t.me/iCoinStores")],
                 [InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/smmserviceslogs")],
                 [InlineKeyboardButton("📱 WHATSAPP CHANNEL", url="https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")],
                 [InlineKeyboardButton("✨ ✅ VERIFY MEMBERSHIP", callback_data="verify_membership")],
