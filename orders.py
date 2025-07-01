@@ -392,8 +392,8 @@ def register_twitter_handlers(bot, send_orders_markup, main_markup, payment_chan
             "max": 100000,
             "price": 200,
             "unit": "1k views",
-            "service_id": "18454",
-            "link_hint": "Tweet link",
+            "service_id": "21477",
+            "link_hint": "X Video link",
             "icon": "👀"
         },
         "❤️ X Likes": {
@@ -409,7 +409,7 @@ def register_twitter_handlers(bot, send_orders_markup, main_markup, payment_chan
         },
         "🔁 X Retweets": {
             "name": "Tweet Retweets",
-            "quality": "High Quality",
+            "quality": "No Refill",
             "min": 100,
             "max": 10000,
             "price": 4500,
@@ -420,12 +420,12 @@ def register_twitter_handlers(bot, send_orders_markup, main_markup, payment_chan
         },
         "👤 X Followers": {
             "name": "Twitter Followers",
-            "quality": "HQ Profile",
-            "min": 100,
-            "max": 10000,
-            "price": 40000,
+            "quality": "No Refill",
+            "min": 200,
+            "max": 1000000,
+            "price": 20000,
             "unit": "1k followers",
-            "service_id": "17410",
+            "service_id": "20399",
             "link_hint": "Twitter profile link",
             "icon": "👥"
         }
@@ -509,93 +509,89 @@ def register_spotify_handlers(bot, send_orders_markup, main_markup, payment_chan
     spotify_services = {
         "👥 Spotify Followers": {
             "name": "Spotify Followers",
-            "quality": "Mixed Quality",
+            "quality": "Refill 90Days",
             "min": 100,
-            "max": 10000,
-            "price": 9500,
+            "max": 100000,
+            "price": 3000,
             "unit": "1k followers",
-            "service_id": "19300",
+            "service_id": "19304",
             "link_hint": "Profile link",
             "icon": "👥"
         },
         "💾 Spotify Saves": {
             "name": "Spotify Saves",
-            "quality": "High Quality",
+            "quality": "No Refill",
             "min": 100,
-            "max": 10000,
-            "price": 1200,
+            "max": 1000000,
+            "price": 1800,
             "unit": "1k saves",
-            "service_id": "19301",
+            "service_id": "19331",
             "link_hint": "Track link",
             "icon": "💾"
         },
         "▶️ Spotify Plays": {
             "name": "Spotify Plays",
-            "quality": "Real Plays",
+            "quality": "Refill 365Days",
             "min": 1000,
             "max": 100000,
             "price": 800,
             "unit": "1k plays",
-            "service_id": "19302",
+            "service_id": "19450",
             "link_hint": "Track link",
             "icon": "▶️"
         },
         "📈 Monthly Listeners": {
             "name": "Monthly Listeners",
-            "quality": "High Quality",
-            "min": 100,
-            "max": 5000,
-            "price": 3000,
+            "quality": "Refill 30Days",
+            "min": 500,
+            "max": 1000000,
+            "price": 12000,
             "unit": "1k listeners",
-            "service_id": "19303",
+            "service_id": "19385",
             "link_hint": "Profile link",
             "icon": "📈"
         },
-        "🎙 Podcast Plays": {
-            "name": "Podcast Plays",
-            "quality": "High Retention",
-            "min": 500,
-            "max": 50000,
-            "price": 2000,
-            "unit": "1k plays",
-            "service_id": "19304",
-            "link_hint": "Podcast link",
-            "icon": "🎙"
-        },
-        "📻 Radio Plays": {
-            "name": "Radio Plays",
-            "quality": "Mixed Quality",
-            "min": 500,
-            "max": 50000,
-            "price": 2500,
-            "unit": "1k plays",
-            "service_id": "19305",
-            "link_hint": "Radio link",
-            "icon": "📻"
-        },
-        "🏆 Chart-Top 50": {
-            "name": "Chart-Top 50",
-            "quality": "Premium",
-            "min": 50,
-            "max": 1000,
-            "price": 5000,
-            "unit": "1k placements",
-            "service_id": "19306",
-            "link_hint": "Track link",
-            "icon": "🏆"
-        },
-        "⚡ Algorithmic Plays": {
-            "name": "Algorithmic Plays",
-            "quality": "Premium",
-            "min": 1000,
-            "max": 50000,
-            "price": 4000,
-            "unit": "1k plays",
-            "service_id": "19307",
-            "link_hint": "Track link",
-            "icon": "⚡"
+            "🎙 Podcast Plays": {
+                "name": "Podcast Plays",
+                "quality": "Refill 365Days",
+                "min": 500,
+                "max": 20000000,
+                "price": 2500,
+                "unit": "1k plays",
+                "service_id": "19402",
+                "link_hint": "Podcast link"
+            },
+            "📻 Radio Plays": {
+                "name": "Radio Plays",
+                "quality": "Mixed Premium",
+                "min": 500,
+                "max": 20000000,
+                "price": 5200,
+                "unit": "1k plays",
+                "service_id": "15682",
+                "link_hint": "Track Link(To place an order, insert your track link in the \"link\" field. Only track links in the https://open.spotify.com/track/xxx format are accepted. Please avoid using https://spotify.link/xxxx)."
+            },
+            "🏆 Chart-Top 50": {
+                "name": "Chart-Top 50",
+                "quality": "Premium Mix",
+                "min": 2000,
+                "max": 5000000,
+                "price": 20000,
+                "unit": "1k placements",
+                "service_id": "19408",
+                "link_hint": "Track Link: To place an order, insert your track link in the \"link\" field. Only track or album links in the https://open.spotify.com/track/xxx or https://open.spotify.com/album/xxx format are accepted. Please avoid using https://spotify.link/xxxx."
+            },
+            "⚡ Algorithmic Plays": {
+                "name": "Algorithmic Plays",
+                "quality": "Mix Premium",
+                "min": 500,
+                "max": 2000000,
+                "price": 5200,
+                "unit": "1k plays",
+                "service_id": "15586",
+                "link_hint": "Track Link(To place an order, insert your track link in the \"link\" field. Only track links in the https://open.spotify.com/track/xxx format are accepted. Please avoid using https://spotify.link/xxxx.)"
+            }
         }
-    }
 
     def order_spotify_menu(message):
         bot.reply_to(message, "🎶 Spotify Services:", reply_markup=spotify_services_markup)
@@ -664,9 +660,9 @@ def register_pinterest_handlers(bot, send_orders_markup, main_markup, payment_ch
         "📌 Pinterest Followers": {
             "name": "Pinterest Followers",
             "quality": "High Quality",
-            "min": 100,
+            "min": 200,
             "max": 10000,
-            "price": 35000,  # Adjust price as needed
+            "price": 23000,  # Adjust price as needed
             "unit": "1k followers",
             "service_id": "21597",
             "link_hint": "Profile link",
@@ -677,7 +673,7 @@ def register_pinterest_handlers(bot, send_orders_markup, main_markup, payment_ch
             "quality": "Real & Active",
             "min": 100,
             "max": 50000,
-            "price": 2500,  # Adjust price as needed
+            "price": 21000,  # Adjust price as needed
             "unit": "1k likes",
             "service_id": "21599",
             "link_hint": "Pin link",
@@ -754,32 +750,32 @@ def register_snapchat_handlers(bot, send_orders_markup, main_markup, payment_cha
     snapchat_services = {
         "👥 Snapchat Followers": {
             "name": "Snapchat Followers",
-            "quality": "Real & Active",
+            "quality": "Real & NonDrop",
             "min": 100,
-            "max": 50000,
-            "price": 30000,  # Adjust price as needed
+            "max": 15000,
+            "price": 97000,  # Adjust price as needed
             "unit": "1k followers",
             "service_id": "19584",
             "link_hint": "Profile username",
             "icon": "👥"
         },
         "❤️ Snapchat Likes": {
-            "name": "Snapchat Likes",
-            "quality": "High Quality",
+            "name": "Snapchat Likes+Views",
+            "quality": "Real & NonDrop",
             "min": 100,
-            "max": 100000,
-            "price": 2000,  # Adjust price as needed
+            "max": 10000,
+            "price": 215000,  # Adjust price as needed
             "unit": "1k likes",
             "service_id": "21779",
             "link_hint": "Snap link",
             "icon": "❤️"
         },
         "👀 Snapchat Views": {
-            "name": "Snapchat Views",
-            "quality": "Fast Delivery",
-            "min": 1000,
-            "max": 500000,
-            "price": 1500,  # Adjust price as needed
+            "name": "Snapchat Views+Likes",
+            "quality": "Real & NonDrop",
+            "min": 10,
+            "max": 10000,
+            "price": 173000,  # Adjust price as needed
             "unit": "1k views",
             "service_id": "19583",
             "link_hint": "Snap link",
