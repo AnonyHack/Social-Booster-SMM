@@ -28,7 +28,8 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                        get_total_deposits, get_top_referrer, get_user_orders_stats, get_new_users,
                        get_completed_orders, get_all_users, save_pinned_message, get_all_pinned_messages,
                          clear_all_pinned_messages, orders_collection, get_confirmed_spent, get_pending_spent, 
-                         get_affiliate_earnings, add_affiliate_earning, get_affiliate_users, update_affiliate_earning ) # Import your functions from functions.py
+                         get_affiliate_earnings, add_affiliate_earning, get_affiliate_users, 
+                         update_affiliate_earning, get_user_deposits, get_locked_services,  ) # Import your functions from functions.py
 
 
 # Load environment variables from .env file
@@ -523,7 +524,7 @@ def my_account(message):
     
     confirmed_spent = get_confirmed_spent(user_id)
     pending_spent = get_pending_spent(user_id)
-
+    total_deposits = get_user_deposits(user_id)  # Get total deposits from database
 
     if not data:
         bot.reply_to(message, "❌ Account not found. Please /start again.")
@@ -542,7 +543,7 @@ def my_account(message):
     # Get user profile photos
     photos = bot.get_user_profile_photos(message.from_user.id, limit=1)
     
-    # Format the message
+    # Format the message - Updated with deposits information
     caption = f"""
 <blockquote>
 <b><u>𝗠𝘆 𝗔𝗰𝗰𝗼𝘂𝗻𝘁</u></b>
@@ -553,7 +554,8 @@ def my_account(message):
 ⏰ Tɪᴍᴇ: {current_time}
 📅 Dᴀᴛᴇ: {current_date}
 
-🪙 Bᴀʟᴀɴᴄᴇ: <code>{data['balance']}</code> Cᴏɪɴꜱ
+💰 Tᴏᴛᴀʟ Dᴇᴘᴏꜱɪᴛꜱ: <code>{total_deposits:.2f}</code> Cᴏɪɴꜱ
+🪙 Cᴜʀʀᴇɴᴛ Bᴀʟᴀɴᴄᴇ: <code>{data['balance']}</code> Cᴏɪɴꜱ
 💸 Cᴏɴꜰɪʀᴍᴇᴅ Sᴘᴇɴᴛ: <code>{confirmed_spent:.2f}</code> Cᴏɪɴꜱ
 ⏳ Pᴇɴᴅɪɴɢ Sᴘᴇɴᴅɪɴɢ: <code>{pending_spent:.2f}</code> Cᴏɪɴꜱ
 </blockquote>
