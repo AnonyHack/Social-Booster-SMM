@@ -483,6 +483,12 @@ def get_new_users(days=1):
         logger.error(f"Error getting new users: {e}")
         return 0
 
+def get_user_deposits(user_id):
+    """Get total deposits for a user (coins added through purchases or admin)"""
+    # Example with MongoDB:
+    user = db.users.find_one({'user_id': str(user_id)})
+    return float(user.get('total_deposits', 0)) if user else 0.0
+
 # -- Pinned messages MongoDB -- #
 
 def save_pinned_message(user_id, message_id):
