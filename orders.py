@@ -2,9 +2,12 @@ from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardBut
 import re, os
 import requests
 import time
-from functions import getData, cutBalance, add_order, updateUser, get_affiliate_earnings, add_affiliate_earning
+from functions import getData, cutBalance, add_order, updateUser, get_affiliate_earnings, add_affiliate_earning, get_locked_services
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 from io import BytesIO
+import os
+
+ # Replace with actual Telegram user IDs of admins
 
 # ======================= SHARED FUNCTIONS ======================= #
 def get_profile_photo(bot, user_id):
@@ -436,6 +439,16 @@ def register_twitter_handlers(bot, send_orders_markup, main_markup, payment_chan
 
     def handle_twitter_order(message):
         service = twitter_services[message.text]
+
+                # Check if the service is locked for non-admins
+        locked_services = get_locked_services()
+        admin_ids_env = os.getenv("ADMIN_USER_IDS", "")
+        admin_user_ids = [int(uid.strip()) for uid in admin_ids_env.split(",") if uid.strip().isdigit()]
+        if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
+            bot.reply_to(message, "🚫 ᴛʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            return
+        
+        # Create a cancel and back button markup
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
@@ -598,6 +611,15 @@ def register_spotify_handlers(bot, send_orders_markup, main_markup, payment_chan
 
     def handle_spotify_order(message):
         service = spotify_services[message.text]
+
+                        # Check if the service is locked for non-admins
+        locked_services = get_locked_services()
+        admin_ids_env = os.getenv("ADMIN_USER_IDS", "")
+        admin_user_ids = [int(uid.strip()) for uid in admin_ids_env.split(",") if uid.strip().isdigit()]
+        if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
+            bot.reply_to(message, "🚫 ᴛʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            return
+        
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
@@ -686,6 +708,15 @@ def register_pinterest_handlers(bot, send_orders_markup, main_markup, payment_ch
 
     def handle_pinterest_order(message):
         service = pinterest_services[message.text]
+
+                        # Check if the service is locked for non-admins
+        locked_services = get_locked_services()
+        admin_ids_env = os.getenv("ADMIN_USER_IDS", "")
+        admin_user_ids = [int(uid.strip()) for uid in admin_ids_env.split(",") if uid.strip().isdigit()]
+        if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
+            bot.reply_to(message, "🚫 ᴛʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            return
+        
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
@@ -783,11 +814,21 @@ def register_snapchat_handlers(bot, send_orders_markup, main_markup, payment_cha
         }
     }
 
+
     def order_snapchat_menu(message):
         bot.reply_to(message, "👻 Snapchat Services:", reply_markup=snapchat_services_markup)
 
     def handle_snapchat_order(message):
         service = snapchat_services[message.text]
+
+                        # Check if the service is locked for non-admins
+        locked_services = get_locked_services()
+        admin_ids_env = os.getenv("ADMIN_USER_IDS", "")
+        admin_user_ids = [int(uid.strip()) for uid in admin_ids_env.split(",") if uid.strip().isdigit()]
+        if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
+            bot.reply_to(message, "🚫 ᴛʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            return
+        
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
