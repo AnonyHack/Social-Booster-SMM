@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Initialize MongoDB connection
 try:
     client = MongoClient(MONGO_URI)
-    db = client.get_database("smmhubbooster")
+    db = client.get_database("smmhubboosterv2")
     users_collection = db.users
     orders_collection = db.orders
     cash_logs_collection = db['affiliate_cash_logs']  # New collection for cash logs
@@ -483,12 +483,6 @@ def get_new_users(days=1):
         logger.error(f"Error getting new users: {e}")
         return 0
 
-def get_user_deposits(user_id):
-    """Get total deposits for a user (coins added through purchases or admin)"""
-    # Example with MongoDB:
-    user = db.users.find_one({'user_id': str(user_id)})
-    return float(user.get('total_deposits', 0)) if user else 0.0
-
 # -- Pinned messages MongoDB -- #
 
 def save_pinned_message(user_id, message_id):
@@ -557,6 +551,54 @@ def get_pending_spent(user_id):
         print(f"Error in get_pending_spent: {e}")
         return 0.0
 
+def get_user_deposits(user_id):
+    """Get total deposits for a user (coins added through purchases or admin)"""
+    # Example with MongoDB:
+    user = db.users.find_one({'user_id': str(user_id)})
+    return float(user.get('total_deposits', 0)) if user else 0.0
 
+# In functions.py
+def delete_user(user_id):
+    """Delete a user from the database"""
+    try:
+        users_collection.delete_one({"user_id": str(user_id)})
+        orders_collection.delete_many({"user_id": str(user_id)})
+        return True
+    except Exception as e:
+        print(f"Error deleting user: {e}")
+        return False
+
+def lock_service(service_id):
+    """Lock a service so only admins can order it"""
+    try:
+        locked_services = db.locked_services
+        locked_services.update_one(
+            {"service_id": service_id},
+            {"$set": {"service_id": service_id}},
+            upsert=True
+        )
+        return True
+    except Exception as e:
+        print(f"Error locking service: {e}")
+        return False
+
+def unlock_service(service_id):
+    """Unlock a service for all users"""
+    try:
+        locked_services = db.locked_services
+        result = locked_services.delete_one({"service_id": service_id})
+        return result.deleted_count > 0
+    except Exception as e:
+        print(f"Error unlocking service: {e}")
+        return False
+
+def get_locked_services():
+    """Get list of all locked service IDs"""
+    try:
+        locked_services = db.locked_services
+        return [doc["service_id"] for doc in locked_services.find()]
+    except Exception as e:
+        print(f"Error getting locked services: {e}")
+        return []
 
 print("functions.py loaded with MongoDB support")
