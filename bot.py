@@ -217,7 +217,7 @@ def add_order(user_id, order_data):
         print(f"Error adding order to MongoDB: {e}")
         return False
 #================================== Force Join Method =======================================#
-required_channels = ["smmserviceslogs"]  # Channel usernames without "@"
+required_channels = ["smmserviceslogs", "Freenethubz", "Megahubbots", "iCoinStores", "Freenethubchannel", "SmmBoosterz"]  # Channel usernames without "@"
 payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
@@ -265,11 +265,11 @@ def check_membership_and_prompt(user_id, message):
 </blockquote>""",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup([
-              #  [InlineKeyboardButton("📢 MAIN CHANNEL", url="https://t.me/SmmBoosterz")],
-               # [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
-              #  [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
-               # [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
-              #  [InlineKeyboardButton("🛒 COINS STORE", url="https://t.me/iCoinStores")],
+                [InlineKeyboardButton("📢 MAIN CHANNEL", url="https://t.me/SmmBoosterz")],
+                [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
+                [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
+                [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
+                [InlineKeyboardButton("🛒 COINS STORE", url="https://t.me/iCoinStores")],
                 [InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/smmserviceslogs")],
                 [InlineKeyboardButton("📱 WHATSAPP CHANNEL", url="https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")],
                 [InlineKeyboardButton("✨ ✅ VERIFY MEMBERSHIP", callback_data="verify_membership")],
