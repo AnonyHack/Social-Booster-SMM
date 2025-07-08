@@ -31,7 +31,7 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                          get_affiliate_earnings, add_affiliate_earning, get_affiliate_users, 
                          update_affiliate_earning, get_user_deposits, get_locked_services,
                            addBonusBalance, removeOldBonus, get_bonus_amount, get_bonus_interval,
-                           is_bonus_enabled, get_combined_leaderboard) # Import your functions from functions.py
+                           is_bonus_enabled) # Import your functions from functions.py
 
 
 # Load environment variables from .env file
@@ -4020,78 +4020,45 @@ def list_banned(message):
                 reply_markup=admin_markup)
 
 # ======================= Leaderboard Button ======================= #
+# ============================= Premium Leaderboard ============================= #
 @bot.message_handler(func=lambda m: m.text == "🏆 Leaderboard")
 def show_leaderboard(message):
-    send_leaderboard_page(message.chat.id, page=0)
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("leaderboard_page:"))
-def leaderboard_callback(call):
-    page = int(call.data.split(":")[1])
-    bot.answer_callback_query(call.id)
-    bot.edit_message_text(
-        chat_id=call.message.chat.id,
-        message_id=call.message.message_id,
-        **build_leaderboard_message(page)
-    )
-
-def send_leaderboard_page(chat_id, page=0):
-    bot.send_message(chat_id, **build_leaderboard_message(page))
-
-def build_leaderboard_message(page=0, per_page=3):
-    users = get_combined_leaderboard()
-    total = len(users)
-    pages = (total + per_page - 1) // per_page
-
-    start = page * per_page
-    end = start + per_page
-    display_users = users[start:end]
-
-    medals = ["🥇", "🥈", "🥉", "🔹", "🔹", "🔹", "🔹", "🔹", "🔹", "🔹"]
-    msg = [
-        "🏆 *SMM Bᴏᴏꜱᴛᴇʀ Lᴇᴀᴅᴇʀʙᴏᴀʀᴅ*",
-        "\n💎 Tᴏᴘ Rɪᴄʜᴇꜱᴛ + Aꜰꜰɪʟɪᴀᴛᴇs",
+    """Show VIP leaderboard with enhanced features"""
+    top_users = get_top_users(10)
+    
+    if not top_users:
+        bot.reply_to(message,
+            "🌟 * SMM Bᴏᴏꜱᴛᴇʀ Lᴇᴀᴅᴇʀʙᴏᴀʀᴅ*\n\n"
+            "Nᴏ ᴏʀᴅᴇʀ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ʏᴇᴛ\n\n"
+            "Bᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴛᴏ ᴀᴘᴘᴇᴀʀ ʜᴇʀᴇ!",
+            parse_mode="Markdown",
+            reply_markup=main_markup)
+        return
+    
+    leaderboard = [
+        "🏆 *SMM Bᴏᴏꜱᴛᴇʀ Tᴏᴘ Cʟɪᴇɴᴛꜱ*",
+        "Rᴀɴᴋᴇᴅ ʙʏ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀᴅᴇʀꜱ\n",
         "━━━━━━━━━━━━━━━━━━━━"
     ]
-
-    for i, user in enumerate(display_users, start=start + 1):
-        uid = user.get("user_id")
-        username = user.get("username")
-        name = user.get("first_name", f"User {uid}")
-        coins = round(float(user.get("balance", 0)), 2)
-        affiliate = round(float(user.get("affiliate_earnings", 0)) * 364.8, 2)
-        orders = int(user.get("orders_count", 0))
-
-        display_name = f"@{username}" if username else name
-        medal = medals[i - 1] if i - 1 < len(medals) else "🔸"
-
-        msg.append(
-            f"{medal} {display_name}\n"
-            f"• Coins Balance: <code>{coins}</code> ᴄᴏɪɴꜱ\n"
-            f"• Affiliate Money: <code>{affiliate}</code> ᴜɢx\n"
-            f"• Orders: <code>{orders}</code> ᴏʀᴅᴇʀꜱ\n"
-        )
-
-    msg.append("━━━━━━━━━━━━━━━━━━━━")
-    msg.append("🌟 *Top 3 get monthly bonuses!*")
-
-    text = "\n".join(msg)
-
-    # Pagination buttons
-    buttons = []
-    if page > 0:
-        buttons.append(InlineKeyboardButton("◀ Previous", callback_data=f"leaderboard_page:{page-1}"))
-    if end < total:
-        buttons.append(InlineKeyboardButton("Next ▶", callback_data=f"leaderboard_page:{page+1}"))
-
-    markup = InlineKeyboardMarkup()
-    if buttons:
-        markup.row(*buttons)
-
-    return {
-        "text": text,
-        "parse_mode": "HTML",
-        "reply_markup": markup
-    }
+    
+    medal_emoji = ["🥇", "🥈", "🥉", "🔹", "🔹", "🔹", "🔹", "🔹", "🔹", "🔹"]
+    
+    for i, (user_id, count) in enumerate(top_users, 1):
+        try:
+            user = bot.get_chat(user_id)
+            name = user.first_name or f"User {user_id}"
+            leaderboard.append(f"{medal_emoji[i-1]} {name}: *{count}* orders")
+        except:
+            leaderboard.append(f"{medal_emoji[i-1]} User {user_id}: *{count}* orders")
+    
+    leaderboard.extend([
+        "\n💎 *Vɪᴘ Bᴇɴᴇꜰɪᴛꜱ Aᴠᴀɪʟᴀʙʟᴇ*",
+        "Tᴏᴘ 3 Cʟɪᴇɴᴛꜱ ɢᴇᴛ ᴍᴏɴᴛʜʟʏ ʙᴏɴᴜꜱᴇꜱ!"
+    ])
+    
+    bot.reply_to(message, "\n".join(leaderboard),
+                parse_mode="Markdown",
+                reply_markup=main_markup)
 
 #======================= Function to Pin Annoucement Messages ====================#
 @bot.message_handler(func=lambda m: m.text == "📌 Pin Message" and m.from_user.id in admin_user_ids)
