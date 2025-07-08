@@ -11,16 +11,8 @@ from datetime import datetime, timedelta
 # Load environment variables
 load_dotenv()
 MONGO_URI = os.getenv("MONGODB_URI")
-if not MONGO_URI:
-    raise ValueError("MONGODB_URI environment variable is not set")
-
 SmmPanelApi = os.getenv("SMM_PANEL_API")
-if not SmmPanelApi:
-    raise ValueError("SMM_PANEL_API environment variable is not set")
-
 SmmPanelApiUrl = os.getenv("SMM_PANEL_API_URL")
-if not SmmPanelApiUrl:
-    raise ValueError("SMM_PANEL_API_URL environment variable is not set")
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
