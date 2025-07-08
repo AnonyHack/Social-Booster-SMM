@@ -28,8 +28,10 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                        get_total_deposits, get_top_referrer, get_user_orders_stats, get_new_users,
                        get_completed_orders, get_all_users, save_pinned_message, get_all_pinned_messages,
                          clear_all_pinned_messages, orders_collection, get_confirmed_spent, get_pending_spent, 
-                         get_affiliate_earnings, add_affiliate_earning, get_affiliate_users, update_affiliate_earning ) # Import your functions from functions.py
-
+                         get_affiliate_earnings, add_affiliate_earning, get_affiliate_users, 
+                         update_affiliate_earning, get_user_deposits, get_locked_services,
+                           addBonusBalance, removeOldBonus, get_bonus_amount, get_bonus_interval,
+                           is_bonus_enabled, get_combined_leaderboard) # Import your functions from functions.py
 
 
 # Load environment variables from .env file
@@ -46,8 +48,10 @@ admin_user_ids = [int(id.strip()) for id in os.getenv("ADMIN_USER_IDS", "").spli
 bot = telebot.TeleBot(bot_token)
 
 
-welcome_bonus = 60
+welcome_bonus = 40
 ref_bonus = 50
+
+
 
 # Main keyboard markup
 main_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -58,11 +62,12 @@ button4 = KeyboardButton("📊 Order Stats")
 button5 = KeyboardButton("💰 Refer&Earn")
 button6 = KeyboardButton("🏆 Leaderboard")  # New Affiliate button
 button7 = KeyboardButton("📜 Help")
+button8 = KeyboardButton("🎉 Bᴏɴᴜs")
 
 main_markup.add(button1, button2)
 main_markup.add(button3, button4)
 main_markup.add(button5, button6)
-main_markup.add(button7)
+main_markup.add(button7, button8)
 
 # Admin keyboard markup
 admin_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -73,14 +78,17 @@ admin_markup.row("📋 List Banned", "👤 User Info")  # New
 admin_markup.row("🖥 Server Status", "📤 Export Data")  # New
 admin_markup.row("📦 Order Manager", "📊 Analytics")  # New
 admin_markup.row("🔧 Maintenance", "📤 Broadcast")
-admin_markup.row("📦 Batch Coins")
+admin_markup.row("📦 Batch Coins", "🔐 Lock/Unlock")
+admin_markup.row("🗑 Delete User", "🪙 Bonus")
+admin_markup.row("💰 Top Rich", "👥 Top Affiliates")
+admin_markup.row("🛡️ Anti-Fraud", "📟 Panel Balance")
 admin_markup.row("🔙 Main Menu")
+
 #======================= Send Orders main menu =======================#
 send_orders_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 send_orders_markup.row(
     KeyboardButton("📱 Order Telegram"),
     KeyboardButton("🎵 Order TikTok"),
-    KeyboardButton("")
 )
 
 send_orders_markup.row(
@@ -92,7 +100,32 @@ send_orders_markup.row(
     KeyboardButton("📘 Order Facebook"),
     KeyboardButton("💬 Order WhatsApp")
 )
+
+send_orders_markup.row(
+    KeyboardButton("🐦 Order Twitter/X"),
+    KeyboardButton("📛 Order Pinterest")
+)
+
+send_orders_markup.row(
+    KeyboardButton("👻 Order Snapchat"),
+    KeyboardButton("🎶 Order Spotify")
+)
+
 send_orders_markup.add(KeyboardButton("🔙 Main Menu"))
+
+#================== Force Join Method to check bans =================#
+required_channels = ["smmserviceslogs"]  # Channel usernames without "@"
+payment_channel = "@smmserviceslogs"  # Channel for payment notifications
+
+# === Import and register order handlers ===
+from orders import register_order_handlers
+register_order_handlers(bot, send_orders_markup, main_markup, payment_channel)
+
+# In bot.py (near other imports)
+from adpanel import register_admin_features
+
+# Then where you register handlers (after the admin_markup is defined)
+register_admin_features(bot, admin_markup, main_markup, admin_user_ids)
 
 # Telegram services menu
 telegram_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -168,6 +201,8 @@ whatsapp_services_markup.row(
 )
 whatsapp_services_markup.add(KeyboardButton("↩️ Go Back"))
 
+
+
 ############################ END OF NEW FEATURES #############################
 
 #==================================== MongoDB Integration =======================#
@@ -189,7 +224,7 @@ def add_order(user_id, order_data):
         print(f"Error adding order to MongoDB: {e}")
         return False
 #================================== Force Join Method =======================================#
-required_channels = ["SmmBoosterz", "Megahubbots", "smmserviceslogs", "Freenethubz", "Freenethubchannel", "iCoinStores"]  # Channel usernames without "@"
+required_channels = ["smmserviceslogs"]  # Channel usernames without "@"
 payment_channel = "@smmserviceslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
@@ -237,11 +272,11 @@ def check_membership_and_prompt(user_id, message):
 </blockquote>""",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📢 MAIN CHANNEL", url="https://t.me/SmmBoosterz")],
-                [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
-                [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
-                [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
-                [InlineKeyboardButton("🛒 COINS STORE", url="https://t.me/iCoinStores")],
+                #[InlineKeyboardButton("📢 MAIN CHANNEL", url="https://t.me/SmmBoosterz")],
+               # [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
+              #  [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
+             #   [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
+            #    [InlineKeyboardButton("🛒 COINS STORE", url="https://t.me/iCoinStores")],
                 [InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/smmserviceslogs")],
                 [InlineKeyboardButton("📱 WHATSAPP CHANNEL", url="https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")],
                 [InlineKeyboardButton("✨ ✅ VERIFY MEMBERSHIP", callback_data="verify_membership")],
@@ -494,34 +529,36 @@ Wɪᴛʜ ᴏᴜʀ ʙᴏᴛ, ʏᴏᴜ ᴄᴀɴ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ꜱᴏ�
     except Exception as e:
         print(f"Error in send_welcome: {e}")
 
-
 #====================== My Account =====================#
 @bot.message_handler(func=lambda message: message.text == "👤 My Account")
 def my_account(message):
     user_id = str(message.chat.id)
+
+    # Always re-fetch the freshest data from the DB
     data = getData(user_id)
     
-    confirmed_spent = get_confirmed_spent(user_id)
-    pending_spent = get_pending_spent(user_id)
-
-
     if not data:
         bot.reply_to(message, "❌ Account not found. Please /start again.")
         return
     
-    # Update last activity and username
+    # Update last activity and username in DB
     data['last_activity'] = time.time()
     data['username'] = message.from_user.username
     updateUser(user_id, data)
     
-    # Get current time and date
+    # Get up-to-date stats
+    confirmed_spent = get_confirmed_spent(user_id)
+    pending_spent = get_pending_spent(user_id)
+    total_deposits = get_user_deposits(user_id)
+
+    # Get current time/date
     now = datetime.now()
     current_time = now.strftime("%I:%M %p")
     current_date = now.strftime("%Y-%m-%d")
-    
-    # Get user profile photos
+
+    # Prepare profile photo if exists
     photos = bot.get_user_profile_photos(message.from_user.id, limit=1)
-    
+
     # Format the message
     caption = f"""
 <blockquote>
@@ -533,32 +570,39 @@ def my_account(message):
 ⏰ Tɪᴍᴇ: {current_time}
 📅 Dᴀᴛᴇ: {current_date}
 
-🪙 Bᴀʟᴀɴᴄᴇ: <code>{data['balance']}</code> Cᴏɪɴꜱ
+💰 Tᴏᴛᴀʟ Dᴇᴘᴏꜱɪᴛꜱ: <code>{total_deposits:.2f}</code> Cᴏɪɴꜱ
+🪙 Cᴜʀʀᴇɴᴛ Bᴀʟᴀɴᴄᴇ: <code>{float(data.get('balance', 0)):.2f}</code> Cᴏɪɴꜱ
 💸 Cᴏɴꜰɪʀᴍᴇᴅ Sᴘᴇɴᴛ: <code>{confirmed_spent:.2f}</code> Cᴏɪɴꜱ
 ⏳ Pᴇɴᴅɪɴɢ Sᴘᴇɴᴅɪɴɢ: <code>{pending_spent:.2f}</code> Cᴏɪɴꜱ
 </blockquote>
 """
-    
-    if photos.photos:
-        # User has profile photo - get the largest available size
-        photo_file_id = photos.photos[0][-1].file_id
-        try:
+
+    try:
+        if photos.total_count > 0:
+            # Send profile photo with caption
+            photo_file_id = photos.photos[0][-1].file_id
             bot.send_photo(
                 chat_id=user_id,
                 photo=photo_file_id,
                 caption=caption,
                 parse_mode='HTML'
             )
-            return
-        except Exception as e:
-            print(f"Error sending profile photo: {e}")
-    
-    # Fallback if no profile photo or error
-    bot.send_message(
-        chat_id=user_id,
-        text=caption,
-        parse_mode='HTML'
-    )
+        else:
+            # Fallback no photo
+            bot.send_message(
+                chat_id=user_id,
+                text=caption,
+                parse_mode='HTML'
+            )
+    except Exception as e:
+        print(f"Error sending profile photo: {e}")
+        # Fallback if sending photo fails
+        bot.send_message(
+            chat_id=user_id,
+            text=caption,
+            parse_mode='HTML'
+        )
+
 
 #======================= Invite Friends =======================#
 
@@ -763,6 +807,88 @@ Yᴇꜱ! Fᴏʀ ʙᴀʟᴀɴᴄᴇꜱ ᴏᴠᴇʀ 10,000 ᴄᴏɪɴꜱ, ᴄᴏɴ
         parse_mode="HTML",
         reply_markup=markup
     )
+
+#======================== Bonus Command =======================#
+# ======================== Bonus Command ======================= #
+@bot.message_handler(func=lambda message: message.text == "🎉 Bᴏɴᴜs")
+@check_ban
+def handle_bonus(message):
+    user_id = str(message.chat.id)
+    data = getData(user_id)
+
+    if not is_bonus_enabled():
+        bot.reply_to(message, "⚠️ Dᴀɪʟʏ ʙᴏɴᴜꜱ ɪꜱ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ᴜɴᴀᴠᴀɪʟᴀʙʟᴇ. Pʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ʟᴀᴛᴇʀ.")
+        return
+
+    now = time.time()
+    last_claim = data.get('last_bonus_claim', 0)
+    interval = get_bonus_interval()
+
+    if now - last_claim < interval:
+        remaining = interval - (now - last_claim)
+        hours = int(remaining // 3600)
+        minutes = int((remaining % 3600) // 60)
+        seconds = int(remaining % 60)
+        bot.reply_to(message, f"🕑 Cʟᴀɪᴍ Bᴏɴᴜꜱ Aɢᴀɪɴ Iɴ {hours}ʜ {minutes}ᴍ {seconds}s.")
+        return
+
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("🎁 Claim Bonus", callback_data="claim_daily_bonus"))
+
+    bot.reply_to(
+        message,
+        "🔥 Cʟᴀɪᴍ Yᴏᴜʀ Bᴏɴᴜꜱ\n\n"
+        "🕑 Cʟᴀɪᴍ Bᴏɴᴜꜱ Aɢᴀɪɴ Aꜰᴛᴇʀ ʏᴏᴜʀ ɪɴᴛᴇʀᴠᴀʟ\n\n"
+        "⚠️ <i>Unused bonus coins will be removed when you claim your next bonus.</i>",
+        parse_mode='HTML',
+        reply_markup=markup
+    )
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "claim_daily_bonus")
+def claim_daily_bonus(call):
+    user_id = str(call.from_user.id)
+    data = getData(user_id)
+
+    now = time.time()
+    last_claim = data.get('last_bonus_claim', 0)
+    interval = get_bonus_interval()
+    amount = get_bonus_amount()
+
+    if now - last_claim < interval:
+        remaining = interval - (now - last_claim)
+        hours = int(remaining // 3600)
+        minutes = int((remaining % 3600) // 60)
+        seconds = int(remaining % 60)
+        bot.answer_callback_query(
+            call.id,
+            f"❗ Yᴏᴜ'ᴠᴇ ᴀʟʀᴇᴀᴅʏ ᴄʟᴀɪᴍᴇᴅ. Cᴏᴍᴇ ʙᴀᴄᴋ ɪɴ {hours}ʜ {minutes}ᴍ {seconds}s!",
+            show_alert=True
+        )
+        return
+
+    # Remove old unused bonus (if any)
+    old_removed = removeOldBonus(user_id)
+
+    # Add new bonus
+    addBonusBalance(user_id, amount)
+
+    msg = (
+        f"🎉 Congratulations!\n\n"
+        f"💎 You received {amount} Coins as Daily Bonus!\n\n"
+        f"⏳ Come back after {interval // 60} minutes to claim again."
+    )
+
+    if old_removed:
+        msg = "⚠️ Your unused bonus coins from last claim were removed.\n\n" + msg
+
+    bot.answer_callback_query(call.id)
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        text=msg
+    )
+
 
 #======================== Pricing Command =======================#
 @bot.message_handler(func=lambda message: message.text == "💳 Pricing")
@@ -971,7 +1097,7 @@ def order_telegram_menu(message):
 def handle_telegram_order(message):
     """Handle Telegram service selection"""
     user_id = str(message.from_user.id)
-    
+
     # Store service details in a dictionary
     services = {
         "👀 Post Views": {
@@ -979,7 +1105,7 @@ def handle_telegram_order(message):
             "quality": "Super Fast",
             "min": 1000,
             "max": 100000,
-            "price": 100,
+            "price": 200,
             "unit": "1k views",
             "service_id": "10576",  # Your SMM panel service ID for views
             "link_hint": "Telegram post link"
@@ -989,9 +1115,9 @@ def handle_telegram_order(message):
             "quality": "No Refil",
             "min": 100,
             "max": 1000,
-            "price": 989,
+            "price": 700,
             "unit": "1k reactions",
-            "service_id": "12209",  # Replace with actual service ID
+            "service_id": "22171",  # Replace with actual service ID
             "link_hint": "Telegram post link"
             
         },
@@ -1008,13 +1134,19 @@ def handle_telegram_order(message):
     }
     
     service = services[message.text]
+
+    # Check if the service is locked for non-admins
+    locked_services = get_locked_services()
+    if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
+        bot.reply_to(message, "🚫 ᴛʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+        return
     
     # Create cancel markup
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
-    KeyboardButton("✘ Cancel"),
-    KeyboardButton("↩️ Go Back")
-)
+        KeyboardButton("✘ Cancel"),
+        KeyboardButton("↩️ Go Back")
+    )
     
     # Store service data in user session (you may need a session system)
     # Here we'll just pass it through the register_next_step_handler
@@ -1317,7 +1449,7 @@ def handle_tiktok_order(message):
             "link_hint": "Tiktok Post Link",
             "min": 1000,
             "max": 100000,
-            "price": 14,
+            "price": 40,
             "unit": "1k views",
             "service_id": "18454"
         },
@@ -1327,23 +1459,29 @@ def handle_tiktok_order(message):
             "link_hint": "Tiktok Post Link",
             "min": 100,
             "max": 10000,
-            "price": 1564,
+            "price": 1664,
             "unit": "1k likes",
             "service_id": "17335"
         },
         "👥 Tiktok Followers": {
             "name": "TikTok Followers",
-            "quality": "High Quality",
+            "quality": "HQ ~ SlowSpeed ~ Refill 30D",
             "link_hint": "Tiktok Profile Link",
             "min": 100,
             "max": 10000,
-            "price": 17943,
+            "price": 10943,
             "unit": "1k followers",
-            "service_id": "18383"
+            "service_id": "20498"
         }
     }
     
     service = services[message.text]
+
+        # Check if the service is locked for non-admins
+    locked_services = get_locked_services()
+    if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
+        bot.reply_to(message, "🚫 ᴛʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+        return
     
     # Create cancel markup
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -1642,12 +1780,12 @@ def handle_instagram_order(message):
     services = {
         "🎥 Video Views": {
             "name": "Instagram Video Views",
-            "quality": "Real Accounts",
+            "quality": "Fast ~ NR",
             "min": 1000,
             "max": 100000,
-            "price": 72,
+            "price": 172,
             "unit": "1k views",
-            "service_id": "17316",
+            "service_id": "21425",
             "link_hint": "Instagram video link"
         },
         "❤️ Insta Likes": {
@@ -1662,17 +1800,23 @@ def handle_instagram_order(message):
         },
         "👥 Insta Followers": {
             "name": "Instagram Followers",
-            "quality": "Old Accounts With Posts",
+            "quality": "Refill 30D",
             "min": 100,
             "max": 10000,
-            "price": 12353,
+            "price": 7353,
             "unit": "1k followers",
-            "service_id": "18968",
-            "link_hint": "Instagram profile link"
+            "service_id": "22266",
+            "link_hint": "Instagram profile link and Disable The Flag for Review from Settings"
         }
     }
     
     service = services[message.text]
+
+        # Check if the service is locked for non-admins
+    locked_services = get_locked_services()
+    if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
+        bot.reply_to(message, "🚫 ᴛʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+        return
     
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
@@ -1947,7 +2091,7 @@ def handle_youtube_order(message):
     services = {
         "▶️ YT Views": {
             "name": "YouTube Views",
-            "quality": "100% Real",
+            "quality": "Non Drop",
             "min": 40000,
             "max": 1000000,
             "price": 7713,
@@ -1957,27 +2101,33 @@ def handle_youtube_order(message):
         },
         "👍 YT Likes": {
             "name": "YouTube Likes [Real]",
-            "quality": "No Refill",
+            "quality": "Refill 90D",
             "min": 100,
             "max": 10000,
-            "price": 1607,
+            "price": 2607,
             "unit": "1k likes",
-            "service_id": "18144",
+            "service_id": "15573",
             "link_hint": "YouTube video link"
         },
         "👥 YT Subscribers": {
             "name": "YouTube Subscribers [Cheapest]",
             "quality": "Refill 30 days",
-            "min": 100,
+            "min": 200,
             "max": 10000,
-            "price": 11078,
+            "price": 15078,
             "unit": "1k subscribers",
-            "service_id": "16912",
+            "service_id": "15567",
             "link_hint": "YouTube channel link"
         }
     }
     
     service = services[message.text]
+
+        # Check if the service is locked for non-admins
+    locked_services = get_locked_services()
+    if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
+        bot.reply_to(message, "🚫 ᴛʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+        return
     
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
@@ -2276,7 +2426,7 @@ def handle_facebook_order(message):
             "max": 100000,
             "price": 7704,
             "unit": "1k followers",
-            "service_id": "18977",
+            "service_id": "22276",
             "link_hint": "Facebook profile link"
         },
         "📄 Page Followers": {
@@ -2284,9 +2434,9 @@ def handle_facebook_order(message):
             "quality": "Refill 30 Days",
             "min": 100,
             "max": 10000,
-            "price": 5597,
+            "price": 6597,
             "unit": "1k followers",
-            "service_id": "18984",
+            "service_id": "22274",
             "link_hint": "Facebook page link"
         },
         "🎥 Video/Reel Views": {
@@ -2294,9 +2444,9 @@ def handle_facebook_order(message):
             "quality": "Non Drop",
             "min": 1000,
             "max": 10000,
-            "price": 579,
+            "price": 679,
             "unit": "1k views",
-            "service_id": "17859",
+            "service_id": "17504",
             "link_hint": "Facebook video/reel link"
         },
         "❤️ Post Likes": {
@@ -2312,6 +2462,12 @@ def handle_facebook_order(message):
     }
     
     service = services[message.text]
+
+        # Check if the service is locked for non-admins
+    locked_services = get_locked_services()
+    if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
+        bot.reply_to(message, "🚫 ᴛʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+        return
     
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
@@ -2610,7 +2766,7 @@ def handle_whatsapp_order(message):
             "max": 40000,
             "price": 20856,
             "unit": "1k members",
-            "service_id": "18848",
+            "service_id": "19451",
             "link_hint": "WhatsApp channel invite link"
         },
         "😀 Post EmojiReaction": {
@@ -2626,6 +2782,12 @@ def handle_whatsapp_order(message):
     }
     
     service = services[message.text]
+
+        # Check if the service is locked for non-admins
+    locked_services = get_locked_services()
+    if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
+        bot.reply_to(message, "🚫 ᴛʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. ᴘʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+        return
     
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
@@ -2951,28 +3113,6 @@ def back_to_main(message):
             "🔄 *Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Mᴀɪɴ Mᴇɴᴜ*",
             parse_mode="Markdown",
             reply_markup=main_markup)
-
-# ================= ADMIN COMMANDS ================== #
-
-@bot.message_handler(commands=['adminpanel'])
-def admin_panel(message):
-    if message.from_user.id not in admin_user_ids:
-        bot.reply_to(message,
-            "🔒 *Rᴇꜱᴛʀɪᴄᴛᴇᴅ Aʀᴇᴀ*\n\n"
-            "Tʜɪꜱ Pᴀɴᴇʟ ɪꜱ ꜰᴏʀ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ Aᴅᴍɪɴɪꜱᴛʀᴀᴛᴏʀꜱ ᴏɴʟʏ\n\n"
-            "⚠️ Yᴏᴜʀ ᴀᴄᴄᴇꜱꜱ ᴀᴛᴛᴇᴍᴘᴛ ʜᴀꜱ ʙᴇᴇɴ ʟᴏɢɢᴇᴅ",
-            parse_mode="Markdown")
-        return
-    
-    bot.reply_to(message,
-        "⚡ *SMM Bᴏᴏꜱᴛᴇʀ Aᴅᴍɪɴ Cᴇɴᴛᴇʀ*\n\n"
-        "▸ Uꜱᴇʀ Mᴀɴᴀɢᴇᴍᴇɴᴛ\n"
-        "▸ Cᴏɪɴ Tʀᴀɴꜱᴀᴄᴛɪᴏɴꜱ\n"
-        "▸ Sʏꜱᴛᴇᴍ Cᴏɴᴛʀᴏʟꜱ\n\n"
-        "Sᴇʟᴇᴄᴛ ᴀɴ ᴏᴘᴛɪᴏɴ ʙᴇʟᴏᴡ:",
-        parse_mode="Markdown",
-        reply_markup=admin_markup)
-    
 
 #============================= Add and Remove Coins ==============================================#
 @bot.message_handler(func=lambda message: message.text in ["➕ Add", "➖ Remove"] and message.from_user.id in admin_user_ids)
@@ -3879,45 +4019,79 @@ def list_banned(message):
                 parse_mode="Markdown",
                 reply_markup=admin_markup)
 
-# ============================= Premium Leaderboard ============================= #
+# ======================= Leaderboard Button ======================= #
 @bot.message_handler(func=lambda m: m.text == "🏆 Leaderboard")
 def show_leaderboard(message):
-    """Show VIP leaderboard with enhanced features"""
-    top_users = get_top_users(10)
-    
-    if not top_users:
-        bot.reply_to(message,
-            "🌟 * SMM Bᴏᴏꜱᴛᴇʀ Lᴇᴀᴅᴇʀʙᴏᴀʀᴅ*\n\n"
-            "Nᴏ ᴏʀᴅᴇʀ ᴅᴀᴛᴀ ᴀᴠᴀɪʟᴀʙʟᴇ ʏᴇᴛ\n\n"
-            "Bᴇ ᴛʜᴇ ꜰɪʀꜱᴛ ᴛᴏ ᴀᴘᴘᴇᴀʀ ʜᴇʀᴇ!",
-            parse_mode="Markdown",
-            reply_markup=main_markup)
-        return
-    
-    leaderboard = [
-        "🏆 *SMM Bᴏᴏꜱᴛᴇʀ Tᴏᴘ Cʟɪᴇɴᴛꜱ*",
-        "Rᴀɴᴋᴇᴅ ʙʏ ᴄᴏᴍᴘʟᴇᴛᴇᴅ ᴏʀᴅᴇʀꜱ\n",
+    send_leaderboard_page(message.chat.id, page=0)
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("leaderboard_page:"))
+def leaderboard_callback(call):
+    page = int(call.data.split(":")[1])
+    bot.answer_callback_query(call.id)
+    bot.edit_message_text(
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        **build_leaderboard_message(page)
+    )
+
+def send_leaderboard_page(chat_id, page=0):
+    bot.send_message(chat_id, **build_leaderboard_message(page))
+
+def build_leaderboard_message(page=0, per_page=3):
+    users = get_combined_leaderboard()
+    total = len(users)
+    pages = (total + per_page - 1) // per_page
+
+    start = page * per_page
+    end = start + per_page
+    display_users = users[start:end]
+
+    medals = ["🥇", "🥈", "🥉", "🔹", "🔹", "🔹", "🔹", "🔹", "🔹", "🔹"]
+    msg = [
+        "🏆 *SMM Bᴏᴏꜱᴛᴇʀ Lᴇᴀᴅᴇʀʙᴏᴀʀᴅ*",
+        "\n💎 Tᴏᴘ Rɪᴄʜᴇꜱᴛ + Aꜰꜰɪʟɪᴀᴛᴇs",
         "━━━━━━━━━━━━━━━━━━━━"
     ]
-    
-    medal_emoji = ["🥇", "🥈", "🥉", "🔹", "🔹", "🔹", "🔹", "🔹", "🔹", "🔹"]
-    
-    for i, (user_id, count) in enumerate(top_users, 1):
-        try:
-            user = bot.get_chat(user_id)
-            name = user.first_name or f"User {user_id}"
-            leaderboard.append(f"{medal_emoji[i-1]} {name}: *{count}* orders")
-        except:
-            leaderboard.append(f"{medal_emoji[i-1]} User {user_id}: *{count}* orders")
-    
-    leaderboard.extend([
-        "\n💎 *Vɪᴘ Bᴇɴᴇꜰɪᴛꜱ Aᴠᴀɪʟᴀʙʟᴇ*",
-        "Tᴏᴘ 3 Cʟɪᴇɴᴛꜱ ɢᴇᴛ ᴍᴏɴᴛʜʟʏ ʙᴏɴᴜꜱᴇꜱ!"
-    ])
-    
-    bot.reply_to(message, "\n".join(leaderboard),
-                parse_mode="Markdown",
-                reply_markup=main_markup)
+
+    for i, user in enumerate(display_users, start=start + 1):
+        uid = user.get("user_id")
+        username = user.get("username")
+        name = user.get("first_name", f"User {uid}")
+        coins = round(float(user.get("balance", 0)), 2)
+        affiliate = round(float(user.get("affiliate_earnings", 0)) * 364.8, 2)
+        orders = int(user.get("orders_count", 0))
+
+        display_name = f"@{username}" if username else name
+        medal = medals[i - 1] if i - 1 < len(medals) else "🔸"
+
+        msg.append(
+            f"{medal} {display_name}\n"
+            f"• Coins Balance: <code>{coins}</code> ᴄᴏɪɴꜱ\n"
+            f"• Affiliate Money: <code>{affiliate}</code> ᴜɢx\n"
+            f"• Orders: <code>{orders}</code> ᴏʀᴅᴇʀꜱ\n"
+        )
+
+    msg.append("━━━━━━━━━━━━━━━━━━━━")
+    msg.append("🌟 *Top 3 get monthly bonuses!*")
+
+    text = "\n".join(msg)
+
+    # Pagination buttons
+    buttons = []
+    if page > 0:
+        buttons.append(InlineKeyboardButton("◀ Previous", callback_data=f"leaderboard_page:{page-1}"))
+    if end < total:
+        buttons.append(InlineKeyboardButton("Next ▶", callback_data=f"leaderboard_page:{page+1}"))
+
+    markup = InlineKeyboardMarkup()
+    if buttons:
+        markup.row(*buttons)
+
+    return {
+        "text": text,
+        "parse_mode": "HTML",
+        "reply_markup": markup
+    }
 
 #======================= Function to Pin Annoucement Messages ====================#
 @bot.message_handler(func=lambda m: m.text == "📌 Pin Message" and m.from_user.id in admin_user_ids)
