@@ -114,8 +114,8 @@ send_orders_markup.row(
 send_orders_markup.add(KeyboardButton("🔙 Main Menu"))
 
 #================== Force Join Method to check bans =================#
-required_channels = ["smmserviceslogs", "Freenethubz", "iCoinStores", "freenethubchannel", "Megahubbots", "SmmBoosterz"]  # Channel usernames without "@"
-payment_channel = "@smmserviceslogs"  # Channel for payment notifications
+required_channels = ["xptoolslogs", "Freenethubz", "iCoinStores", "freenethubchannel", "Megahubbots", "SmmBoosterz"]  # Channel usernames without "@"
+payment_channel = "@xptoolslogs"  # Channel for payment notifications
 
 # === Import and register order handlers ===
 from orders import register_order_handlers
@@ -224,8 +224,8 @@ def add_order(user_id, order_data):
         print(f"Error adding order to MongoDB: {e}")
         return False
 #================================== Force Join Method =======================================#
-required_channels = ["smmserviceslogs"]  # Channel usernames without "@"
-payment_channel = "@smmserviceslogs"  # Channel for payment notifications
+required_channels = ["xptoolslogs"]  # Channel usernames without "@"
+payment_channel = "@xptoolslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
     """Check if a user is a member of all required channels."""
