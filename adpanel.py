@@ -3,7 +3,7 @@ from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 from functions import (get_all_users,
     delete_user, lock_service, unlock_service, get_locked_services,
     set_bonus_amount, set_bonus_interval, toggle_bonus, get_top_balances,
-    get_top_affiliate_earners, get_suspicious_users
+    get_top_affiliate_earners, get_suspicious_users, get_panel_balance
 )
 import time
 
@@ -357,20 +357,45 @@ def register_anti_fraud_handler(bot, admin_user_ids):
 
     bot.register_message_handler(handle_anti_fraud, func=lambda m: m.text == "🛡️ Anti-Fraud")
 
-# ======================= REGISTER ADMIN FEATURES ======================= #
+
+# ======================= PANEL BALANCE ======================= #
+def register_panel_balance_handler(bot, admin_user_ids):
+    def show_panel_balance(message):
+        if str(message.from_user.id) not in map(str, admin_user_ids):
+            return
+
+        balance = get_panel_balance()
+
+        if balance:
+            bot.reply_to(message,
+                f"📟 Yᴏᴜʀ Pᴀɴᴇʟ Bᴀʟᴀɴᴄᴇ:\n\n💰 <b>{balance}</b>",
+                parse_mode="HTML"
+            )
+        else:
+            bot.reply_to(message, "❌ Fᴀɪʟᴇᴅ ᴛᴏ ꜰᴇᴛᴄʜ ʙᴀʟᴀɴᴄᴇ. Cʜᴇᴄᴋ ᴀᴘɪ ᴋᴇʏ / ᴜʀʟ.")
+
+    bot.register_message_handler(show_panel_balance, func=lambda m: m.text == "📟 Panel Balance")
 def register_admin_features(bot, admin_markup, main_markup, admin_user_ids_list):
     global admin_user_ids
     admin_user_ids = admin_user_ids_list
 
+#========================= Register Admin Handlers =========================#
     # Pass admin_user_ids to register_admin_handlers
     register_admin_handlers(bot, admin_markup, main_markup, admin_user_ids)
     # Register Top Affiliates handler
     register_top_affiliates_handler(bot, admin_user_ids)
+    # Register Top Rich handler
+    register_top_rich_handler(bot, admin_user_ids)
+    # Register Lock/Unlock handlers
+    register_lock_handlers(bot, admin_markup, admin_user_ids)
+    # Register Bonus Configuration handlers
+    register_bonus_config_handlers(bot, admin_markup, admin_user_ids)
+    # Register Delete User handler
+    register_delete_user_handlers(bot, admin_markup)
     # Register Anti-Fraud handler
     register_anti_fraud_handler(bot, admin_user_ids)
+    # Register Panel Balance handler
+    register_panel_balance_handler(bot, admin_user_ids)
     # Register other handlers as needed
-    # Register other handlers as needed
-    # Register other handlers as needed
-    # Register other handlers as needed
-    # Register other handlers as needed
+    register_anti_fraud_handler(bot, admin_user_ids)
     # Register other handlers as needed
