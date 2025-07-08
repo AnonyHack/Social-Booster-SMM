@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 # Initialize MongoDB connection
 try:
     client = MongoClient(MONGO_URI)
-    db = client.get_database("smmhubbooster")
+    db = client.get_database("smmhubboosterv2")  # Use your database name here
+    # Define collections
     users_collection = db.users
     orders_collection = db.orders
     cash_logs_collection = db['affiliate_cash_logs']  # New collection for cash logs
@@ -550,6 +551,254 @@ def get_pending_spent(user_id):
     except Exception as e:
         print(f"Error in get_pending_spent: {e}")
         return 0.0
+
+def get_user_deposits(user_id):
+    """Get total deposits for a user (coins added through purchases or admin)"""
+    # Example with MongoDB:
+    user = db.users.find_one({'user_id': str(user_id)})
+    return float(user.get('total_deposits', 0)) if user else 0.0
+
+# In functions.py
+def delete_user(user_id):
+    """Delete a user from the database"""
+    try:
+        users_collection.delete_one({"user_id": str(user_id)})
+        orders_collection.delete_many({"user_id": str(user_id)})
+        return True
+    except Exception as e:
+        print(f"Error deleting user: {e}")
+        return False
+
+def lock_service(service_id):
+    """Lock a service so only admins can order it"""
+    try:
+        locked_services = db.locked_services
+        locked_services.update_one(
+            {"service_id": service_id},
+            {"$set": {"service_id": service_id}},
+            upsert=True
+        )
+        return True
+    except Exception as e:
+        print(f"Error locking service: {e}")
+        return False
+
+def unlock_service(service_id):
+    """Unlock a service for all users"""
+    try:
+        locked_services = db.locked_services
+        result = locked_services.delete_one({"service_id": service_id})
+        return result.deleted_count > 0
+    except Exception as e:
+        print(f"Error unlocking service: {e}")
+        return False
+
+def get_locked_services():
+    """Get list of all locked service IDs"""
+    try:
+        locked_services = db.locked_services
+        return [doc["service_id"] for doc in locked_services.find()]
+    except Exception as e:
+        print(f"Error getting locked services: {e}")
+        return []
+
+def addBonusBalance(user_id, amount):
+    """Add bonus coins without affecting total_deposits"""
+    try:
+        user_id = str(user_id)
+        amount = float(amount)
+
+        result = users_collection.update_one(
+            {"user_id": user_id},
+            {
+                "$inc": {"balance": amount},
+                "$set": {"bonus_coins": amount, "last_bonus_claim": time.time()}
+            }
+        )
+        return result.modified_count > 0
+    except Exception as e:
+        logger.error(f"Error adding bonus balance for {user_id}: {e}")
+        return False
+
+def removeOldBonus(user_id):
+    """Remove old unused bonus coins if any"""
+    try:
+        user_id = str(user_id)
+        user = users_collection.find_one({"user_id": user_id})
+
+        if not user:
+            return False
+
+        bonus = float(user.get("bonus_coins", 0))
+        if bonus > 0:
+            current_balance = float(user.get("balance", 0))
+            new_balance = max(0, current_balance - bonus)
+
+            users_collection.update_one(
+                {"user_id": user_id},
+                {
+                    "$set": {"balance": new_balance, "bonus_coins": 0}
+                }
+            )
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error removing old bonus for {user_id}: {e}")
+        return False
+
+
+def get_suspicious_users():
+    try:
+        suspicious = []
+
+        # 1. Users with bonus coins but no spending
+        bonus_abusers = users_collection.find({
+            "bonus_coins": {"$gt": 0},
+            "$or": [
+                {"orders_count": {"$lte": 0}},
+                {"total_spent": {"$exists": False}},
+                {"total_spent": 0}
+            ]
+        })
+
+        for user in bonus_abusers:
+            suspicious.append({
+                "type": "🎁 Bonus Abuse",
+                "user_id": user.get("user_id"),
+                "username": user.get("username"),
+                "balance": user.get("balance", 0),
+                "bonus": user.get("bonus_coins", 0)
+            })
+
+        # 2. Users with balance > 100 but no deposits
+        high_balance_no_deposit = users_collection.find({
+            "balance": {"$gte": 100},
+            "$or": [
+                {"total_deposits": 0},
+                {"total_deposits": {"$exists": False}}
+            ]
+        })
+
+        for user in high_balance_no_deposit:
+            suspicious.append({
+                "type": "💰 High Balance, No Deposit",
+                "user_id": user.get("user_id"),
+                "username": user.get("username"),
+                "balance": user.get("balance", 0),
+                "deposits": user.get("total_deposits", 0)
+            })
+
+        # 3. Users who referred themselves (user_id == ref_by)
+        self_referrals = users_collection.find({
+            "$expr": {"$eq": ["$user_id", "$ref_by"]}
+        })
+
+        for user in self_referrals:
+            suspicious.append({
+                "type": "🌀 Self Referral",
+                "user_id": user.get("user_id"),
+                "username": user.get("username")
+            })
+
+        return suspicious
+
+    except Exception as e:
+        print(f"Error finding suspicious users: {e}")
+        return []
+
+#================== Top Affiliate Earners ======================#
+def get_top_affiliate_earners(limit=10):
+    """Return top N users by affiliate_earnings."""
+    try:
+        pipeline = [
+            {"$match": {"affiliate_earnings": {"$gt": 0}}},
+            {"$sort": {"affiliate_earnings": -1}},
+            {"$limit": limit},
+            {"$project": {"user_id": 1, "username": 1, "affiliate_earnings": 1, "_id": 0}}
+        ]
+        return list(users_collection.aggregate(pipeline))
+    except Exception as e:
+        print(f"Error getting top affiliates: {e}")
+        return []
+
+# ======================= TOP BALANCES ======================= #
+def get_top_balances(limit=10):
+    """Return top N users with the highest balance."""
+    try:
+        pipeline = [
+            {"$sort": {"balance": -1}},
+            {"$limit": limit},
+            {"$project": {"user_id": 1, "username": 1, "balance": 1, "_id": 0}}
+        ]
+        return list(users_collection.aggregate(pipeline))
+    except Exception as e:
+        print(f"Error getting top balances: {e}")
+        return []
+
+# ======================= BONUS CONFIG ======================= #
+_bonus_amount = 30
+_bonus_interval = 60  # 1 hour for testing
+_bonus_enabled = True
+
+def get_bonus_amount():
+    return _bonus_amount
+
+def get_bonus_interval():
+    return _bonus_interval
+
+def is_bonus_enabled():
+    return _bonus_enabled
+
+def set_bonus_amount(amount):
+    global _bonus_amount
+    _bonus_amount = amount
+
+def set_bonus_interval(seconds):
+    global _bonus_interval
+    _bonus_interval = seconds
+
+def toggle_bonus():
+    global _bonus_enabled
+    _bonus_enabled = not _bonus_enabled
+    return _bonus_enabled
+
+def get_combined_leaderboard(limit=50):
+    """Return top users ranked by combined score of balance, affiliate_earnings (UGX), and orders"""
+    try:
+        users = users_collection.aggregate([
+            {
+                "$addFields": {
+                    "performance_score": {
+                        "$add": [
+                            { "$toDouble": "$balance" },
+                            { "$multiply": [ { "$toDouble": "$affiliate_earnings" }, 364.8 ] },
+                            { "$multiply": [ { "$toDouble": "$orders_count" }, 10 ] }
+                        ]
+                    }
+                }
+            },
+            {
+                "$sort": { "performance_score": -1 }
+            },
+            {
+                "$project": {
+                    "user_id": 1,
+                    "username": 1,
+                    "first_name": 1,
+                    "balance": 1,
+                    "affiliate_earnings": 1,
+                    "orders_count": 1,
+                    "performance_score": 1
+                }
+            },
+            {
+                "$limit": limit
+            }
+        ])
+        return list(users)
+    except Exception as e:
+        print(f"Leaderboard error: {e}")
+        return []
 
 
 
