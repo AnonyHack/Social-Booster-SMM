@@ -765,44 +765,6 @@ def toggle_bonus():
     _bonus_enabled = not _bonus_enabled
     return _bonus_enabled
 
-def get_combined_leaderboard(limit=50):
-    """Return top users ranked by combined score of balance, affiliate_earnings (UGX), and orders"""
-    try:
-        users = users_collection.aggregate([
-            {
-                "$addFields": {
-                    "performance_score": {
-                        "$add": [
-                            { "$toDouble": "$balance" },
-                            { "$multiply": [ { "$toDouble": "$affiliate_earnings" }, 364.8 ] },
-                            { "$multiply": [ { "$toDouble": "$orders_count" }, 10 ] }
-                        ]
-                    }
-                }
-            },
-            {
-                "$sort": { "performance_score": -1 }
-            },
-            {
-                "$project": {
-                    "user_id": 1,
-                    "username": 1,
-                    "first_name": 1,
-                    "balance": 1,
-                    "affiliate_earnings": 1,
-                    "orders_count": 1,
-                    "performance_score": 1
-                }
-            },
-            {
-                "$limit": limit
-            }
-        ])
-        return list(users)
-    except Exception as e:
-        print(f"Leaderboard error: {e}")
-        return []
-
 def get_panel_balance():
     """Fetch the panel balance from ShakerGainsKe API."""
     try:
