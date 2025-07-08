@@ -739,8 +739,8 @@ def get_top_balances(limit=10):
         return []
 
 # ======================= BONUS CONFIG ======================= #
-_bonus_amount = 30
-_bonus_interval = 60  # 1 hour for testing
+_bonus_amount = 40
+_bonus_interval = 1440  # 24 hour
 _bonus_enabled = True
 
 def get_bonus_amount():
