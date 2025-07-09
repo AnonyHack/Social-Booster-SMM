@@ -1793,7 +1793,7 @@ def handle_instagram_order(message):
             "quality": "Power Quality",
             "min": 100,
             "max": 10000,
-            "price": 225,
+            "price": 325,
             "unit": "1k likes",
             "service_id": "17375",
             "link_hint": "Instagram post link"
