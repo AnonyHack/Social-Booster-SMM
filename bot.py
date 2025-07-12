@@ -1465,13 +1465,13 @@ def handle_tiktok_order(message):
         },
         "👥 Tiktok Followers": {
             "name": "TikTok Followers",
-            "quality": "HQ ~ SlowSpeed ~ Refill 30D",
+            "quality": "HQ ~ Refill 30D",
             "link_hint": "Tiktok Profile Link",
             "min": 100,
             "max": 10000,
-            "price": 10943,
+            "price": 11943,
             "unit": "1k followers",
-            "service_id": "20498"
+            "service_id": "23683"
         }
     }
     
