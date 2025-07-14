@@ -1445,13 +1445,13 @@ def handle_tiktok_order(message):
     services = {
         "👀 Tiktok Views": {
             "name": "TikTok Views",
-            "quality": "Fast Speed",
+            "quality": "Cheap & Slow",
             "link_hint": "Tiktok Post Link",
             "min": 1000,
             "max": 100000,
-            "price": 40,
+            "price": 60,
             "unit": "1k views",
-            "service_id": "18454"
+            "service_id": "23774"
         },
         "❤️ Tiktok Likes": {
             "name": "TikTok Likes",
