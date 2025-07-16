@@ -1449,9 +1449,9 @@ def handle_tiktok_order(message):
             "link_hint": "Tiktok Post Link",
             "min": 1000,
             "max": 100000,
-            "price": 60,
+            "price": 70,
             "unit": "1k views",
-            "service_id": "23774"
+            "service_id": "23778"
         },
         "❤️ Tiktok Likes": {
             "name": "TikTok Likes",
