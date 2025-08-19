@@ -224,8 +224,8 @@ def add_order(user_id, order_data):
         print(f"Error adding order to MongoDB: {e}")
         return False
 #================================== Force Join Method =======================================#
-required_channels = ["Logschannelz"]  # Channel usernames without "@"
-payment_channel = "@Logschannelz"  # Channel for payment notifications
+required_channels = [""]  # Channel usernames without "@"
+payment_channel = ""  # Channel for payment notifications
 
 def is_user_member(user_id):
     """Check if a user is a member of all required channels."""
@@ -277,7 +277,7 @@ def check_membership_and_prompt(user_id, message):
                 [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
                 [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
                 [InlineKeyboardButton("🛒 COINS STORE", url="https://t.me/iCoinStores")],
-                [InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/Logschannelz")],
+                [InlineKeyboardButton("📝 LOGS CHANNEL", url="")],
                 [InlineKeyboardButton("📱 WHATSAPP CHANNEL", url="https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")],
                 [InlineKeyboardButton("✨ ✅ VERIFY MEMBERSHIP", callback_data="verify_membership")],
                 [InlineKeyboardButton("❓ Why Join These Channels?", callback_data="why_join_info")]
