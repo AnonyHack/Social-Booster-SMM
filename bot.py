@@ -277,7 +277,7 @@ def check_membership_and_prompt(user_id, message):
                 [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
                 [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
                 [InlineKeyboardButton("🛒 COINS STORE", url="https://t.me/iCoinStores")],
-                [InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/xptoolslogs")],
+                [InlineKeyboardButton("📝 LOGS CHANNEL", url="https://t.me/Logschannelz")],
                 [InlineKeyboardButton("📱 WHATSAPP CHANNEL", url="https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")],
                 [InlineKeyboardButton("✨ ✅ VERIFY MEMBERSHIP", callback_data="verify_membership")],
                 [InlineKeyboardButton("❓ Why Join These Channels?", callback_data="why_join_info")]
