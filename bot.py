@@ -272,7 +272,7 @@ def check_membership_and_prompt(user_id, message):
 </blockquote>""",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📢 MAIN CHANNEL", url="https://t.me/SmmBoosterz")],
+                [InlineKeyboardButton("📢 MAIN CHANNEL", url="")],
                 [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
                 [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
                 [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
