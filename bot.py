@@ -1789,22 +1789,22 @@ def handle_instagram_order(message):
         },
         "❤️ Insta Likes": {
             "name": "Instagram Likes",
-            "quality": "Power Quality",
+            "quality": "Fast Working",
             "min": 100,
-            "max": 10000,
-            "price": 325,
+            "max": 1000000,
+            "price": 1800,
             "unit": "1k likes",
-            "service_id": "17375",
+            "service_id": "24119",
             "link_hint": "Instagram post link"
         },
         "👥 Insta Followers": {
             "name": "Instagram Followers",
             "quality": "Refill 30D",
-            "min": 100,
+            "min": 500,
             "max": 10000,
-            "price": 7353,
+            "price": 15000,
             "unit": "1k followers",
-            "service_id": "22266",
+            "service_id": "24109",
             "link_hint": "Instagram profile link and Disable The Flag for Review from Settings"
         }
     }
@@ -4793,5 +4793,6 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
+
 
 
