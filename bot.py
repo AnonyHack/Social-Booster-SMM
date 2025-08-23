@@ -483,7 +483,7 @@ Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ʜᴇʟᴘɪɴɢ ɢʀᴏᴡ ᴏᴜʀ ᴄᴏᴍᴍ�
         setReferredStatus(user_id)
 
     # Welcome message
-    welcome_image_url = "https://t.me/smmserviceslogs/20"  # Replace with your image URL
+    welcome_image_url = "https://t.me/xptoolslogs/481"  # Replace with your image URL
     welcome_caption = f"""
 <blockquote>
 🎉 <b>Wᴇʟᴄᴏᴍᴇ {first_name}!</b> 🎉
@@ -4793,4 +4793,5 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
+
 
