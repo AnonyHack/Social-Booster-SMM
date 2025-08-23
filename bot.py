@@ -1458,7 +1458,7 @@ def handle_tiktok_order(message):
             "link_hint": "Tiktok Post Link",
             "min": 100,
             "max": 10000,
-            "price": 1664,
+            "price": 1864,
             "unit": "1k likes",
             "service_id": "17335"
         },
@@ -1470,7 +1470,7 @@ def handle_tiktok_order(message):
             "max": 10000,
             "price": 11943,
             "unit": "1k followers",
-            "service_id": "23683"
+            "service_id": "23955"
         }
     }
     
