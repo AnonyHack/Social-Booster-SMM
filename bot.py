@@ -1446,11 +1446,11 @@ def handle_tiktok_order(message):
             "name": "TikTok Views",
             "quality": "Fast&NR",
             "link_hint": "Tiktok Post Link",
-            "min": 1000,
+            "min": 500,
             "max": 100000,
             "price": 150,
             "unit": "1k views",
-            "service_id": "24596"
+            "service_id": "23719"
         },
         "❤️ Tiktok Likes": {
             "name": "TikTok Likes",
@@ -4793,6 +4793,7 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
+
 
 
 
