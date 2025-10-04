@@ -1448,19 +1448,19 @@ def handle_tiktok_order(message):
             "link_hint": "Tiktok Post Link",
             "min": 1000,
             "max": 100000,
-            "price": 100,
+            "price": 150,
             "unit": "1k views",
-            "service_id": "23949"
+            "service_id": "24596"
         },
         "❤️ Tiktok Likes": {
             "name": "TikTok Likes",
-            "quality": "Real & Active",
+            "quality": "Refill 365D",
             "link_hint": "Tiktok Post Link",
             "min": 100,
             "max": 10000,
-            "price": 1864,
+            "price": 500,
             "unit": "1k likes",
-            "service_id": "17335"
+            "service_id": "23890"
         },
         "👥 Tiktok Followers": {
             "name": "TikTok Followers",
@@ -1468,7 +1468,7 @@ def handle_tiktok_order(message):
             "link_hint": "Tiktok Profile Link",
             "min": 100,
             "max": 10000,
-            "price": 11943,
+            "price": 500,
             "unit": "1k followers",
             "service_id": "23955"
         }
@@ -1782,9 +1782,9 @@ def handle_instagram_order(message):
             "quality": "Fast ~ NR",
             "min": 1000,
             "max": 100000,
-            "price": 172,
+            "price": 10,
             "unit": "1k views",
-            "service_id": "21425",
+            "service_id": "24117",
             "link_hint": "Instagram video link"
         },
         "❤️ Insta Likes": {
@@ -1792,9 +1792,9 @@ def handle_instagram_order(message):
             "quality": "Fast Working",
             "min": 100,
             "max": 1000000,
-            "price": 1800,
+            "price": 1500,
             "unit": "1k likes",
-            "service_id": "24119",
+            "service_id": "24602",
             "link_hint": "Instagram post link"
         },
         "👥 Insta Followers": {
@@ -4793,6 +4793,7 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
+
 
 
 
