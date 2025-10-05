@@ -2421,31 +2421,31 @@ def handle_facebook_order(message):
         "👤 Profile Followers": {
             "name": "FB Profile Followers",
             "quality": "High Quality",
-            "min": 100,
-            "max": 100000,
-            "price": 7704,
+            "min": 500,
+            "max": 1000000,
+            "price": 4000,
             "unit": "1k followers",
-            "service_id": "22276",
+            "service_id": "18974",
             "link_hint": "Facebook profile link"
         },
         "📄 Page Followers": {
             "name": "FB Page Followers",
             "quality": "Refill 30 Days",
-            "min": 100,
-            "max": 10000,
-            "price": 6597,
+            "min": 500,
+            "max": 1000000,
+            "price": 4000,
             "unit": "1k followers",
-            "service_id": "22274",
+            "service_id": "18974",
             "link_hint": "Facebook page link"
         },
         "🎥 Video/Reel Views": {
             "name": "FB Video/Reel Views",
             "quality": "Non Drop",
-            "min": 1000,
-            "max": 10000,
+            "min": 500,
+            "max": 1000000,
             "price": 679,
             "unit": "1k views",
-            "service_id": "17504",
+            "service_id": "18457",
             "link_hint": "Facebook video/reel link"
         },
         "❤️ Post Likes": {
@@ -2453,7 +2453,7 @@ def handle_facebook_order(message):
             "quality": "No Refill",
             "min": 100,
             "max": 10000,
-            "price": 4567,
+            "price": 1500,
             "unit": "1k likes",
             "service_id": "18990",
             "link_hint": "Facebook post link"
@@ -2760,22 +2760,22 @@ def handle_whatsapp_order(message):
     services = {
         "👥 Channel Subscribers": {
             "name": "WhatsApp Channel Members",
-            "quality": "EU Users",
+            "quality": "No Refill",
             "min": 100,
-            "max": 40000,
-            "price": 20856,
+            "max": 50000,
+            "price": 15000,
             "unit": "1k members",
-            "service_id": "19451",
+            "service_id": "24362",
             "link_hint": "WhatsApp channel invite link"
         },
         "😀 Post EmojiReaction": {
             "name": "WhatsApp Channel EmojiReaction",
             "quality": "Mixed",
-            "min": 100,
-            "max": 10000,
-            "price": 10627,
+            "min": 10,
+            "max": 50000,
+            "price": 7000,
             "unit": "1k reactions",
-            "service_id": "18846",
+            "service_id": "18840",
             "link_hint": "WhatsApp channel message link"
         }
     }
@@ -4793,6 +4793,7 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
+
 
 
 
