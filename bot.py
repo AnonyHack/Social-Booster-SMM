@@ -1468,9 +1468,9 @@ def handle_tiktok_order(message):
             "link_hint": "Tiktok Profile Link",
             "min": 100,
             "max": 10000,
-            "price": 500,
+            "price": 10000,
             "unit": "1k followers",
-            "service_id": "23955"
+            "service_id": "23923"
         }
     }
     
@@ -2091,21 +2091,21 @@ def handle_youtube_order(message):
         "▶️ YT Views": {
             "name": "YouTube Views",
             "quality": "Non Drop",
-            "min": 40000,
+            "min": 500,
             "max": 1000000,
-            "price": 7713,
+            "price": 8000,
             "unit": "1k views",
-            "service_id": "11272",
+            "service_id": "22299",
             "link_hint": "YouTube video link"
         },
         "👍 YT Likes": {
             "name": "YouTube Likes [Real]",
             "quality": "Refill 90D",
-            "min": 100,
+            "min": 50,
             "max": 10000,
-            "price": 2607,
+            "price": 1500,
             "unit": "1k likes",
-            "service_id": "15573",
+            "service_id": "8464",
             "link_hint": "YouTube video link"
         },
         "👥 YT Subscribers": {
@@ -2113,9 +2113,9 @@ def handle_youtube_order(message):
             "quality": "Refill 30 days",
             "min": 200,
             "max": 10000,
-            "price": 15078,
+            "price": 178000,
             "unit": "1k subscribers",
-            "service_id": "15567",
+            "service_id": "24017",
             "link_hint": "YouTube channel link"
         }
     }
@@ -4793,6 +4793,7 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
+
 
 
 
