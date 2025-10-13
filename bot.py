@@ -224,7 +224,7 @@ def add_order(user_id, order_data):
         print(f"Error adding order to MongoDB: {e}")
         return False
 #================================== Force Join Method =======================================#
-required_channels = ["Freenethubz", "iCoinStores", "freenethubchannel", "Megahubbots", "xptoolslogs"]  # Channel usernames without "@"
+required_channels = ["Freenethubz", "iCoinStores", "freenethubchannel", "XPTOOLSTEAM", "xptoolslogs"]  # Channel usernames without "@"
 payment_channel = "@xptoolslogs"  # Channel for payment notifications
 
 def is_user_member(user_id):
@@ -272,7 +272,7 @@ def check_membership_and_prompt(user_id, message):
 </blockquote>""",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup([ 
-                [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/Megahubbots")],
+                [InlineKeyboardButton("🤖 BOTS UPDATE", url="https://t.me/XPTOOLSTEAM")],
                 [InlineKeyboardButton("💎 PROMOTER CHANNEL", url="https://t.me/Freenethubz")],
                 [InlineKeyboardButton("🔰 BACKUP CHANNEL", url="https://t.me/Freenethubchannel")],
                 [InlineKeyboardButton("🛒 COINS STORE", url="https://t.me/iCoinStores")],
@@ -4793,6 +4793,7 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
+
 
 
 
