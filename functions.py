@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 # Load environment variables
 load_dotenv()
 MONGO_URI = os.getenv("MONGODB_URI")
-SmmPanelApi = os.getenv("SMM_PANEL_API")
+SmmPanelApi = os.getenv("SMM_PANEL_API_KEY")
 SmmPanelApiUrl = os.getenv("SMM_PANEL_API_URL")
 
 # Set up logging
@@ -811,4 +811,5 @@ def get_panel_balance():
 
 
 print("functions.py loaded with MongoDB support")
+
 
