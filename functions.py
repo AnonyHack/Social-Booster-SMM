@@ -767,21 +767,48 @@ def toggle_bonus():
 
 def get_panel_balance():
     """Fetch the panel balance from ShakerGainsKe API."""
+    # === DEBUG: Check if env vars are loaded ===
+    if not SmmPanelApi:
+        logger.error("SMM_PANEL_API_KEY key is missing in .env")
+        return None
+    if not SmmPanelApiUrl:
+        logger.error("SMM_PANEL_API_URL is missing in .env")
+        return None
+
+    payload = {
+        "key": SmmPanelApi,
+        "action": "balance"
+    }
+
     try:
-        payload = {
-            "key": SmmPanelApi,
-            "action": "balance"
-        }
+        logger.info(f"Making balance request to {SmmPanelApiUrl}")
         resp = requests.post(SmmPanelApiUrl, data=payload, timeout=10)
+        
+        # Log full response for debugging
+        logger.info(f"API Response: {resp.status_code} - {resp.text}")
+
         resp.raise_for_status()
         data = resp.json()
 
         balance = data.get("balance")
         currency = data.get("currency", "USD")
+
         if balance is not None:
             return f"{balance} {currency}"
+        else:
+            logger.warning(f"Balance missing in response: {data}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request failed: {e}")
+        return None
+    except ValueError as e:
+        logger.error(f"Invalid JSON response: {e} | Raw: {resp.text if 'resp' in locals() else 'N/A'}")
+        return None
     except Exception as e:
-        print(f"[ERROR] Panel balance fetch failed: {e}")
-    return None
+        logger.error(f"Unexpected error in get_panel_balance: {e}")
+        return None
+
 
 print("functions.py loaded with MongoDB support")
+
