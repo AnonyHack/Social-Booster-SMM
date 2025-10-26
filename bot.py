@@ -3663,7 +3663,7 @@ def broadcast_start(message):
 
 def process_broadcast(message):
     """Process and send the broadcast message (unpinned)"""
-    if message.text == "Cancel":
+    if message.text and message.text.strip() == "✘ Cᴀɴᴄᴇʟ":
         bot.reply_to(message, "🛑 <b>Broadcast cancelled.</b>", 
                      parse_mode="HTML", reply_markup=admin_markup)
         return
@@ -3675,6 +3675,10 @@ def process_broadcast(message):
     
     success = 0
     failed = 0
+    blocked = 0
+    deleted = 0
+    not_found = 0
+    bot_users = 0
     
     # Enhanced sending notification with progress bar concept
     progress_msg = bot.reply_to(message, f"""📨 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Iɴɪᴛɪᴀᴛᴇᴅ</b>
@@ -3686,29 +3690,27 @@ def process_broadcast(message):
     
     # Calculate update interval (at least 1)
     update_interval = max(1, len(users) // 10)
+    start_time = time.time()
     
     for index, user_id in enumerate(users):
         try:
-            if message.content_type == 'text':
-                # Enhanced text message format
-                formatted_text = f"""✨ <b>Aɴɴᴏᴜɴᴄᴇᴍᴇɴᴛ</b> ✨\n\n{message.text}\n\n"""
-                if not message.text.endswith(('🌐', '📢', '🔔', '📣', '📩')):
-                    formatted_text += "━━━━━━━━━━━━━━\n"
-                    formatted_text += "💌 Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ʙᴇɪɴɢ ᴘᴀʀᴛ ᴏꜰ ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ!\n"
-                    formatted_text += "🔔 Sᴛᴀʏ ᴛᴜɴᴇᴅ ꜰᴏʀ ᴍᴏʀᴇ ᴜᴘᴅᴀᴛᴇꜱ."
-                bot.send_message(user_id, formatted_text, parse_mode="HTML")
-            elif message.content_type == 'photo':
-                # Enhanced photo caption
-                caption = f"📸 {message.caption}" if message.caption else "✨ Community Update"
-                bot.send_photo(user_id, message.photo[-1].file_id, caption=caption)
-            elif message.content_type == 'document':
-                # Enhanced document caption
-                caption = f"📄 {message.caption}" if message.caption else "📁 Important Document"
-                bot.send_document(user_id, message.document.file_id, caption=caption)
+            # Use copy_message to preserve all Telegram formatting exactly as sent
+            bot.copy_message(user_id, message.chat.id, message.message_id)
             success += 1
+            
         except Exception as e:
-            print(f"Failed to send to {user_id}: {e}")
-            failed += 1
+            error_msg = str(e).lower()
+            if "blocked" in error_msg or "user is blocked" in error_msg:
+                blocked += 1
+            elif "deleted" in error_msg or "peer id invalid" in error_msg:
+                deleted += 1
+            elif "chat not found" in error_msg or "bad request" in error_msg:
+                not_found += 1
+            elif "bots can't send messages to bots" in error_msg:
+                bot_users += 1
+            else:
+                failed += 1
+            logger.error(f"Failed to send to {user_id}: {e}")
         
         # Update progress periodically
         if (index+1) % update_interval == 0 or index+1 == len(users):
@@ -3719,29 +3721,52 @@ def process_broadcast(message):
                 
 📊 Tᴏᴛᴀʟ Rᴇᴄɪᴘɪᴇɴᴛꜱ: <code>{len(users)}</code>
 ✅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟ: <code>{success}</code>
+🚫 Bʟᴏᴄᴋᴇᴅ: <code>{blocked}</code>
+🗑️ Dᴇʟᴇᴛᴇᴅ: <code>{deleted}</code>
+🔍 Nᴏᴛ Fᴏᴜɴᴅ: <code>{not_found}</code>
+🤖 Bᴏᴛ Usᴇʀs: <code>{bot_users}</code>
 ❌ Fᴀɪʟᴇᴅ: <code>{failed}</code>
 ⏳ Sᴛᴀᴛᴜꜱ: <i>Sᴇɴᴅɪɴɢ...</i>
 
 [{progress_bar}] {progress}%""", 
                     message.chat.id, progress_msg.message_id, parse_mode="HTML")
             except Exception as e:
-                print(f"Failed to update progress: {e}")
+                logger.error(f"Failed to update progress: {e}")
         
         time.sleep(0.1)  # Rate limiting
     
-# Enhanced completion message
-    bot.reply_to(message, f"""📣 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Cᴏᴍᴘʟᴇᴛᴇᴅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ!</b>
+    # Calculate time taken - FIXED: Use the correct import
+    elapsed_time = int(time.time() - start_time)
+    minutes = elapsed_time // 60
+    seconds = elapsed_time % 60
+    if minutes > 0:
+        time_taken = f"{minutes}m {seconds}s"
+    else:
+        time_taken = f"{seconds}s"
     
+    # Enhanced completion message
+    completion_text = f"""📣 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Cᴏᴍᴘʟᴇᴛᴇᴅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ!</b>
+
 📊 <b>Sᴛᴀᴛɪꜱᴛɪᴄꜱ:</b>
 ├ 📤 <i>Sᴇɴᴛ:</i> <code>{success}</code>
+├ 🚫 <i>Bʟᴏᴄᴋᴇᴅ:</i> <code>{blocked}</code>
+├ 🗑️ <i>Dᴇʟᴇᴛᴇᴅ:</i> <code>{deleted}</code>
+├ 🔍 <i>Nᴏᴛ Fᴏᴜɴᴅ:</i> <code>{not_found}</code>
+├ 🤖 <i>Bᴏᴛ Usᴇʀs:</i> <code>{bot_users}</code>
 └ ❌ <i>Fᴀɪʟᴇᴅ:</i> <code>{failed}</code>
 
-⏱️ <i>Fɪɴɪꜱʜᴇᴅ ᴀᴛ:</i> <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>
+⏱️ <i>Tɪᴍᴇ ᴛᴀᴋᴇɴ:</i> <code>{time_taken}</code>
+⏰ <i>Fɪɴɪꜱʜᴇᴅ ᴀᴛ:</i> <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>
 
-✨ <i>Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ᴜꜱɪɴɢ ᴏᴜʀ ʙʀᴏᴀᴅᴄᴀꜱᴛ ꜱʏꜱᴛᴇᴍ!</i>""", 
-                 parse_mode="HTML", reply_markup=admin_markup)
+✨ <i>Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ᴜꜱɪɴɢ ᴏᴜʀ ʙʀᴏᴀᴅᴄᴀꜱᴛ ꜱʏꜱᴛᴇᴍ!</i>"""
 
-#====================== Ban User Command ================================#
+    try:
+        bot.edit_message_text(completion_text, 
+                            message.chat.id, progress_msg.message_id, 
+                            parse_mode="HTML")
+    except:
+        bot.reply_to(message, completion_text, parse_mode="HTML", reply_markup=admin_markup)
+  
 # ============================= Enhanced Ban User Command ============================= #
 @bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id in admin_user_ids)
 def ban_user_start(message):
@@ -4793,12 +4818,3 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
-
-
-
-
-
-
-
-
-
