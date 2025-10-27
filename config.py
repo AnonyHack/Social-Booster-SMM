@@ -5,17 +5,30 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ───── Bot Configuration ───── #
-BOT_TOKEN = getenv("TELEGRAM_BOT_TOKEN")
-SMM_PANEL_API = getenv("SMM_PANEL_API_KEY")
-SMM_PANEL_API_URL = getenv("SMM_PANEL_API_URL")
+BOT_TOKEN = getenv("TELEGRAM_BOT_TOKEN", "")
+SMM_PANEL_API = getenv("SMM_PANEL_API_KEY", "")
+SMM_PANEL_API_URL = getenv("SMM_PANEL_API_URL", "")
+
+# ───── Database Settings ───── #
+MONGODB_URI = getenv("MONGODB_URI", "")
+DATABASE_NAME = getenv("DATABASE_NAME", "smmhubboosterv2") 
 
 # Admins (comma-separated list in .env)
 ADMIN_USER_IDS = [int(id.strip()) for id in getenv("ADMIN_USER_IDS", "").split(",") if id.strip()]
 
 # Bonuses
-WELCOME_BONUS = int(getenv("WELCOME_BONUS", 30))
-REF_BONUS = int(getenv("REF_BONUS", 50))
+WELCOME_BONUS = int(getenv("WELCOME_BONUS", 30)) 
+REF_BONUS = int(getenv("REF_BONUS", 50)) 
 
+# ───── Maintenance Settings ───── #
+MAINTENANCE_AUTO_DISABLE_TIME = int(getenv("MAINTENANCE_AUTO_DISABLE_TIME", "60"))  # 1 hour in seconds
+MAINTENANCE_MODE = getenv("MAINTENANCE_MODE", "False").lower() == "true" # Convert to boolean
+
+# ───── Server Settings ───── #
+PORT = int(getenv("PORT", "10000")) # Default port for webhooks
+KEEP_ALIVE_ENABLED = getenv("KEEP_ALIVE_ENABLED", "True").lower() == "true" # Convert to boolean
+
+# ───── Links & URLs ───── #
 SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL", "https://t.me/XPTOOLSTEAM")
 SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/nextgenroom")
 UPDATES_CHANNEL_LINK = getenv("UPDATES_CHANNEL_LINK", "https://t.me/XPTOOLSTEAM")
