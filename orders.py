@@ -6,144 +6,16 @@ from functions import getData, cutBalance, add_order, updateUser, get_affiliate_
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 from io import BytesIO
 import os
+from notification_image import create_order_notification, cleanup_image
 
- # Replace with actual Telegram user IDs of admins
-
-# ======================= SHARED FUNCTIONS ======================= #
-def get_profile_photo(bot, user_id):
-    """Download and process profile photo"""
-    try:
-        photos = bot.get_user_profile_photos(user_id, limit=1)
-        if not photos.photos:
-            raise Exception("No profile photo available")
-            
-        file_info = bot.get_file(photos.photos[0][-1].file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
-        
-        with open(f"{user_id}.jpg", 'wb') as new_file:
-            new_file.write(downloaded_file)
-            
-        original_img = Image.open(f"{user_id}.jpg").convert("RGB")
-        
-        # Create circular mask
-        size = (500, 500)
-        mask = Image.new('L', size, 0)
-        draw = ImageDraw.Draw(mask)
-        draw.ellipse((0, 0, size[0], size[1]), fill=255)
-        
-        # Resize and apply mask
-        img = ImageOps.fit(original_img, size, method=Image.LANCZOS)
-        img.putalpha(mask)
-        
-        os.remove(f"{user_id}.jpg")
-        return img
-    except Exception as e:
-        print(f"Using default profile photo: {e}")
-        # Create default gray circle
-        img = Image.new("RGBA", (500, 500), (70, 70, 70, 255))
-        draw = ImageDraw.Draw(img)
-        draw.ellipse((0, 0, 500, 500), fill=(100, 100, 100, 255))
-        return img
-
-def generate_notification_image(user_img, bot_img, user_name, bot_name, service_name):
-    """Generate notification image"""
-    try:
-        width, height = 800, 400
-        bg = Image.new("RGB", (width, height), (30, 30, 45))
-        gradient = Image.new("L", (1, height), color=0xFF)
-
-        for y in range(height):
-            gradient.putpixel((0, y), int(255 * (1 - y/height)))
-        alpha_gradient = gradient.resize((width, height))
-        black_img = Image.new("RGB", (width, height), color=(10, 10, 25))
-        bg = Image.composite(bg, black_img, alpha_gradient)
-
-        draw = ImageDraw.Draw(bg)
-
-        try:
-            title_font = ImageFont.truetype("arialbd.ttf", 40)
-            name_font = ImageFont.truetype("arialbd.ttf", 28)
-            service_font = ImageFont.truetype("arialbd.ttf", 24)
-        except:
-            title_font = ImageFont.load_default().font_variant(size=40)
-            name_font = ImageFont.load_default().font_variant(size=28)
-            service_font = ImageFont.load_default().font_variant(size=24)
-
-        draw.text((width // 2, 40), "NEW ORDER NOTIFICATION", font=title_font,
-                 fill="white", anchor="mm")
-
-        def draw_glowing_circle(base, img, pos, size, glow_color=(255, 215, 0)):
-            glow = Image.new("RGBA", (size + 40, size + 40), (0, 0, 0, 0))
-            glow_draw = ImageDraw.Draw(glow)
-            center = (glow.size[0] // 2, glow.size[1] // 2)
-
-            for radius in range(size // 2 + 10, size // 2 + 20):
-                glow_draw.ellipse([
-                    center[0] - radius, center[1] - radius,
-                    center[0] + radius, center[1] + radius
-                ], fill=glow_color + (10,), outline=None)
-
-            glow = glow.filter(ImageFilter.GaussianBlur(8))
-            base.paste(glow, (pos[0] - 20, pos[1] - 20), glow)
-
-            ring = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-            ring_draw = ImageDraw.Draw(ring)
-            ring_draw.ellipse((0, 0, size - 1, size - 1), outline=(255, 215, 0), width=6)
-
-            if img.mode != 'RGBA':
-                img = img.convert('RGBA')
-            img = img.resize((size, size))
-            mask = Image.new('L', (size, size), 0)
-            mask_draw = ImageDraw.Draw(mask)
-            mask_draw.ellipse((0, 0, size, size), fill=255)
-            img.putalpha(mask)
-
-            base.paste(img, pos, img)
-            base.paste(ring, pos, ring)
-
-        user_pos = (130, 120)
-        bot_pos = (520, 120)
-        draw_glowing_circle(bg, user_img, user_pos, 150)
-        draw_glowing_circle(bg, bot_img, bot_pos, 150)
-
-        max_name_length = 15
-        safe_user_name = (user_name[:max_name_length] + '..') if len(user_name) > max_name_length else user_name
-        safe_bot_name = (bot_name[:max_name_length] + '..') if len(bot_name) > max_name_length else bot_name
-        
-        draw.text((user_pos[0] + 75, 290), safe_user_name, font=name_font,
-                 fill="white", anchor="ma")
-        draw.text((bot_pos[0] + 75, 290), safe_bot_name, font=name_font,
-                 fill="white", anchor="ma")
-
-        max_service_length = 30
-        safe_service_name = (service_name[:max_service_length] + '..') if len(service_name) > max_service_length else service_name
-        draw.text((width // 2, 330), f"Service: {safe_service_name}", font=service_font,
-                 fill=(255, 215, 0), anchor="ma")
-
-        draw.rectangle([0, 370, width, 400], fill=(255, 215, 0))
-        draw.text((width // 2, 385), "Powered by SMMHub Booster", font=name_font,
-                 fill=(30, 30, 30), anchor="mm")
-
-        output_path = f"order_{user_name[:50]}.png"
-        bg.save(output_path, quality=95)
-        return output_path
-
-    except Exception as e:
-        print(f"Image generation error: {e}")
-        return None
-
-def send_order_notification(bot, payment_channel, message, service, quantity, cost, link, order_id):
+def send_order_notification(bot, PAYMENT_CHANNEL, message, service, quantity, cost, link, order_id):
     """Send order notification"""
     try:
-        user_img = get_profile_photo(bot, message.from_user.id)
-        bot_img = get_profile_photo(bot, bot.get_me().id)
-        
-        image_path = generate_notification_image(
-            user_img,
-            bot_img,
-            message.from_user.first_name,
-            bot.get_me().first_name,
-            service['name']
+        image_path = create_order_notification(
+            bot=bot,
+            user_id=message.from_user.id,
+            user_name=message.from_user.first_name,
+            service_name=service['name']
         )
         
         if image_path:
@@ -174,7 +46,7 @@ def send_order_notification(bot, payment_channel, message, service, quantity, co
             
             with open(image_path, 'rb') as photo:
                 bot.send_photo(
-                    payment_channel,
+                    PAYMENT_CHANNEL,
                     photo,
                     caption=caption,
                     parse_mode='HTML',
@@ -184,7 +56,7 @@ def send_order_notification(bot, payment_channel, message, service, quantity, co
             os.remove(image_path)
         else:
             bot.send_message(
-                payment_channel,
+                PAYMENT_CHANNEL,
                 caption,
                 parse_mode='HTML',
                 disable_web_page_preview=True
@@ -193,7 +65,7 @@ def send_order_notification(bot, payment_channel, message, service, quantity, co
     except Exception as e:
         print(f"Error sending notification: {e}")
         bot.send_message(
-            payment_channel,
+            PAYMENT_CHANNEL,
             f"New order: {service['name']} by {message.from_user.first_name}",
             disable_web_page_preview=True
         )
@@ -239,7 +111,7 @@ def process_order_quantity(bot, message, service, service_markup, main_markup, n
         bot.reply_to(message, "❌ Please enter a valid number", reply_markup=service_markup)
 
         
-def process_order_link(bot, message, service, quantity, cost, link_pattern, service_markup, service_type, payment_channel, main_markup):
+def process_order_link(bot, message, service, quantity, cost, link_pattern, service_markup, service_type, PAYMENT_CHANNEL, main_markup):
     """Process order link"""
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
@@ -285,7 +157,7 @@ def process_order_link(bot, message, service, quantity, cost, link_pattern, serv
             
             send_order_notification(
                 bot,
-                payment_channel,
+                PAYMENT_CHANNEL,
                 message,
                 service,
                 quantity,
@@ -297,7 +169,7 @@ def process_order_link(bot, message, service, quantity, cost, link_pattern, serv
             markup = InlineKeyboardMarkup()
             markup.add(InlineKeyboardButton(
                 text="📊 Check Order Status",
-                url=f"https://t.me/{payment_channel.lstrip('@')}"
+                url=f"https://t.me/{PAYMENT_CHANNEL.lstrip('@')}"
             ))
             
             bot.reply_to(
@@ -375,7 +247,7 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
         )
 
 # ======================= TWITTER HANDLERS ======================= #
-def register_twitter_handlers(bot, send_orders_markup, main_markup, payment_channel):
+def register_twitter_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL):
     twitter_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     twitter_services_markup.row(
         KeyboardButton("🔼 X Views"),
@@ -491,7 +363,7 @@ def register_twitter_handlers(bot, send_orders_markup, main_markup, payment_chan
             r'^https?://(www\.)?(tiktok\.com|vm\.tiktok\.com)/',
             twitter_services_markup,
             'twitter',
-            payment_channel,
+            PAYMENT_CHANNEL,
             main_markup
         )
 
@@ -499,7 +371,7 @@ def register_twitter_handlers(bot, send_orders_markup, main_markup, payment_chan
     bot.register_message_handler(handle_twitter_order, func=lambda m: m.text in twitter_services)
 
 # ======================= SPOTIFY HANDLERS ======================= #
-def register_spotify_handlers(bot, send_orders_markup, main_markup, payment_channel):
+def register_spotify_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL):
     spotify_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     spotify_services_markup.row(
         KeyboardButton("👥 Spotify Followers"),
@@ -662,7 +534,7 @@ def register_spotify_handlers(bot, send_orders_markup, main_markup, payment_chan
             r'^https?://(open\.spotify\.com)/',
             spotify_services_markup,
             'spotify',
-            payment_channel,
+            PAYMENT_CHANNEL,
             main_markup
         )
 
@@ -670,7 +542,7 @@ def register_spotify_handlers(bot, send_orders_markup, main_markup, payment_chan
     bot.register_message_handler(handle_spotify_order, func=lambda m: m.text in spotify_services)
 
 # ======================= PINTEREST HANDLERS ======================= #
-def register_pinterest_handlers(bot, send_orders_markup, main_markup, payment_channel):
+def register_pinterest_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL):
     pinterest_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     pinterest_services_markup.row(
         KeyboardButton("📌 Pinterest Followers"),
@@ -758,7 +630,7 @@ def register_pinterest_handlers(bot, send_orders_markup, main_markup, payment_ch
             r'^https?://(www\.)?pinterest\.(com|ru|fr|de|it|es|co\.uk|ca|com\.au|com\.mx|co\.jp|pt|pl|nl|co\.nz|co\.in|com\.br)/',
             pinterest_services_markup,
             'pinterest',
-            payment_channel,
+            PAYMENT_CHANNEL,
             main_markup
         )
 
@@ -766,7 +638,7 @@ def register_pinterest_handlers(bot, send_orders_markup, main_markup, payment_ch
     bot.register_message_handler(handle_pinterest_order, func=lambda m: m.text in pinterest_services)
 
 # ======================= SNAPCHAT HANDLERS ======================= #
-def register_snapchat_handlers(bot, send_orders_markup, main_markup, payment_channel):
+def register_snapchat_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL):
     snapchat_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     snapchat_services_markup.row(
         KeyboardButton("👥 Snapchat Followers"),
@@ -889,7 +761,7 @@ def register_snapchat_handlers(bot, send_orders_markup, main_markup, payment_cha
             r'.+',  # Basic pattern since Snapchat doesn't use standard URLs
             snapchat_services_markup,
             'snapchat',
-            payment_channel,
+            PAYMENT_CHANNEL,
             main_markup
         )
 
@@ -897,9 +769,9 @@ def register_snapchat_handlers(bot, send_orders_markup, main_markup, payment_cha
     bot.register_message_handler(handle_snapchat_order, func=lambda m: m.text in snapchat_services)
 
 # ======================= MAIN REGISTRATION ======================= #
-def register_order_handlers(bot, send_orders_markup, main_markup, payment_channel):
-    register_twitter_handlers(bot, send_orders_markup, main_markup, payment_channel)
-    register_spotify_handlers(bot, send_orders_markup, main_markup, payment_channel)
-    register_pinterest_handlers(bot, send_orders_markup, main_markup, payment_channel)
-    register_snapchat_handlers(bot, send_orders_markup, main_markup, payment_channel)
+def register_order_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL):
+    register_twitter_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL)
+    register_spotify_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL)
+    register_pinterest_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL)
+    register_snapchat_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL)
     # Add more service registrations here as needed
