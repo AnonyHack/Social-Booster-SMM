@@ -1,35 +1,42 @@
 import os
 import time
 import requests
+from threading import Thread
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
 import logging
 from datetime import datetime, timedelta
-
-
-# Load environment variables
-load_dotenv()
-MONGO_URI = os.getenv("MONGODB_URI")
-SmmPanelApi = os.getenv("SMM_PANEL_API_KEY")
-SmmPanelApiUrl = os.getenv("SMM_PANEL_API_URL")
+from pymongo import MongoClient
+from pymongo.errors import PyMongoError
+import logging
+import config  # Make sure this points to your config.py
+from config import SMM_PANEL_API, SMM_PANEL_API_URL
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize MongoDB connection
+# Load environment variables from .env file
+load_dotenv()
+
+SmmPanelApiUrl = SMM_PANEL_API_URL
+SmmPanelApi = SMM_PANEL_API
+
+# Initialize MongoDB connection using config values
 try:
-    client = MongoClient(MONGO_URI)
-    db = client.get_database("smmhubbooster")  # Use your database name here
+    client = MongoClient(config.MONGODB_URI)
+    db = client.get_database(config.DATABASE_NAME)  # Use database name from config
     # Define collections
     users_collection = db.users
     orders_collection = db.orders
-    cash_logs_collection = db['affiliate_cash_logs']  # New collection for cash logs
+    cash_logs_collection = db['affiliate_cash_logs']
+    
     logger.info("Connected to MongoDB successfully")
 except PyMongoError as e:
     logger.error(f"Failed to connect to MongoDB: {e}")
     raise
+
 
 def isExists(user_id):
     """Check if the user exists in database."""
@@ -808,8 +815,57 @@ def get_panel_balance():
     except Exception as e:
         logger.error(f"Unexpected error in get_panel_balance: {e}")
         return None
+    
+#================== Close Button Handler ============================#
+def setup_close_handler(bot):
+    """Universal close button handler for all close buttons"""
+    @bot.callback_query_handler(func=lambda call: call.data == "close_button")
+    def handle_close_button(call):
+        """Handle universal close button for all messages"""
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            bot.answer_callback_query(call.id, "Message closed")
+        except Exception as e:
+            logger.error(f"Error closing message: {e}")
+            bot.answer_callback_query(call.id, "Message already deleted")
 
+#======================= Function to periodically check order status ====================#
+def update_order_statuses():
+    """Periodically check SMM panel and update order statuses in MongoDB"""
+    try:
+        # Get pending/processing orders from MongoDB
+        pending_orders = orders_collection.find({
+            "status": {"$in": ["pending", "processing"]}
+        })
+        
+        for order in pending_orders:
+            # Check status with SMM panel API
+            response = requests.post(
+                SmmPanelApiUrl,
+                data={
+                    'key': SmmPanelApi,
+                    'action': 'status',
+                    'order': order['order_id']
+                }
+            )
+            result = response.json()
+            
+            # Update status in MongoDB if different
+            if result.get('status') and result['status'] != order['status']:
+                orders_collection.update_one(
+                    {"_id": order['_id']},
+                    {"$set": {"status": result['status'].lower()}}
+                )
+                
+    except Exception as e:
+        print(f"Error updating order statuses: {e}")
+
+def status_updater():
+    while True:
+        update_order_statuses()
+        time.sleep(300)  # Check every 5 minutes
+
+# Start the updater in a separate thread
+Thread(target=status_updater, daemon=True).start()
 
 print("functions.py loaded with MongoDB support")
-
-
