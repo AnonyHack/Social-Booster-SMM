@@ -11,7 +11,7 @@ SMM_PANEL_API_URL = getenv("SMM_PANEL_API_URL", "")
 
 # ───── Database Settings ───── #
 MONGODB_URI = getenv("MONGODB_URI", "")
-DATABASE_NAME = getenv("DATABASE_NAME", "smmhubboosterv2") 
+DATABASE_NAME = getenv("DATABASE_NAME", "smmhubbooster") 
 
 # Admins (comma-separated list in .env)
 ADMIN_USER_IDS = [int(id.strip()) for id in getenv("ADMIN_USER_IDS", "").split(",") if id.strip()]
@@ -45,3 +45,4 @@ CHANNEL_BUTTONS = {
     #"BACKUP_CHANNEL": {"name": "🔙 BACKUP CHANNEL", "url": "https://t.me/Freenethubchannel"},
     #"COINS_STORE_CHANNEL": {"name": "🪙 COINS STORE CHANNEL", "url": "https://t.me/iCoinStores"}
 }
+
