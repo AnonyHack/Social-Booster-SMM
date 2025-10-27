@@ -4083,6 +4083,7 @@ def handle_ban_pagination(call):
         bot.answer_callback_query(call.id, "Error loading page", show_alert=True)
 
 # ============================= Premium Leaderboard ============================= #
+# ============================= Premium Leaderboard ============================= #
 @bot.message_handler(func=lambda m: m.text == "🏆 Leaderboard")
 def show_leaderboard(message):
     """Show VIP leaderboard with pagination"""
@@ -4105,7 +4106,7 @@ def show_leaderboard(message):
 
 def show_leaderboard_page(message, top_users, page=0):
     """Show a page of leaderboard"""
-    PAGE_SIZE = 5
+    PAGE_SIZE = 10
     start_idx = page * PAGE_SIZE
     end_idx = start_idx + PAGE_SIZE
     page_users = top_users[start_idx:end_idx]
@@ -4152,13 +4153,32 @@ def show_leaderboard_page(message, top_users, page=0):
     
     markup.row(InlineKeyboardButton("❌ Close", callback_data="close_leaderboard"))
     
-    bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
+    # Check if we're editing an existing message or sending a new one
+    if hasattr(message, 'message_id') and hasattr(message, 'from_user'):
+        # This is a callback query - edit the existing message
+        try:
+            bot.edit_message_text(
+                msg,
+                chat_id=message.chat.id,
+                message_id=message.message_id,
+                parse_mode="HTML",
+                reply_markup=markup
+            )
+        except Exception as e:
+            logger.error(f"Failed to edit message, sending new one: {e}")
+            bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
+    else:
+        # This is a new message - send it
+        bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("leader_page_") or call.data == "close_leaderboard")
 def handle_leaderboard_pagination(call):
     """Handle leaderboard pagination"""
     if call.data == "close_leaderboard":
-        bot.delete_message(call.message.chat.id, call.message.message_id)
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except:
+            pass
         bot.answer_callback_query(call.id)
         return
     
@@ -4170,9 +4190,11 @@ def handle_leaderboard_pagination(call):
             bot.answer_callback_query(call.id, "No leaderboard data found", show_alert=True)
             return
         
+        # Pass the callback message to edit the existing message
         show_leaderboard_page(call.message, top_users, page)
         bot.answer_callback_query(call.id)
-    except:
+    except Exception as e:
+        logger.error(f"Error in leaderboard pagination: {e}")
         bot.answer_callback_query(call.id, "Error loading page", show_alert=True)
 
 #======================= Function to Pin Annoucement Messages ====================#
@@ -4958,3 +4980,4 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         web_app.notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
+
