@@ -34,7 +34,7 @@ SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/nextgenroom")
 UPDATES_CHANNEL_LINK = getenv("UPDATES_CHANNEL_LINK", "https://t.me/XPTOOLSTEAM")
 WELCOME_IMAGE_URL = getenv("WELCOME_IMAGE_URL", "https://i.ibb.co/1JYDJ34S/smmlogo.jpg")
 PAYMENT_CHANNEL = getenv("PAYMENT_CHANNEL", "@xptoolslogs")
-WHATSAPP_CHANNEL = getenv("WHATSAPP_CHANNEL", "https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l")
+WHATSAPP_CHANNEL = getenv("WHATSAPP_CHANNEL", "https://whatsapp.com/channel/0029VbB3G3BH5JM0s7gtKA2d")
 
 # ───── Force Join Channels ───── #
 REQUIRED_CHANNELS = getenv("REQUIRED_CHANNELS", "XPTOOLSTEAM").split(",")  # Comma-separated channel usernames
@@ -45,4 +45,5 @@ CHANNEL_BUTTONS = {
     #"BACKUP_CHANNEL": {"name": "🔙 BACKUP CHANNEL", "url": "https://t.me/Freenethubchannel"},
     #"COINS_STORE_CHANNEL": {"name": "🪙 COINS STORE CHANNEL", "url": "https://t.me/iCoinStores"}
 }
+
 
