@@ -110,7 +110,7 @@ def process_free_link(bot, message, service, quantity, link_pattern, service_mar
 ━━━━━━━━•❅•°•❈•°•❅•━━━━━━━━
 📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}
 ━━━━━━━━━━━━━━━━━━━━━━━
-🔢 <b>Qᴜᴀɴᴛɪᴛʯ:</b> {quantity}
+🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
 💰 <b>Cᴏꜱᴛ:</b> Free
 ━━━━━━━━━━━━━━━━━━━━━━━
 📎 <b>Lɪɴᴋ:</b> {link}
@@ -146,7 +146,7 @@ def process_free_link(bot, message, service, quantity, link_pattern, service_mar
         print(f"Eʀʀᴏʀ ꜱᴜʙᴍɪᴛᴛɪɴɢ {service['name']} ᴏʀᴅᴇʀ: {str(e)}")
         bot.reply_to(
             message,
-            f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ꜱᴜʙᴍɪᴛ {service['name']} ᴏʀᴅᴇʀ. Pʟᴇᴀꜱᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.",
+            f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ꜱᴜʙᴍɪᴛ {service['name']} ᴏʀᴅᴇʀ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.",
             reply_markup=main_markup
         )
 
@@ -341,7 +341,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
             free_orders_today = 0
         
         if free_orders_today >= FREE_ORDERS_DAILY_LIMIT:
-            bot.reply_to(message, f"❌ Yᴏᴜ ʜᴀᴠᴇ ʀᴇᴀᴄʜᴇᴅ ᴛʜᴇ ᴅᴀɪʟʯ ʟɪᴍɪᴛ ᴏꜱ {FREE_ORDERS_DAILY_LIMIT} ꜰʀᴇᴇ ᴏʀᴅᴇʀ(ꜱ). Tʀʯ ᴀɢᴀɪɴ ᴛᴏᴍᴏʀʀᴏᴡ.")
+            bot.reply_to(message, f"❌ Yᴏᴜ ʜᴀᴠᴇ ʀᴇᴀᴄʜᴇᴅ ᴛʜᴇ ᴅᴀɪʟʏ ʟɪᴍɪᴛ ᴏꜱ {FREE_ORDERS_DAILY_LIMIT} ꜰʀᴇᴇ ᴏʀᴅᴇʀ(ꜱ). Tʀʏ ᴀɢᴀɪɴ ᴛᴏᴍᴏʀʀᴏᴡ.")
             return
         
         updateUser(user_id, data)
@@ -371,7 +371,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         admin_user_ids = [int(uid) if isinstance(uid, str) else uid for uid in ADMIN_USER_IDS if str(uid).isdigit()]
         locked_services = get_locked_services()
         if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
-            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
             return
 
         # Create cancel/back markup (matching orders.py)
@@ -392,9 +392,9 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
 ━━━━━━━━━━━━━━━━━━━━━━━
 🔗 Lɪɴᴋ Hɪɴᴛ: {service['link_hint']}
 ━━━━━━━━━━━━━━━━━━━━━━━
-💎 Qᴜᴀʟɪᴛʯ: {service['quality']}
+💎 Qᴜᴀʟɪᴛʏ: {service['quality']}
 ━━━━━━━━━━━━━━━━━━━━━━━
-🔢 Eɴᴛᴇʀ Qᴜᴀɴᴛɪᴛʯ:
+🔢 Eɴᴛᴇʀ Qᴜᴀɴᴛɪᴛʏ:
 ━━━━━━━━━━━━━━━━━━━━━━━"""
         
         bot.reply_to(message, msg, reply_markup=cancel_back_markup)
@@ -420,7 +420,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         admin_user_ids = [int(uid) if isinstance(uid, str) else uid for uid in ADMIN_USER_IDS if str(uid).isdigit()]
         locked_services = get_locked_services()
         if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
-            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
             return
 
         # Create cancel/back markup (matching orders.py)
@@ -441,9 +441,9 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
 ━━━━━━━━━━━━━━━━━━━━━━━
 🔗 Lɪɴᴋ Hɪɴᴛ: {service['link_hint']}
 ━━━━━━━━━━━━━━━━━━━━━━━
-💎 Qᴜᴀʟɪᴛʯ: {service['quality']}
+💎 Qᴜᴀʟɪᴛʏ: {service['quality']}
 ━━━━━━━━━━━━━━━━━━━━━━━
-🔢 Eɴᴛᴇʀ Qᴜᴀɴᴛɪᴛʯ:
+🔢 Eɴᴛᴇʀ Qᴜᴀɴᴛɪᴛʏ:
 ━━━━━━━━━━━━━━━━━━━━━━━"""
         
         bot.reply_to(message, msg, reply_markup=cancel_back_markup)
@@ -469,7 +469,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         admin_user_ids = [int(uid) if isinstance(uid, str) else uid for uid in ADMIN_USER_IDS if str(uid).isdigit()]
         locked_services = get_locked_services()
         if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
-            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
             return
 
         # Create cancel/back markup (matching orders.py)
@@ -490,9 +490,9 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
 ━━━━━━━━━━━━━━━━━━━━━━━
 🔗 Lɪɴᴋ Hɪɴᴛ: {service['link_hint']}
 ━━━━━━━━━━━━━━━━━━━━━━━
-💎 Qᴜᴀʟɪᴛʯ: {service['quality']}
+💎 Qᴜᴀʟɪᴛʏ: {service['quality']}
 ━━━━━━━━━━━━━━━━━━━━━━━
-🔢 Eɴᴛᴇʀ Qᴜᴀɴᴛɪᴛʯ:
+🔢 Eɴᴛᴇʀ Qᴜᴀɴᴛɪᴛʏ:
 ━━━━━━━━━━━━━━━━━━━━━━━"""
         
         bot.reply_to(message, msg, reply_markup=cancel_back_markup)
@@ -518,7 +518,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         admin_user_ids = [int(uid) if isinstance(uid, str) else uid for uid in ADMIN_USER_IDS if str(uid).isdigit()]
         locked_services = get_locked_services()
         if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
-            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
             return
 
         # Create cancel/back markup (matching orders.py)
@@ -539,9 +539,9 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
 ━━━━━━━━━━━━━━━━━━━━━━━
 🔗 Lɪɴᴋ Hɪɴᴛ: {service['link_hint']}
 ━━━━━━━━━━━━━━━━━━━━━━━
-💎 Qᴜᴀʟɪᴛʯ: {service['quality']}
+💎 Qᴜᴀʟɪᴛʏ: {service['quality']}
 ━━━━━━━━━━━━━━━━━━━━━━━
-🔢 Eɴᴛᴇʀ Qᴜᴀɴᴛɪᴛʯ:
+🔢 Eɴᴛᴇʀ Qᴜᴀɴᴛɪᴛʏ:
 ━━━━━━━━━━━━━━━━━━━━━━━"""
         
         bot.reply_to(message, msg, reply_markup=cancel_back_markup)
