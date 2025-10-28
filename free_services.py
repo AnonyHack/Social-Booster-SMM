@@ -14,7 +14,7 @@ def process_free_quantity(bot, message, service, service_markup, main_markup, ne
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
-    elif message.text == "↩️ Go Back":
+    elif message.text == "⌫ ɢᴏ ʙᴀᴄᴋ":
         bot.reply_to(message, "↩️ Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=service_markup)
         return
     
@@ -116,19 +116,19 @@ def process_free_link(bot, message, service, quantity, link_pattern, service_mar
 📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ ID:</b> {order_id}
 ━━━━━━━━━━━━━━━━━━━━━━━
-😊 <b>Tʜᴀɴᴋꜱ ꜰᴏʀ ᴜꜽɪɴɢ ᴏᴜʀ ꜰʀᴇᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
+😊 <b>Tʜᴀɴᴋꜱ ꜰᴏʀ ᴜꜱɪɴɢ ᴏᴜʀ ꜰʀᴇᴇ ꜱᴇʀᴠɪᴄᴇ!</b>
 ━━━━━━━━•❅•°•❈•°•❅•━━━━━━━━
-⚠️ <b>Wᴀʀɴɪɴɢ:</b> Dᴏ ɴᴏᴛ ꜱᴇɴᴅ ᴛʜᴇ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴆ ᴏɴᴇ ɪꜽ ᴄᴏᴍᴘʟᴇᴛᴇᴅ!""",
+⚠️ <b>Wᴀʀɴɪɴɢ:</b> Dᴏ ɴᴏᴛ ꜱᴇɴᴅ ᴛʜᴇ ꜱᴀᴍᴇ ᴏʀᴅᴇʀ ᴏɴ ᴛʜᴇ ꜱᴀᴍᴇ ʟɪɴᴋ ʙᴇꜰᴏʀᴇ ᴛʜᴇ ꜰɪʀꜱᴆ ᴏɴᴇ ɪꜱ ᴄᴏᴍᴘʟᴇᴛᴇᴅ!""",
                 reply_markup=markup,
                 disable_web_page_preview=True,
                 parse_mode='HTML'
             )
 
             go_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-            go_back_markup.add(KeyboardButton("↩️ Go Back"))
+            go_back_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
             bot.send_message(
                 message.chat.id,
-                "🔙 Yᴏᴜ ᴄᴀɴ ɢᴏ ʙᴀᴄᴋ ᴛᴏ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇꜽ ᴍᴇɴᴜ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ.",
+                "🔙 Yᴏᴜ ᴄᴀɴ ɢᴏ ʙᴀᴄᴋ ᴛᴏ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇꜱ ᴍᴇɴᴜ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ.",
                 reply_markup=go_back_markup
             )
 
@@ -139,14 +139,14 @@ def process_free_link(bot, message, service, quantity, link_pattern, service_mar
     except requests.Timeout:
         bot.reply_to(
             message,
-            "⚠️ Tʜᴇ ᴏʀᴅᴇʀ ɪꜽ ᴛᴀᴋɪɴɢ ʟᴏɴɢᴇʀ ᴛʜᴀɴ ᴇxᴘᴇᴄᴛᴇᴅ. Pʟᴇᴀꜽᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ ᴏʀᴅᴇʀ ꜽᴛᴀᴛᴜꜽ ʟᴀᴛᴇʀ.",
+            "⚠️ Tʜᴇ ᴏʀᴅᴇʀ ɪꜱ ᴛᴀᴋɪɴɢ ʟᴏɴɢᴇʀ ᴛʜᴀɴ ᴇxᴘᴇᴄᴛᴇᴅ. Pʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ʏᴏᴜʀ ᴏʀᴅᴇʀ ꜱᴛᴀᴛᴜꜱ ʟᴀᴛᴇʀ.",
             reply_markup=main_markup
         )
     except Exception as e:
-        print(f"Eʀʀᴏʀ ꜽᴜʙᴍɪᴛᴛɪɴɢ {service['name']} ᴏʀᴅᴇʀ: {str(e)}")
+        print(f"Eʀʀᴏʀ ꜱᴜʙᴍɪᴛᴛɪɴɢ {service['name']} ᴏʀᴅᴇʀ: {str(e)}")
         bot.reply_to(
             message,
-            f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ꜽᴜʙᴍɪᴛ {service['name']} ᴏʀᴅᴇʀ. Pʟᴇᴀꜽᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.",
+            f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ꜱᴜʙᴍɪᴛ {service['name']} ᴏʀᴅᴇʀ. Pʟᴇᴀꜱᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.",
             reply_markup=main_markup
         )
 
@@ -163,7 +163,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         KeyboardButton("🎵 Free TikTok"),
         KeyboardButton("📘 Free Facebook")
     )
-    free_send_orders_markup.add(KeyboardButton("🔙 Main Menu"))
+    free_send_orders_markup.add(KeyboardButton("⌫ ᴍᴀɪɴ ᴍᴇɴᴜ"))
 
     # --- Free Telegram Services ---
     free_telegram_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -174,7 +174,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
     free_telegram_services_markup.row(
         KeyboardButton("👥 Free TG Members")
     )
-    free_telegram_services_markup.add(KeyboardButton("↩️ Go Back"))
+    free_telegram_services_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
     # --- Free Instagram Services ---
     free_instagram_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -186,22 +186,23 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
     #     KeyboardButton("❤️ Insta Likes"),
     #     KeyboardButton("👥 Insta Followers")
     # )
-    free_instagram_services_markup.add(KeyboardButton("↩️ Go Back"))
+    free_instagram_services_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
     # --- Free Tiktok Services ---
     free_tiktok_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     free_tiktok_services_markup.row(
         KeyboardButton("👀 Free Tiktok Views"),
     )
-    free_tiktok_services_markup.add(KeyboardButton("↩️ Go Back"))
+    free_tiktok_services_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
     # --- Free Facebook Services ---
     free_facebook_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     free_facebook_services_markup.row(
-        KeyboardButton("👀 Free FB Views"),
+        #KeyboardButton("👀 Free FB Views"),
+        KeyboardButton("👀 Free FB Followers")
 
     )
-    free_facebook_services_markup.add(KeyboardButton("↩️ Go Back"))
+    free_facebook_services_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
 
     # Telegram free services dictionary
@@ -293,17 +294,17 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
     }
             # Facebook free services dictionary
     facebook_free_services = {
-            "👀 Free FB Views": {
-            "name": "FB Views",
-            "quality": "High Quality",
-            "min": 10,
-            "max": 100,  # Strict limit for free service
-            "price": 0,  # Free for users
-            "unit": "1k views",
-            "service_id": "0",  # TODO: Replace with actual Megahub service ID
-            "link_hint": "Facebook video link",
-            "icon": "👀"
-           },
+           # "👀 Free FB Views": {
+           # "name": "FB Views",
+           # "quality": "High Quality",
+           # "min": 10,
+           # "max": 100,  # Strict limit for free service
+           # "price": 0,  # Free for users
+           # "unit": "1k views",
+           # "service_id": "0",  # TODO: Replace with actual Megahub service ID
+           # "link_hint": "Facebook video link",
+           # "icon": "👀"
+           #},
             "👀 Free FB Followers": {
             "name": "FB Followers",
             "quality": "No Refill",
@@ -320,7 +321,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
     def order_free_menu(message):
         user_id = str(message.from_user.id)
         if is_banned(user_id):
-            bot.reply_to(message, "⛔ Yᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ʙᴀɴɴᴇᴅ ꜰʀᴏᴍ ᴜꜽɪɴɢ ᴛʜɪꜽ ʙᴏᴛ.")
+            bot.reply_to(message, "⛔ Yᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ʙᴀɴɴᴇᴅ ꜰʀᴏᴍ ᴜꜱɪɴɢ ᴛʜɪꜱ ʙᴏᴛ.")
             return
         
         # Update user activity (matching orders.py)
@@ -340,24 +341,24 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
             free_orders_today = 0
         
         if free_orders_today >= FREE_ORDERS_DAILY_LIMIT:
-            bot.reply_to(message, f"❌ Yᴏᴜ ʜᴀᴠᴇ ʀᴇᴀᴄʜᴇᴅ ᴛʜᴇ ᴅᴀɪʟʯ ʟɪᴍɪᴛ ᴏꜽ {FREE_ORDERS_DAILY_LIMIT} ꜰʀᴇᴇ ᴏʀᴅᴇʀ(ꜽ). Tʀʯ ᴀɢᴀɪɴ ᴛᴏᴍᴏʀʀᴏᴡ.")
+            bot.reply_to(message, f"❌ Yᴏᴜ ʜᴀᴠᴇ ʀᴇᴀᴄʜᴇᴅ ᴛʜᴇ ᴅᴀɪʟʯ ʟɪᴍɪᴛ ᴏꜱ {FREE_ORDERS_DAILY_LIMIT} ꜰʀᴇᴇ ᴏʀᴅᴇʀ(ꜱ). Tʀʯ ᴀɢᴀɪɴ ᴛᴏᴍᴏʀʀᴏᴡ.")
             return
         
         updateUser(user_id, data)
 
-        bot.reply_to(message, "🆓 Fʀᴇᴇ Sᴇʀᴠɪᴄᴇꜽ:", reply_markup=free_send_orders_markup)
+        bot.reply_to(message, "🆓 Fʀᴇᴇ Sᴇʀᴠɪᴄᴇꜱ:", reply_markup=free_send_orders_markup)
 
     def order_free_telegram_menu(message):
-        bot.reply_to(message, "📱 Fʀᴇᴇ Tᴇʟᴇɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜽ:", reply_markup=free_telegram_services_markup)
+        bot.reply_to(message, "📱 Fʀᴇᴇ Tᴇʟᴇɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ:", reply_markup=free_telegram_services_markup)
 
     def order_free_instagram_menu(message):
-        bot.reply_to(message, "🌐 Fʀᴇᴇ Iɴꜽᴛᴀɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜽ:", reply_markup=free_instagram_services_markup)
+        bot.reply_to(message, "🌐 Fʀᴇᴇ Iɴꜱᴛᴀɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ:", reply_markup=free_instagram_services_markup)
 
     def order_free_tiktok_menu(message):
-        bot.reply_to(message, "🎵 Fʀᴇᴇ TɪᴋTᴏᴋ Sᴇʀᴠɪᴄᴇꜽ:", reply_markup=free_tiktok_services_markup)
+        bot.reply_to(message, "🎵 Fʀᴇᴇ TɪᴋTᴏᴋ Sᴇʀᴠɪᴄᴇꜱ:", reply_markup=free_tiktok_services_markup)
 
     def order_free_facebook_menu(message):
-        bot.reply_to(message, "📘 Fʀᴇᴇ Fᴀᴄᴇʙᴏᴏᴋ Sᴇʀᴠɪᴄᴇꜽ:", reply_markup=free_facebook_services_markup)
+        bot.reply_to(message, "📘 Fʀᴇᴇ Fᴀᴄᴇʙᴏᴏᴋ Sᴇʀᴠɪᴄᴇꜱ:", reply_markup=free_facebook_services_markup)
 
     def handle_free_telegram_order(message):
         if message.text not in telegram_free_services:
@@ -370,17 +371,17 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         admin_user_ids = [int(uid) if isinstance(uid, str) else uid for uid in ADMIN_USER_IDS if str(uid).isdigit()]
         locked_services = get_locked_services()
         if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
-            bot.reply_to(message, "🚫 Tʜɪꜽ ꜽᴇʀᴠɪᴄᴇ ɪꜽ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜽᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
             return
 
         # Create cancel/back markup (matching orders.py)
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("↩️ Go Back")
+            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
         )
 
-        msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜽ 」⭐️
+        msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
 ━━━━━━━━•❅•°•❈•°•❅•━━━━━━━━
 📌 Oʀᴅᴇʀ ID: {service['service_id']}
 ━━━━━━━━━━━━━━━━━━━━━━━
@@ -419,17 +420,17 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         admin_user_ids = [int(uid) if isinstance(uid, str) else uid for uid in ADMIN_USER_IDS if str(uid).isdigit()]
         locked_services = get_locked_services()
         if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
-            bot.reply_to(message, "🚫 Tʜɪꜽ ꜽᴇʀᴠɪᴄᴇ ɪꜽ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜽᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
             return
 
         # Create cancel/back markup (matching orders.py)
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("↩️ Go Back")
+            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
         )
 
-        msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜽ 」⭐️
+        msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
 ━━━━━━━━•❅•°•❈•°•❅•━━━━━━━━
 📌 Oʀᴅᴇʀ ID: {service['service_id']}
 ━━━━━━━━━━━━━━━━━━━━━━━
@@ -468,17 +469,17 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         admin_user_ids = [int(uid) if isinstance(uid, str) else uid for uid in ADMIN_USER_IDS if str(uid).isdigit()]
         locked_services = get_locked_services()
         if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
-            bot.reply_to(message, "🚫 Tʜɪꜽ ꜽᴇʀᴠɪᴄᴇ ɪꜽ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜽᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
             return
 
         # Create cancel/back markup (matching orders.py)
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("↩️ Go Back")
+            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
         )
 
-        msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜽ 」⭐️
+        msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
 ━━━━━━━━•❅•°•❈•°•❅•━━━━━━━━
 📌 Oʀᴅᴇʀ ID: {service['service_id']}
 ━━━━━━━━━━━━━━━━━━━━━━━
@@ -517,17 +518,17 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         admin_user_ids = [int(uid) if isinstance(uid, str) else uid for uid in ADMIN_USER_IDS if str(uid).isdigit()]
         locked_services = get_locked_services()
         if service['service_id'] in locked_services and message.from_user.id not in admin_user_ids:
-            bot.reply_to(message, "🚫 Tʜɪꜽ ꜽᴇʀᴠɪᴄᴇ ɪꜽ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜽᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            bot.reply_to(message, "🚫 Tʜɪꜱ ꜱᴇʀᴠɪᴄᴇ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʯ ʟᴏᴄᴋᴇᴅ ʙʯ ᴛʜᴇ ᴀᴅᴍɪɴ. Pʟᴇᴀꜱᴇ ᴛʀʯ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
             return
 
         # Create cancel/back markup (matching orders.py)
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("↩️ Go Back")
+            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
         )
 
-        msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜽ 」⭐️
+        msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
 ━━━━━━━━•❅•°•❈•°•❅•━━━━━━━━
 📌 Oʀᴅᴇʀ ID: {service['service_id']}
 ━━━━━━━━━━━━━━━━━━━━━━━
@@ -566,10 +567,10 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
     bot.register_message_handler(handle_free_tiktok_order, func=lambda m: m.text in tiktok_free_services)
     bot.register_message_handler(handle_free_facebook_order, func=lambda m: m.text in facebook_free_services)
     bot.register_message_handler(
-        lambda m: bot.reply_to(m, "↩️ Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Fʀᴇᴇ Sᴇʀᴠɪᴄᴇꜽ...", reply_markup=free_send_orders_markup),
-        func=lambda m: m.text == "↩️ Go Back"
+        lambda m: bot.reply_to(m, "↩️ Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Fʀᴇᴇ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=free_send_orders_markup),
+        func=lambda m: m.text == "⌫ ɢᴏ ʙᴀᴄᴋ"
     )
     bot.register_message_handler(
         lambda m: bot.reply_to(m, "🔙 Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Mᴀɪɴ Mᴇɴᴜ...", reply_markup=main_markup),
-        func=lambda m: m.text == "🔙 Main Menu"
+        func=lambda m: m.text == "⌫ ᴍᴀɪɴ ᴍᴇɴᴜ"
     )
