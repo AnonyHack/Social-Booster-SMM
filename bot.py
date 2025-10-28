@@ -64,7 +64,7 @@ send_startup_message(bot, is_restart=True)  # or False if you want default
 #======================= Keyboards =======================#
 # Main keyboard markup
 main_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-button1 = KeyboardButton("🆓 Free Services")
+button1 = KeyboardButton("🆓 Free Services") 
 button2 = KeyboardButton("🛒 Buy Services")
 button3 = KeyboardButton("👤 My Account")
 button4 = KeyboardButton("💳 Pricing")
@@ -323,7 +323,20 @@ def verify_membership(call):
     if is_user_member(user_id):
         try:
             bot.delete_message(call.message.chat.id, call.message.message_id)
-            send_welcome(call.message)
+            
+            # Create a mock message with referral data to preserve referral info
+            class MockMessage:
+                def __init__(self, call, user_id):
+                    self.from_user = call.from_user
+                    self.chat = call.message.chat
+                    self.message_id = call.message.message_id
+                    self.text = f"/start {call.message.text.split()[-1] if len(call.message.text.split()) > 1 else ''}"
+                    self._json = call.message.json
+            
+            # Create mock message with preserved referral data
+            mock_message = MockMessage(call, user_id)
+            send_welcome(mock_message)
+            
         except Exception as e:
             print(f"Error in verify_membership: {e}")
             bot.answer_callback_query(
@@ -382,8 +395,8 @@ def send_orders_menu(message):
 
 def set_bot_commands():
     commands = [
-        BotCommand('start', 'Restart the bot'),
-        BotCommand('policy', 'View usage policy'),
+        BotCommand('start', '⟳ Restart the bot'),
+        BotCommand('policy', '📋 View usage policy'),
     ]
     
     # Admin-only commands
@@ -411,17 +424,17 @@ def set_bot_commands():
         print(f"Error setting bot commands: {e}")
   
 #======================= Start Command =======================#
-@bot.message_handler(commands=['start']) 
+@bot.message_handler(commands=['start'])
 @check_ban
 def send_welcome(message):
     user_id = str(message.from_user.id)
     first_name = message.from_user.first_name
     username = f"@{message.from_user.username}" if message.from_user.username else "No Username"
-    
+
     ref_by = None
     is_affiliate = False
 
-    # Parse referral parameter
+    # Parse referral parameter FIRST - before force join check
     if len(message.text.split()) > 1:
         ref_param = message.text.split()[1]
         if ref_param.startswith('aff_'):
@@ -431,11 +444,7 @@ def send_welcome(message):
             ref_by = ref_param
             is_affiliate = False
 
-    # Check channel membership
-    if not check_membership_and_prompt(user_id, message):
-        return
-
-    # Referral tracking logic
+    # Store referral data in user session before force join check
     if ref_by and int(ref_by) != int(user_id) and track_exists(ref_by):
         if not isExists(user_id):
             initial_data = {
@@ -450,16 +459,20 @@ def send_welcome(message):
             insertUser(user_id, initial_data)
             addRefCount(ref_by)
 
-    # If new user and not referred
+    # Check channel membership AFTER storing referral data
+    if not check_membership_and_prompt(user_id, message):
+        return
+
+    # If new user and not referred (but passed force join)
     if not isExists(user_id):
         initial_data = {
             "user_id": user_id,
-            "balance": "0.00",
-            "ref_by": "none",
-            "is_affiliate": False,
-            "referred": 0,
-            "welcome_bonus": 0,
-            "total_refs": 0,
+                "balance": "0.00",
+                "ref_by": ref_by if ref_by and int(ref_by) != int(user_id) and track_exists(ref_by) else "none",
+                "is_affiliate": is_affiliate if ref_by and ref_by.startswith('aff_') else False,
+                "referred": 0,
+                "welcome_bonus": 0,
+                "total_refs": 0,
         }
         insertUser(user_id, initial_data)
 
@@ -469,7 +482,7 @@ def send_welcome(message):
         addBalance(user_id, welcome_bonus)
         setWelcomeStaus(user_id)
 
-    # Referral bonus logic
+    # Referral bonus logic - NOW THIS WILL WORK AFTER VERIFICATION
     data = getData(user_id)
     if data['ref_by'] != "none" and data.get('referred') == 0:
         referrer_data = getData(data['ref_by'])
@@ -489,24 +502,31 @@ Yᴏᴜʀ ᴜɴɪQᴜᴇ ʟɪɴᴋ: https://t.me/{bot.get_me().username}?start=a
 Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ʜᴇʟᴘɪɴɢ ɢʀᴏᴡ ᴏᴜʀ ᴄᴏᴍᴍᴜɴɪᴛʏ!
 </blockquote>
 """
+        close_btn = InlineKeyboardMarkup().add(
+            InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")
+        )
         bot.send_message(
-            data['ref_by'], 
+            data['ref_by'],
             referral_message,
             parse_mode='HTML',
-            disable_web_page_preview=True
+            disable_web_page_preview=True,
+            reply_markup=close_btn
         )
         addBalance(data['ref_by'], ref_bonus)
         setReferredStatus(user_id)
 
-    # Create inline buttons for welcome message
+    # Rest of your welcome message code remains the same...
+    # [Your existing welcome message code here]
+
+    # Inline buttons for welcome message
     welcome_buttons = InlineKeyboardMarkup()
     welcome_buttons.row(
-        InlineKeyboardButton("📱 WHATSAPP", url=WHATSAPP_CHANNEL),
-        InlineKeyboardButton("💬 SUPPORT", url=SUPPORT_CHAT)
+        InlineKeyboardButton("📱 Wʜᴀᴛꜱᴀᴘᴘ", url=WHATSAPP_CHANNEL),
+        InlineKeyboardButton("💬 Sᴜᴘᴘᴏʀᴛ", url=SUPPORT_CHAT)
     )
-    welcome_buttons.row(InlineKeyboardButton("❌ Close", callback_data="close_button"))
+    welcome_buttons.row(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button"))
 
-    # Welcome message using configurable image
+    # Welcome message with image
     welcome_caption = f"""
 <blockquote>
 🎉 <b>Wᴇʟᴄᴏᴍᴇ {first_name}!</b> 🎉
@@ -519,12 +539,11 @@ Wɪᴛʜ ᴏᴜʀ ʙᴏᴛ, ʏᴏᴜ ᴄᴀɴ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ꜱᴏ�
 </blockquote>
 
 🔗 <b>Join our channels:</b>
-• 📢 <a href="{UPDATES_CHANNEL_LINK}">Updates Channel</a> - Stay updated
+• 📢 <a href="{UPDATES_CHANNEL_LINK}">Updates Channel</a> - Stay updated  
 • 💬 <a href="{SUPPORT_CHAT}">Support Chat</a> - Get help
 """
 
     try:
-        # Send photo with caption and inline buttons using configurable image
         bot.send_photo(
             chat_id=user_id,
             photo=WELCOME_IMAGE_URL,
@@ -533,24 +552,59 @@ Wɪᴛʜ ᴏᴜʀ ʙᴏᴛ, ʏᴏᴜ ᴄᴀɴ ʙᴏᴏꜱᴛ ʏᴏᴜʀ ꜱᴏ�
             reply_markup=welcome_buttons
         )
 
-        # Send welcome bonus message separately if applicable
+        bot.send_message(
+            user_id,
+            "⟱ Cʜᴏᴏꜱᴇ Aɴ Oᴘᴛɪᴏɴ Bᴇʟᴏᴡ ⟱",
+            reply_markup=main_markup
+        )
+
+        # ==================================
+        # Welcome bonus message with close button
         if userData.get('welcome_bonus', 0) == 0:
+            welcome_bonus_message = f"""
+<blockquote>
+🎉 <b>Wᴇʟᴄᴏᴍᴇ Bᴏɴᴜꜱ Cʀᴇᴅɪᴛᴇᴅ!</b>
+
+🪙 <b>+{welcome_bonus} Coins</b> have been added to your wallet.
+
+💎 <b>Cᴜʀʀᴇɴᴛ Bᴀʟᴀɴᴄᴇ:</b> {float(getData(user_id).get('balance', 0)):.2f} ᴄᴏɪɴꜱ
+
+Sᴛᴀʀᴛ ᴜꜱɪɴɢ ʏᴏᴜʀ ʙᴏɴᴜꜱ ᴛᴏ ᴘʟᴀᴄᴇ ʏᴏᴜʀ ꜰɪʀꜱᴛ ᴏʀᴅᴇʀ ɴᴏᴡ!
+</blockquote>
+"""
+            close_button = InlineKeyboardMarkup().add(
+                InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")
+            )
             bot.send_message(
                 user_id,
-                f"🎁 <b>You received +{welcome_bonus} coins welcome bonus!</b>",
-                parse_mode='HTML'
+                welcome_bonus_message,
+                parse_mode='HTML',
+                reply_markup=close_button
             )
 
         # Notify about pending orders
         stats = get_user_orders_stats(user_id)
         if stats['pending'] > 0:
+            pending_msg = f"""
+<blockquote>
+⏳ <b>Pᴇɴᴅɪɴɢ Oʀᴅᴇʀꜱ Nᴏᴛɪᴄᴇ</b>
+
+Yᴏᴜ ᴄᴜʀʀᴇɴᴛʟʏ ʜᴀᴠᴇ <b>{stats['pending']}</b> ᴏʀᴅᴇʀ(ꜱ) ᴘᴇɴᴅɪɴɢ ᴄᴏᴍᴘʟᴇᴛɪᴏɴ.  
+Yᴏᴜ ᴄᴀɴ ᴠɪᴇᴡ ᴛʜᴇɪʀ ᴘʀᴏɢʀᴇꜱꜱ ᴀɴʏᴛɪᴍᴇ ʙᴇʟᴏᴡ.
+</blockquote>
+"""
+            pending_buttons = InlineKeyboardMarkup()
+            pending_buttons.row(
+                InlineKeyboardButton("📋 ᴠɪᴇᴡ ᴏʀᴅᴇʀꜱ", callback_data="order_history")
+            )
+            pending_buttons.row(
+                InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")
+            )
             bot.send_message(
                 user_id,
-                f"⏳ You have {stats['pending']} pending orders",
-                reply_markup=InlineKeyboardMarkup().add(
-                    InlineKeyboardButton("View Orders", callback_data="order_history"),
-                    InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button")
-                )
+                pending_msg,
+                parse_mode='HTML',
+                reply_markup=pending_buttons
             )
 
     except Exception as e:
@@ -565,7 +619,7 @@ def my_account(message):
     data = getData(user_id)
     
     if not data:
-        bot.reply_to(message, "❌ Account not found. Please /start again.")
+        bot.reply_to(message, "❌ Aᴄᴄᴏᴜɴᴛ ɴᴏᴛ ꜰᴏᴜɴᴅ. Pʟᴇᴀꜱᴇ /start ᴀɢᴀɪɴ.")
         return
     
     # Update last activity and username in DB
@@ -591,7 +645,7 @@ def my_account(message):
 <blockquote>
 <b><u>𝗠𝘆 𝗔𝗰𝗰𝗼𝘂𝗻𝘁</u></b>
 
-🆔 Uꜱᴇʀ Iᴅ: <code>{user_id}</code>
+🪪 Uꜱᴇʀ Iᴅ: <code>{user_id}</code>
 👤 Uꜱᴇʀɴᴀᴍᴇ: @{message.from_user.username if message.from_user.username else "N/A"}
 🗣 Iɴᴠɪᴛᴇᴅ Uꜱᴇʀꜱ: {data.get('total_refs', 0)}
 ⏰ Tɪᴍᴇ: {current_time}
@@ -606,7 +660,7 @@ def my_account(message):
 
     # Create close button
     close_button = InlineKeyboardMarkup()
-    close_button.add(InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button"))
+    close_button.add(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button"))
 
     try:
         if photos.total_count > 0:
@@ -647,7 +701,7 @@ def affiliate_program(message):
     data = getData(user_id)
     
     if not data:
-        bot.reply_to(message, "❌ Account not found. Please /start again.")
+        bot.reply_to(message, "Aᴄᴄᴏᴜɴᴛ ɴᴏᴛ ꜰᴏᴜɴᴅ. Pʟᴇᴀꜱᴇ /start ᴀɢᴀɪɴ")
         return
         
     total_refs = data.get('total_refs', 0)
@@ -680,7 +734,7 @@ def affiliate_program(message):
             ),
             InlineKeyboardButton("📊 ᴠɪᴇᴡ ꜱᴛᴀᴛꜱ", callback_data="affiliate_stats"),
         ],
-        [InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button")]
+        [InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")]
     ])
     
     bot.reply_to(
@@ -720,7 +774,7 @@ def show_affiliate_stats(call):
         reply_markup=InlineKeyboardMarkup().add(
             InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="back_to_affiliate"),
             InlineKeyboardButton("📤 ᴡɪᴛʜᴅʀᴀᴡ ᴄᴀꜱʜ", url=f"https://t.me/SOCIALBOOSTERADMIN"),
-            InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button")
+            InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")
         )
     )
 
@@ -772,7 +826,7 @@ Tʜᴇ SMMHUB Booster ᴀꜰꜰɪʟɪᴀᴛᴇ ᴘʀᴏɢʀᴀᴍ ɪꜱ ʏᴏᴜ
     markup.row(
         InlineKeyboardButton("📤 ꜱʜᴀʀᴇ ʟɪɴᴋ", url=f"https://t.me/share/url?url={affiliate_link}&text=🚀 Earn money with this amazing SMM bot! Get social media growth services and earn 5% commission on all orders!"),
         InlineKeyboardButton("📊 ᴠɪᴇᴡ ꜱᴛᴀᴛꜱ", callback_data="affiliate_stats"),
-        InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button")
+        InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")
     )
 
     # EDIT the current message instead of sending a new one
@@ -823,7 +877,7 @@ Yᴇꜱ! Fᴏʀ ʙᴀʟᴀɴᴄᴇꜱ ᴏᴠᴇʀ 10,000 ᴄᴏɪɴꜱ, ᴄᴏɴ
     markup = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🆘 ꜱᴜᴘᴘᴏʀᴛ", url="https://t.me/SocialHubBoosterTMbot"),
-            InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button"),
+            InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button"),
         ]
     ])
 
@@ -835,6 +889,8 @@ Yᴇꜱ! Fᴏʀ ʙᴀʟᴀɴᴄᴇꜱ ᴏᴠᴇʀ 10,000 ᴄᴏɪɴꜱ, ᴄᴏɴ
     )
 
 # ======================== Bonus Command ======================= #
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 @bot.message_handler(func=lambda message: message.text == "🎉 Bᴏɴᴜs")
 @check_ban
 def handle_bonus(message):
@@ -842,7 +898,19 @@ def handle_bonus(message):
     data = getData(user_id)
 
     if not is_bonus_enabled():
-        bot.reply_to(message, "⚠️ Dᴀɪʟʏ ʙᴏɴᴜꜱ ɪꜱ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ᴜɴᴀᴠᴀɪʟᴀʙʟᴇ. Pʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ʟᴀᴛᴇʀ.")
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button"))
+        bot.reply_to(
+            message,
+            (
+                "<blockquote>"
+                "⚠️ <b>Dᴀɪʟʏ ʙᴏɴᴜꜱ ɪꜱ ᴛᴇᴍᴘᴏʀᴀʀɪʟʏ ᴜɴᴀᴠᴀɪʟᴀʙʟᴇ.</b>\n"
+                "📆 Pʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ʙᴀᴄᴋ ʟᴀᴛᴇʀ."
+                "</blockquote>"
+            ),
+            parse_mode='HTML',
+            reply_markup=markup
+        )
         return
 
     now = time.time()
@@ -854,20 +922,38 @@ def handle_bonus(message):
         hours = int(remaining // 3600)
         minutes = int((remaining % 3600) // 60)
         seconds = int(remaining % 60)
-        bot.reply_to(message, f"🕑 Cʟᴀɪᴍ Bᴏɴᴜꜱ Aɢᴀɪɴ Iɴ {hours}ʜ {minutes}ᴍ {seconds}s.")
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_bonus"))
+        bot.reply_to(
+            message,
+            (
+                f"<blockquote>"
+                f"🕑 <b>Yᴏᴜ ʜᴀᴠᴇ ᴀʟʀᴇᴀᴅʏ ᴄʟᴀɪᴍᴇᴅ ʏᴏᴜʀ ʙᴏɴᴜꜱ.</b>\n\n"
+                f"⏳ Cᴏᴍᴇ ʙᴀᴄᴋ ɪɴ <b>{hours}ʜ {minutes}ᴍ {seconds}s</b> ᴛᴏ ᴄʟᴀɪᴍ ᴀɢᴀɪɴ."
+                f"</blockquote>"
+            ),
+            parse_mode='HTML',
+            reply_markup=markup
+        )
         return
 
     markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton("🎁 Claim Bonus", callback_data="claim_daily_bonus"))
+    markup.add(InlineKeyboardButton("🎁 ᴄʟᴀɪᴍ ʙᴏɴᴜꜱ", callback_data="claim_daily_bonus"))
+    markup.add(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button"))
 
     bot.reply_to(
         message,
-        "🔥 Cʟᴀɪᴍ Yᴏᴜʀ Bᴏɴᴜꜱ\n\n"
-        "🕑 Cʟᴀɪᴍ Bᴏɴᴜꜱ Aɢᴀɪɴ Aꜰᴛᴇʀ ʏᴏᴜʀ ɪɴᴛᴇʀᴠᴀʟ\n\n"
-        "⚠️ <i>Unused bonus coins will be removed when you claim your next bonus.</i>",
+        (
+            "<blockquote>"
+            "<b>🔥 Cʟᴀɪᴍ Yᴏᴜʀ Dᴀɪʟʏ Bᴏɴᴜꜱ!</b>\n\n"
+            "💡 <b>Yᴏᴜ ᴄᴀɴ ᴄʟᴀɪᴍ ᴀɢᴀɪɴ ᴀꜰᴛᴇʀ ʏᴏᴜʀ ɪɴᴛᴇʀᴠᴀʟ.</b>\n\n"
+            "⚠️ <i>Uɴᴜꜱᴇᴅ ʙᴏɴᴜꜱ ᴄᴏɪɴꜱ ᴡɪʟʟ ʙᴇ ʀᴇᴍᴏᴠᴇᴅ ᴡʜᴇɴ ʏᴏᴜ ᴄʟᴀɪᴍ ᴀɢᴀɪɴ.</i>"
+            "</blockquote>"
+        ),
         parse_mode='HTML',
         reply_markup=markup
     )
+
 
 @bot.callback_query_handler(func=lambda call: call.data == "claim_daily_bonus")
 def claim_daily_bonus(call):
@@ -898,19 +984,31 @@ def claim_daily_bonus(call):
     addBonusBalance(user_id, amount)
 
     msg = (
-        f"🎉 Congratulations!\n\n"
-        f"💎 You received {amount} Coins as Daily Bonus!\n\n"
-        f"⏳ Come back after {interval // 60} minutes to claim again."
+        f"<blockquote>"
+        f"🎉 <b>Cᴏɴɢʀᴀᴛᴜʟᴀᴛɪᴏɴꜱ!</b>\n\n"
+        f"💎 Yᴏᴜ ʀᴇᴄᴇɪᴠᴇᴅ <b>{amount} Cᴏɪɴꜱ</b> ᴀꜱ ʏᴏᴜʀ Dᴀɪʟʏ Bᴏɴᴜꜱ.\n"
+        f"⏳ Cᴏᴍᴇ ʙᴀᴄᴋ ᴀꜰᴛᴇʀ <b>{interval // 60} ᴍɪɴᴜᴛᴇꜱ</b> ᴛᴏ ᴄʟᴀɪᴍ ᴀɢᴀɪɴ."
+        f"</blockquote>"
     )
 
     if old_removed:
-        msg = "⚠️ Your unused bonus coins from last claim were removed.\n\n" + msg
+        msg = (
+            "<blockquote>"
+            "⚠️ <i>Yᴏᴜʀ ᴜɴᴜꜱᴇᴅ ʙᴏɴᴜꜱ ᴄᴏɪɴꜱ ꜰʀᴏᴍ ʟᴀꜱᴛ ᴄʟᴀɪᴍ ᴡᴇʀᴇ ʀᴇᴍᴏᴠᴇᴅ.</i>\n\n"
+            f"{msg}"
+            "</blockquote>"
+        )
+
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button"))
 
     bot.answer_callback_query(call.id)
     bot.edit_message_text(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
-        text=msg
+        text=msg,
+        parse_mode='HTML',
+        reply_markup=markup
     )
 
 #======================== Pricing Command =======================#
@@ -945,7 +1043,7 @@ def pricing_command(message):
 
     markup = InlineKeyboardMarkup()
     button1 = InlineKeyboardButton("💳 ᴍᴏʙɪʟᴇ ᴍᴏɴᴇʏ", url="https://t.me/SocialBoosterAdmin")
-    button2 = InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button")
+    button2 = InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")
 
     markup.add(button1, button2)
 
@@ -993,7 +1091,7 @@ Tʜᴇɴ ꜱᴇɴᴅ ɪᴛ ᴛᴏ ᴛʜᴇ Aᴅᴍɪɴ ꜰᴏʀ Aꜱꜱɪꜱᴛ�
         markup = InlineKeyboardMarkup()
         markup.row(
             InlineKeyboardButton("📜 ᴄʜᴇᴄᴋ ᴏʀᴅᴇʀꜱ", callback_data="order_history"),
-            InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button")
+            InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")
         )
 
         if hasattr(message, 'is_callback'):
@@ -1050,7 +1148,7 @@ def show_recent_orders(call):
         markup = InlineKeyboardMarkup()
         markup.row(
             InlineKeyboardButton("🔙 Back", callback_data="show_order_stats"),
-            InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button")
+            InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")
         )
 
         bot.edit_message_text(
@@ -1062,7 +1160,7 @@ def show_recent_orders(call):
         )
     except Exception as e:
         print(f"Recent orders error: {e}")
-        bot.answer_callback_query(call.id, "❌ Failed to load pending orders")
+        bot.answer_callback_query(call.id, "❌ ꜰᴀɪʟᴇᴅ ᴛᴏ ʟᴏᴀᴅ ᴘᴇɴᴅɪɴɢ ᴏʀᴅᴇʀꜱ", show_alert=True)
 
 @bot.callback_query_handler(func=lambda call: call.data == "show_order_stats")
 @check_ban
@@ -3096,9 +3194,10 @@ def back_to_main(message):
     if message.from_user.id in admin_user_ids:
         # For admins, show both admin and user keyboards
         combined_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-        combined_markup.row("🛒 Buy Services", "👤 My Account")
-        combined_markup.row("💳 Pricing", "📊 Order Stats")
-        combined_markup.row("💰 Refer&Earn", "🏆 Leaderboard")
+        combined_markup.row("🆓 Free Services", "🛒 Buy Services")
+        combined_markup.row("👤 My Account", "💳 Pricing")
+        combined_markup.row("📊 Order Stats", "💰 Refer&Earn")
+        combined_markup.row("🏆 Leaderboard", "🎉 Bᴏɴᴜs")
         combined_markup.row("📜 Help")
 
         bot.reply_to(message,
@@ -3534,7 +3633,7 @@ def show_analytics_dashboard(message, is_refresh=False):
             InlineKeyboardButton("📊 Full Report", callback_data="full_report")     
         )
         markup.row(
-            InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button")  
+            InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")  
         )
 
         if hasattr(message, 'is_callback') or is_refresh:
@@ -4016,7 +4115,7 @@ def list_banned(message):
     if not banned_users:
         # Create close button for empty list
         markup = InlineKeyboardMarkup()
-        markup.row(InlineKeyboardButton("❌ Close", callback_data="close_ban_list"))
+        markup.row(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_ban_list"))
         
         bot.send_message(message.chat.id,
             "🛡️ <b>Bᴀɴ Lɪꜱᴛ Sᴛᴀᴛᴜꜱ</b>\n\n"
@@ -4069,7 +4168,7 @@ def show_banned_page(message, banned_users, page=0):
     if nav_buttons:
         markup.row(*nav_buttons)
     
-    markup.row(InlineKeyboardButton("❌ Close", callback_data="close_ban_list"))
+    markup.row(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_ban_list"))
     
     bot.send_message(message.chat.id, msg, parse_mode="HTML", reply_markup=markup)
 
@@ -4103,7 +4202,7 @@ def show_leaderboard(message):
     if not top_users:
         # Create close button for empty leaderboard
         markup = InlineKeyboardMarkup()
-        markup.row(InlineKeyboardButton("❌ Close", callback_data="close_leaderboard"))
+        markup.row(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_leaderboard"))
         
         bot.send_message(message.chat.id,
             "🌟 <b>SMM Bᴏᴏꜱᴛᴇʀ Lᴇᴀᴅᴇʀʙᴏᴀʀᴅ</b>\n\n"
@@ -4162,7 +4261,7 @@ def show_leaderboard_page(message, top_users, page=0):
     if nav_buttons:
         markup.row(*nav_buttons)
     
-    markup.row(InlineKeyboardButton("❌ Close", callback_data="close_leaderboard"))
+    markup.row(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_leaderboard"))
     
     # Check if we're editing an existing message or sending a new one
     if hasattr(message, 'message_id') and hasattr(message, 'from_user'):
@@ -4325,8 +4424,8 @@ def unpin_and_delete_all(message):
     # Create inline keyboard for confirmation
     markup = InlineKeyboardMarkup()
     markup.row(
-        InlineKeyboardButton("✅ CONFIRM UNPIN", callback_data="confirm_unpin_all"),
-        InlineKeyboardButton("❌ CANCEL", callback_data="cancel_unpin")
+        InlineKeyboardButton("✅ ᴄᴏɴꜰɪʀᴍ ᴜɴᴘɪɴ", callback_data="confirm_unpin_all"),
+        InlineKeyboardButton("❌ ᴄᴀɴᴄᴇʟ", callback_data="cancel_unpin")
     )
     
     bot.reply_to(
@@ -4485,11 +4584,11 @@ def process_user_info(message):
         
         # Add close button
         markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button"))
+        markup.add(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button"))
         
         bot.reply_to(message, info, parse_mode="HTML", reply_markup=markup)
     except ValueError:
-        bot.reply_to(message, "❌ Invalid user ID. Must be numeric.")
+        bot.reply_to(message, "❌ ɪɴᴠᴀʟɪᴅ ᴜꜱᴇʀ ɪᴅ. ᴍᴜꜱᴛ ʙᴇ ɴᴜᴍᴇʀɪᴄ.")
     except Exception as e:
         bot.reply_to(message, f"❌ Error: {str(e)}")
 
@@ -4535,7 +4634,7 @@ def server_status(message):
         """
         # Add close button
         markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button"))
+        markup.add(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button"))
 
         bot.reply_to(message, status, parse_mode="HTML", reply_markup=markup)
     except Exception as e:
@@ -4582,7 +4681,7 @@ def export_data(message):
 #======================= Maintenance Mode command ==================================#
 # Add this at the top with other global variables
 maintenance_mode = False
-maintenance_message = "🚧 𝙏𝙝𝙚 𝙗𝙤𝙩 𝙞𝙨 𝙘𝙪𝙧𝙧𝙚𝙣𝙩𝙡𝙮 𝙪𝙣𝙙𝙚𝙧 𝙢𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚. 𝙋𝙡𝙚𝙖𝙨𝙚 𝙩𝙧𝙮 𝙖𝙜𝙖𝙞𝙣 𝙡𝙖𝙩𝙚𝙧."
+maintenance_message = "🚧 Tʜᴇ Bᴏᴛ ɪꜱ Cᴜʀʀᴇɴᴛʟʏ Uɴᴅᴇʀ Mᴀɪɴᴛᴇɴᴀɴᴄᴇ, Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ Lᴀᴛᴇʀ."
 
 # Maintenance toggle command
 @bot.message_handler(func=lambda m: m.text == "🔧 Maintenance" and m.from_user.id in admin_user_ids)
@@ -4593,10 +4692,24 @@ def toggle_maintenance(message):
         maintenance_mode = False
         bot.reply_to(message, "✅ 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚 𝙢𝙤𝙙𝙚 𝘿𝙄𝙎𝘼𝘽𝙇𝙀𝘿")
     else:
-        msg = bot.reply_to(message, "✍️ Eɴᴛᴇʀ Mᴀɪɴᴛᴇɴᴀɴᴄᴇ Mᴇꜱꜱᴀɢᴇ Tᴏ Sᴇɴᴅ Tᴏ Uꜱᴇʀꜱ:")
+        # Create cancel button for message input
+        cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        cancel_markup.add(KeyboardButton("❌ Cancel Maintenance"))
+        
+        msg = bot.reply_to(message, 
+                          "✍️ <b>Eɴᴛᴇʀ Mᴀɪɴᴛᴇɴᴀɴᴄᴇ Mᴇꜱꜱᴀɢᴇ</b>\n\n"
+                          "Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴛʜᴇ ᴍᴇꜱꜱᴀɢᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ꜱᴇɴᴅ ᴛᴏ ᴀʟʟ ᴜꜱᴇʀꜱ.\n\n"
+                          "❌ Cʟɪᴄᴋ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ᴄᴀɴᴄᴇʟ:",
+                          parse_mode="HTML",
+                          reply_markup=cancel_markup)
         bot.register_next_step_handler(msg, confirm_maintenance_message)
 
 def confirm_maintenance_message(message):
+    # Check if user cancelled
+    if message.text and message.text.strip() == "❌ Cancel Maintenance":
+        bot.reply_to(message, "❌ Maintenance setup cancelled.", reply_markup=admin_markup)
+        return
+        
     global maintenance_message
     maintenance_message = message.text
     
@@ -4609,8 +4722,8 @@ def confirm_maintenance_message(message):
     # Create confirmation buttons
     markup = InlineKeyboardMarkup()
     markup.row(
-        InlineKeyboardButton("✅ Accept & Send", callback_data="accept_maintenance"),
-        InlineKeyboardButton("❌ Cancel", callback_data="cancel_maintenance")
+        InlineKeyboardButton("✅ ᴀᴄᴄᴇᴘᴛ &amp; ꜱᴇɴᴅ", callback_data="accept_maintenance"),
+        InlineKeyboardButton("⌧ ᴄᴀɴᴄᴇʟ ⌧", callback_data="cancel_maintenance")
     )
     
     bot.reply_to(
@@ -4641,7 +4754,7 @@ def handle_maintenance_confirmation(call):
         return
     
     if call.data == "accept_maintenance":
-        bot.answer_callback_query(call.id, "⏳ Enabling maintenance mode...")
+        bot.answer_callback_query(call.id, "⏳ ᴇɴᴀʙʟɪɴɢ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ ᴍᴏᴅᴇ...")
         maintenance_mode = True
         
         # Calculate hours and minutes for display
@@ -4753,6 +4866,7 @@ def notify_users_maintenance_disabled():
         logger.error(f"Error in notify_users_maintenance_disabled: {e}")
 
 #============================ Order Management Commands =============================#
+#============================ Order Management Commands =============================#
 @bot.message_handler(func=lambda m: m.text == "📦 Order Manager" and m.from_user.id in admin_user_ids)
 def check_order_start(message):
     msg = bot.reply_to(message, "Enter Order ID:")
@@ -4766,13 +4880,14 @@ def process_check_order(message):
         order = orders_collection.find_one({"order_id": order_id})
         
         if order:
+            user_id = order.get('user_id', 'N/A')
             status_time = datetime.fromtimestamp(order.get('timestamp', time.time())).strftime('%Y-%m-%d %H:%M')
             status = f"""
 <blockquote>
 ┌─────────────────────
 │ 📦 <b>Order #{order_id}</b>
 │ ━━━━━━━━━━━━━━
-│ 👤 Uꜱᴇʀ: {order.get('username', 'N/A')} (<code>{order.get('user_id', 'N/A')}</code>)
+│ 👤 Uꜱᴇʀ: {order.get('username', 'N/A')} (<code>{user_id}</code>)
 │ 🛒 Sᴇʀᴠɪᴄᴇ: {order.get('service', 'N/A')}
 │ 🔗 Lɪɴᴋ: {order.get('link', 'N/A')}
 │ 📊 Qᴜᴀɴᴛɪᴛʏ: {order.get('quantity', 'N/A')}
@@ -4783,10 +4898,18 @@ def process_check_order(message):
 </blockquote>
             """
 
-            # Inline close button
-            markup = InlineKeyboardMarkup([
-                [InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button")]
-            ])
+            # Create inline buttons - Contact button and Close button
+            markup = InlineKeyboardMarkup()
+            
+            # Add contact button if user_id is valid
+            if user_id and user_id != 'N/A':
+                markup.row(
+                    InlineKeyboardButton("📞 ᴄᴏɴᴛᴀᴄᴛ ᴜꜱᴇʀ", url=f"tg://user?id={user_id}")
+                )
+            
+            markup.row(
+                InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")
+            )
 
             bot.reply_to(
                 message,
@@ -4843,7 +4966,7 @@ def policy_command(message):
 """.format(update_date=datetime.now().strftime('%Y-%m-%d'))  # Fixed datetime reference
     
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton(text="✅ Accept Policy", callback_data="accept_policy"))
+    markup.add(types.InlineKeyboardButton(text="✅ ᴀᴄᴄᴇᴘᴛ ᴘᴏʟɪᴄʏ", callback_data="accept_policy"))
     
     bot.reply_to(message, policy_text, parse_mode="HTML", reply_markup=markup)
 
