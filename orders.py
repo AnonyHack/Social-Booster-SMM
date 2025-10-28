@@ -6,6 +6,7 @@ from functions import getData, cutBalance, add_order, updateUser, get_affiliate_
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 from io import BytesIO
 import os
+
 from notification_image import create_order_notification, cleanup_image
 
 def send_order_notification(bot, PAYMENT_CHANNEL, message, service, quantity, cost, link, order_id):
@@ -75,7 +76,7 @@ def process_order_quantity(bot, message, service, service_markup, main_markup, n
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Order cancelled.", reply_markup=main_markup)
         return
-    elif message.text == "↩️ Go Back":
+    elif message.text == "⌫ ɢᴏ ʙᴀᴄᴋ":
         bot.reply_to(message, "Returning to Services...", reply_markup=service_markup)
         return
     
@@ -193,7 +194,7 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
             )
 
             go_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-            go_back_markup.add(KeyboardButton("↩️ Go Back"))
+            go_back_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
             bot.send_message(
     message.chat.id,
@@ -257,7 +258,7 @@ def register_twitter_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHAN
         KeyboardButton("🔁 X Retweets"),
         KeyboardButton("👤 X Followers")
     )
-    twitter_services_markup.row(KeyboardButton("↩️ Go Back"))
+    twitter_services_markup.row(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
     twitter_services = {
         "🔼 X Views": {
@@ -324,7 +325,7 @@ def register_twitter_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHAN
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("↩️ Go Back")
+            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
         )
         
         msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -389,7 +390,7 @@ def register_spotify_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHAN
         KeyboardButton("🏆 Chart-Top 50"),
         KeyboardButton("⚡ Algorithmic Plays")
     )
-    spotify_services_markup.row(KeyboardButton("↩️ Go Back"))
+    spotify_services_markup.row(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
     spotify_services = {
         "👥 Spotify Followers": {
@@ -495,7 +496,7 @@ def register_spotify_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHAN
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("↩️ Go Back")
+            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
         )
         
         msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -548,7 +549,7 @@ def register_pinterest_handlers(bot, send_orders_markup, main_markup, PAYMENT_CH
         KeyboardButton("📌 Pinterest Followers"),
         KeyboardButton("❤️ Pinterest Likes")
     )
-    pinterest_services_markup.row(KeyboardButton("↩️ Go Back"))
+    pinterest_services_markup.row(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
     pinterest_services = {
         "📌 Pinterest Followers": {
@@ -592,7 +593,7 @@ def register_pinterest_handlers(bot, send_orders_markup, main_markup, PAYMENT_CH
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("↩️ Go Back")
+            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
         )
         
         msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -648,7 +649,7 @@ def register_snapchat_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHA
         KeyboardButton("👀 Snapchat Views"),
     )
 
-    snapchat_services_markup.row(KeyboardButton("↩️ Go Back"))
+    snapchat_services_markup.row(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
     snapchat_services = {
         "👥 Snapchat Followers": {
@@ -704,7 +705,7 @@ def register_snapchat_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHA
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("↩️ Go Back")
+            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
         )
         
         msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
