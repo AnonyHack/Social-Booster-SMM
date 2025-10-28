@@ -58,65 +58,65 @@ def register_lock_handlers(bot, admin_markup, admin_user_ids):
         if str(message.from_user.id) not in map(str, admin_user_ids):
             return
 
-        bot.reply_to(message, "📝 Please send the *Service ID* you want to lock:", parse_mode="Markdown")
+        bot.reply_to(message, "📝 ᴘʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ *ꜱᴇʀᴠɪᴄᴇ ɪᴅ* ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ʟᴏᴄᴋ:", parse_mode="Markdown")
         bot.register_next_step_handler(message, process_lock_service)
 
     def process_lock_service(message):
         if message.text.lower() == 'cancel':
-            bot.reply_to(message, "❌ Operation cancelled.", reply_markup=admin_markup)
+            bot.reply_to(message, "❌ Oᴘᴇʀᴀᴛɪᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=admin_markup)
             return
 
         service_id = message.text.strip()
         if lock_service(service_id):
             bot.reply_to(
                 message,
-                f"✅ *Service {service_id} has been locked for regular users.*\n"
-                f"Do you want to notify users? *(yes/no)*",
+                f"✅ *Sᴇʀᴠɪᴄᴇ {service_id} ʜᴀꜱ ʙᴇᴇɴ ʟᴏᴄᴋᴇᴅ ꜰᴏʀ ʀᴇɢᴜʟᴀʀ ᴜꜱᴇʀꜱ.*\n"
+                f"Dᴏ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ɴᴏᴛɪꜰʏ ᴜꜱᴇʀꜱ? *(yes/no)*",
                 parse_mode="Markdown"
             )
             bot.register_next_step_handler(message, lambda m: process_notify_lock(m, service_id))
         else:
-            bot.reply_to(message, f"❌ Failed to lock service `{service_id}`.", parse_mode="Markdown", reply_markup=admin_markup)
+            bot.reply_to(message, f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ʟᴏᴄᴋ ꜱᴇʀᴠɪᴄᴇ `{service_id}`.", parse_mode="Markdown", reply_markup=admin_markup)
 
     def process_notify_lock(message, service_id):
         choice = message.text.lower()
         if choice == 'yes':
             notify_users_about_service(service_id, action="lock")
-            bot.reply_to(message, "📢 Notification sent to users.", reply_markup=admin_markup)
+            bot.reply_to(message, "📢 Nᴏᴛɪꜰɪᴄᴀᴛɪᴏɴ ꜱᴇɴᴛ ᴛᴏ ᴜꜱᴇʀꜱ.", reply_markup=admin_markup)
         else:
-            bot.reply_to(message, "👍 No notifications were sent.", reply_markup=admin_markup)
+            bot.reply_to(message, "👍 Nᴏ ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴꜱ ᴡᴇʀᴇ ꜱᴇɴᴛ.", reply_markup=admin_markup)
 
     def handle_unlock_service(message):
         if str(message.from_user.id) not in map(str, admin_user_ids):
             return
 
-        bot.reply_to(message, "📝 Please send the *Service ID* you want to unlock:", parse_mode="Markdown")
+        bot.reply_to(message, "📝 ᴘʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ *ꜱᴇʀᴠɪᴄᴇ ɪᴅ* ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴜɴʟᴏᴄᴋ:", parse_mode="Markdown")
         bot.register_next_step_handler(message, process_unlock_service)
 
     def process_unlock_service(message):
         if message.text.lower() == 'cancel':
-            bot.reply_to(message, "❌ Operation cancelled.", reply_markup=admin_markup)
+            bot.reply_to(message, "❌ Oᴘᴇʀᴀᴛɪᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=admin_markup)
             return
 
         service_id = message.text.strip()
         if unlock_service(service_id):
             bot.reply_to(
                 message,
-                f"✅ *Service {service_id} has been unlocked for all users.*\n"
-                f"Do you want to notify users? *(yes/no)*",
+                f"✅ *Sᴇʀᴠɪᴄᴇ {service_id} ʜᴀꜱ ʙᴇᴇɴ ᴜɴʟᴏᴄᴋᴇᴅ ꜰᴏʀ ᴀʟʟ ᴜꜱᴇʀꜱ.*\n"
+                f"Dᴏ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ɴᴏᴛɪꜰʏ ᴜꜱᴇʀꜱ? *(yes/no)*",
                 parse_mode="Markdown"
             )
             bot.register_next_step_handler(message, lambda m: process_notify_unlock(m, service_id))
         else:
-            bot.reply_to(message, f"❌ Failed to unlock service `{service_id}`.", parse_mode="Markdown", reply_markup=admin_markup)
+            bot.reply_to(message, f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ᴜɴʟᴏᴄᴋ ꜱᴇʀᴠɪᴄᴇ `{service_id}`.", parse_mode="Markdown", reply_markup=admin_markup)
 
     def process_notify_unlock(message, service_id):
         choice = message.text.lower()
         if choice == 'yes':
             notify_users_about_service(service_id, action="unlock")
-            bot.reply_to(message, "📢 Notification sent to users.", reply_markup=admin_markup)
+            bot.reply_to(message, "📢 Nᴏᴛɪꜰɪᴄᴀᴛɪᴏɴ ꜱᴇɴᴛ ᴛᴏ ᴜꜱᴇʀꜱ.", reply_markup=admin_markup)
         else:
-            bot.reply_to(message, "👍 No notifications were sent.", reply_markup=admin_markup)
+            bot.reply_to(message, "👍 Nᴏ ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴꜱ ᴡᴇʀᴇ ꜱᴇɴᴛ.", reply_markup=admin_markup)
 
     def notify_users_about_service(service_id, action):
         users = get_all_users()
@@ -153,11 +153,11 @@ def register_lock_handlers(bot, admin_markup, admin_user_ids):
 
         locked_services = get_locked_services()
         if not locked_services:
-            bot.reply_to(message, "🔓 No services are currently locked.", reply_markup=admin_markup)
+            bot.reply_to(message, "🔓 ɴᴏ ꜱᴇʀᴠɪᴄᴇꜱ ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ.", reply_markup=admin_markup)
             return
 
         services_list = "\n".join([f"• `{service_id}`" for service_id in locked_services])
-        bot.reply_to(message, f"🔒 *Locked Services:*\n{services_list}", parse_mode="Markdown", reply_markup=admin_markup)
+        bot.reply_to(message, f"🔒 *Lᴏᴄᴋᴇᴅ Sᴇʀᴠɪᴄᴇꜱ:*\n{services_list}", parse_mode="Markdown", reply_markup=admin_markup)
 
     # Register buttons
     bot.register_message_handler(lock_service_menu, func=lambda m: m.text == "🔐 Lock/Unlock")
@@ -173,12 +173,12 @@ def register_delete_user_handlers(bot, admin_markup):
         
         # Create cancel button
         cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-        cancel_markup.add(KeyboardButton("❌ Cancel Delete"))
+        cancel_markup.add(KeyboardButton("⌧ ᴄᴀɴᴄᴇʟ ᴅᴇʟᴇᴛᴇ ⌧"))
             
         bot.reply_to(message, 
-                    "🗑 <b>Delete User Account</b>\n\n"
-                    "Please send the user ID you want to delete:\n\n"
-                    "⚠️ <b>Note:</b> Only numeric user IDs are accepted\n"
+                    "🗑 <b>Dᴇʟᴇᴛᴇ Uꜱᴇʀ Aᴄᴄᴏᴜɴᴛ</b>\n\n"
+                    "Pʟᴇᴀꜱᴇ ꜱᴇɴᴅ ᴛʜᴇ ᴜꜱᴇʀ ID ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴅᴇʟᴇᴛᴇ:\n\n"
+                    "⚠️ <b>Note:</b> Oɴʟʏ ɴᴜᴍᴇʀɪᴄ ᴜꜱᴇʀ IDs ᴀʀᴇ ᴀᴄᴄᴇᴘᴛᴇᴅ\n"
                     "📝 <b>Example:</b> <code>123456789</code>\n\n"
                     "❌ Click the button below to cancel:",
                     parse_mode="HTML",
@@ -187,8 +187,8 @@ def register_delete_user_handlers(bot, admin_markup):
 
     def process_delete_user(message):
         # Check if user cancelled
-        if message.text and message.text.strip() == "❌ Cancel Delete":
-            bot.reply_to(message, "❌ Delete operation cancelled.", reply_markup=admin_markup)
+        if message.text and message.text.strip() == "⌧ ᴄᴀɴᴄᴇʟ ᴅᴇʟᴇᴛᴇ ⌧":
+            bot.reply_to(message, "❌ Dᴇʟᴇᴛᴇ ᴏᴘᴇʀᴀᴛɪᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=admin_markup)
             return
             
         user_input = message.text.strip()
@@ -196,8 +196,8 @@ def register_delete_user_handlers(bot, admin_markup):
         # Validate if input is numeric (user ID)
         if not user_input.isdigit():
             bot.reply_to(message, 
-                        "❌ <b>Invalid User ID</b>\n\n"
-                        "Please enter a valid numeric user ID.\n"
+                        "❌ <b>Iɴᴠᴀʟɪᴅ Uꜱᴇʀ ID</b>\n\n"
+                        "Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ɴᴜᴍᴇʀɪᴄ ᴜꜱᴇʀ ID.\n"
                         "📝 <b>Example:</b> <code>123456789</code>\n\n"
                         "Try again or use the cancel button:",
                         parse_mode="HTML",
@@ -208,9 +208,9 @@ def register_delete_user_handlers(bot, admin_markup):
         
         # Show checking animation
         checking_msg = bot.reply_to(message,
-                    f"🔍 <b>Checking User Database...</b>\n\n"
+                    f"🔍 <b>Cʜᴇᴄᴋɪɴɢ Uꜱᴇʀ Dᴀᴛᴀʙᴀꜱᴇ...</b>\n\n"
                     f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
-                    f"⏳ Searching for user in database...\n\n"
+                    f"⏳ Sᴇᴀʀᴄʜɪɴɢ ꜰᴏʀ ᴜꜱᴇʀ ɪɴ ᴅᴀᴛᴀʙᴀꜱᴇ...\n\n"
                     f"[░░░░░░░░░░] 0%",
                     parse_mode="HTML")
         
@@ -219,9 +219,9 @@ def register_delete_user_handlers(bot, admin_markup):
             time.sleep(0.5)
             progress_bar = '█' * (progress // 10) + '░' * (10 - progress // 10)
             bot.edit_message_text(
-                f"🔍 <b>Checking User Database...</b>\n\n"
+                f"🔍 <b>Cʜᴇᴄᴋɪɴɢ Uꜱᴇʀ Dᴀᴛᴀʙᴀꜱᴇ...</b>\n\n"
                 f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
-                f"⏳ Searching for user in database...\n\n"
+                f"⏳ Sᴇᴀʀᴄʜɪɴɢ ꜰᴏʀ ᴜꜱᴇʀ ɪɴ ᴅᴀᴛᴀʙᴀꜱᴇ...\n\n"
                 f"[{progress_bar}] {progress}%",
                 message.chat.id,
                 checking_msg.message_id,
@@ -233,23 +233,23 @@ def register_delete_user_handlers(bot, admin_markup):
         
         if not user_exists:
             bot.edit_message_text(
-                f"❌ <b>User Not Found</b>\n\n"
+                f"❌ <b>Uꜱᴇʀ Nᴏᴛ Fᴏᴜɴᴅ</b>\n\n"
                 f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
-                f"🔍 <b>Database Search Result:</b> User not found\n"
-                f"📊 <b>Status:</b> No user with this ID in database\n\n"
-                f"⚠️ <i>Please check the user ID and try again.</i>",
+                f"🔍 <b>Dᴀᴛᴀʙᴀꜱᴇ Sᴇᴀʀᴄʜ Rᴇꜱᴜʟᴛ:</b> Uꜱᴇʀ ɴᴏᴛ ꜰᴏᴜɴᴅ\n"
+                f"📊 <b>Status:</b> Nᴏ ᴜꜱᴇʀ ᴡɪᴛʜ ᴛʜɪꜱ ID ɪɴ ᴅᴀᴛᴀʙᴀꜱᴇ\n\n"
+                f"⚠️ <i>Pʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ᴛʜᴇ ᴜꜱᴇʀ ID ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.</i>",
                 message.chat.id,
                 checking_msg.message_id,
                 parse_mode="HTML"
             )
             # Send back to admin panel
-            bot.send_message(message.chat.id, "🔙 <b>Returned to Admin Panel</b>", parse_mode="HTML", reply_markup=admin_markup)
+            bot.send_message(message.chat.id, "🔙 <b>Rᴇᴛᴜʀɴᴇᴅ ᴛᴏ Aᴅᴍɪɴ Pᴀɴᴇʟ</b>", parse_mode="HTML", reply_markup=admin_markup)
             return
         
         # User exists - show confirmation
         confirm_markup = InlineKeyboardMarkup()
         confirm_markup.row(
-            InlineKeyboardButton("✅ Confirm Delete", callback_data=f"confirm_delete_{user_id}"),
+            InlineKeyboardButton("✅ Cᴏɴꜰɪʀᴍ Dᴇʟᴇᴛᴇ", callback_data=f"confirm_delete_{user_id}"),
             InlineKeyboardButton("❌ Cancel", callback_data="cancel_delete")
         )
         
@@ -260,18 +260,18 @@ def register_delete_user_handlers(bot, admin_markup):
         orders_count = user_data.get('orders_count', 0)
         
         bot.edit_message_text(
-            f"⚠️ <b>Confirm User Deletion</b>\n\n"
+            f"⚠️ <b>Cᴏɴꜰɪʀᴍ Uꜱᴇʀ Dᴇʟᴇᴛɪᴏɴ</b>\n\n"
             f"👤 <b>User Details:</b>\n"
             f"├ 🆔 ID: <code>{user_id}</code>\n"
             f"├ 📛 Username: {username}\n"
             f"├ 💰 Balance: {balance} coins\n"
             f"└ 📦 Orders: {orders_count}\n\n"
-            f"🔴 <b>This action will:</b>\n"
-            f"• Delete user from database\n"
-            f"• Remove all user orders\n"
-            f"• Notify the user\n"
-            f"• Cannot be undone!\n\n"
-            f"Are you sure you want to delete this user?",
+            f"🔴 <b>Tʜɪꜱ ᴀᴄᴛɪᴏɴ ᴡɪʟʟ:</b>\n"
+            f"• Dᴇʟᴇᴛᴇ ᴜꜱᴇʀ ꜰʀᴏᴍ ᴅᴀᴛᴀʙᴀꜱᴇ\n"
+            f"• Rᴇᴍᴏᴠᴇ ᴀʟʟ ᴜꜱᴇʀ ᴏʀᴅᴇʀꜱ\n"
+            f"• Nᴏᴛɪꜰʏ ᴛʜᴇ ᴜꜱᴇʀ\n"
+            f"• Cᴀɴɴᴏᴛ ʙᴇ ᴜɴᴅᴏɴᴇ!\n\n"
+            f"Aʀᴇ ʏᴏᴜ ꜱᴜʀᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴅᴇʟᴇᴛᴇ ᴛʜɪꜱ ᴜꜱᴇʀ?",
             message.chat.id,
             checking_msg.message_id,
             parse_mode="HTML",
@@ -281,17 +281,17 @@ def register_delete_user_handlers(bot, admin_markup):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_delete_") or call.data == "cancel_delete")
     def handle_delete_confirmation(call):
         if call.data == "cancel_delete":
-            bot.answer_callback_query(call.id, "❌ Deletion cancelled")
+            bot.answer_callback_query(call.id, "❌ Dᴇʟᴇᴛɪᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ")
             
             bot.edit_message_text(
-                "❌ <b>Deletion Cancelled</b>\n\n"
-                "User deletion has been cancelled.",
+                "❌ <b>Dᴇʟᴇᴛɪᴏɴ Cᴀɴᴄᴇʟʟᴇᴅ</b>\n\n"
+                "Uꜱᴇʀ ᴅᴇʟᴇᴛɪᴏɴ ʜᴀꜱ ʙᴇᴇɴ ᴄᴀɴᴄᴇʟʟᴇᴅ.",
                 call.message.chat.id,
                 call.message.message_id,
                 parse_mode="HTML"
             )
             # Send the admin panel markup
-            bot.send_message(call.message.chat.id, "🔙 <b>Returned to Admin Panel</b>", parse_mode="HTML", reply_markup=admin_markup)
+            bot.send_message(call.message.chat.id, "🔙 <b>Rᴇᴛᴜʀɴᴇᴅ ᴛᴏ Aᴅᴍɪɴ Pᴀɴᴇʟ</b>", parse_mode="HTML", reply_markup=admin_markup)
             return
             
         # Extract user ID from callback data
@@ -301,9 +301,9 @@ def register_delete_user_handlers(bot, admin_markup):
         for progress in [0, 25, 50, 75, 100]:
             progress_bar = '█' * (progress // 10) + '░' * (10 - progress // 10)
             bot.edit_message_text(
-                f"🗑️ <b>Deleting User...</b>\n\n"
+                f"🗑️ <b>Dᴇʟᴇᴛɪɴɢ Uꜱᴇʀ...</b>\n\n"
                 f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
-                f"⏳ Removing user data from database...\n\n"
+                f"⏳ Rᴇᴍᴏᴠɪɴɢ ᴜꜱᴇʀ ᴅᴀᴛᴀ ꜰʀᴏᴍ ᴅᴀᴛᴀʙᴀꜱᴇ...\n\n"
                 f"[{progress_bar}] {progress}%",
                 call.message.chat.id,
                 call.message.message_id,
@@ -317,13 +317,13 @@ def register_delete_user_handlers(bot, admin_markup):
             try:
                 # Create support button for user notification
                 support_markup = InlineKeyboardMarkup()
-                support_markup.add(InlineKeyboardButton("📞 Contact Support", url=SUPPORT_BOT))
+                support_markup.add(InlineKeyboardButton("📞 Cᴏɴᴛᴀᴄᴛ Sᴜᴘᴘᴏʀᴛ", url=SUPPORT_BOT))
                 
                 bot.send_message(
                     user_id, 
-                    "⚠️ <b>Account Deletion Notice</b>\n\n"
-                    "Your account has been deleted by admin. You can no longer use this bot.\n\n"
-                    "If you believe this was a mistake or have any questions:",
+                    "⚠️ <b>Aᴄᴄᴏᴜɴᴛ Dᴇʟᴇᴛɪᴏɴ Nᴏᴛɪᴄᴇ</b>\n\n"
+                    "Yᴏᴜʀ ᴀᴄᴄᴏᴜɴᴛ ʜᴀꜱ ʙᴇᴇɴ ᴅᴇʟᴇᴛᴇᴅ ʙʏ ᴀᴅᴍɪɴ. Yᴏᴜ ᴄᴀɴ ɴᴏ ʟᴏɴɢᴇʀ ᴜꜱᴇ ᴛʜɪꜱ ʙᴏᴛ.\n\n"
+                    "Iꜰ ʏᴏᴜ ʙᴇʟɪᴇᴠᴇ ᴛʜɪꜱ ᴡᴀꜱ ᴀ ᴍɪꜱᴛᴀᴋᴇ ᴏʀ ʜᴀᴠᴇ ᴀɴʏ ǫᴜᴇꜱᴛɪᴏɴꜱ:",
                     parse_mode="HTML",
                     reply_markup=support_markup
                 )
@@ -333,36 +333,36 @@ def register_delete_user_handlers(bot, admin_markup):
             
             # Success message with close button
             success_markup = InlineKeyboardMarkup()
-            success_markup.add(InlineKeyboardButton("❌ Close", callback_data="close_delete_success"))
+            success_markup.add(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_delete_success"))
             
             bot.edit_message_text(
-                f"✅ <b>User Successfully Deleted</b>\n\n"
+                f"✅ <b>Uꜱᴇʀ Sᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ Dᴇʟᴇᴛᴇᴅ</b>\n\n"
                 f"👤 <b>User Details:</b>\n"
                 f"├ 🆔 ID: <code>{user_id}</code>\n"
-                f"├ 🗑️ Status: Database entry removed\n"
-                f"├ 📊 Orders: All orders deleted\n"
-                f"└ 👤 User Notified: {notified}\n\n"
-                f"✨ <i>User account has been completely removed from the system.</i>",
+                f"├ 🗑️ Status: Dᴀᴛᴀʙᴀꜱᴇ ᴇɴᴛʀʏ ʀᴇᴍᴏᴠᴇᴅ\n"
+                f"├ 📊 Orders: Aʟʟ ᴏʀᴅᴇʀꜱ ᴅᴇʟᴇᴛᴇᴅ\n"
+                f"└ 👤 Uꜱᴇʀ Nᴏᴛɪꜰɪᴇᴅ: {notified}\n\n"
+                f"✨ <i>Uꜱᴇʀ ᴀᴄᴄᴏᴜɴᴛ ʜᴀꜱ ʙᴇᴇɴ ᴄᴏᴍᴘʟᴇᴛᴇʟʏ ʀᴇᴍᴏᴠᴇᴅ ꜰʀᴏᴍ ᴛʜᴇ ꜱʏꜱᴛᴇᴍ.</i>",
                 call.message.chat.id,
                 call.message.message_id,
                 parse_mode="HTML",
                 reply_markup=success_markup
             )
-            bot.answer_callback_query(call.id, "✅ User deleted successfully")
+            bot.answer_callback_query(call.id, "✅ Uꜱᴇʀ ᴅᴇʟᴇᴛᴇᴅ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ")
         else:
-            bot.answer_callback_query(call.id, "❌ Failed to delete user", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ Fᴀɪʟᴇᴅ ᴛᴏ ᴅᴇʟᴇᴛᴇ ᴜꜱᴇʀ", show_alert=True)
             
             bot.edit_message_text(
-                f"❌ <b>Deletion Failed</b>\n\n"
+                f"❌ <b>Dᴇʟᴇᴛɪᴏɴ Fᴀɪʟᴇᴅ</b>\n\n"
                 f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
-                f"Failed to delete user from database.\n"
-                f"User may not exist or there was a database error.",
+                f"Fᴀɪʟᴇᴅ ᴛᴏ ᴅᴇʟᴇᴛᴇ ᴜꜱᴇʀ ꜰʀᴏᴍ ᴅᴀᴛᴀʙᴀꜱᴇ.\n"
+                f"Uꜱᴇʀ ᴍᴀʏ ɴᴏᴛ ᴇxɪꜱᴛ ᴏʀ ᴛʜᴇʀᴇ ᴡᴀꜱ ᴀ ᴅᴀᴛᴀʙᴀꜱᴇ ᴇʀʀᴏʀ.",
                 call.message.chat.id,
                 call.message.message_id,
                 parse_mode="HTML"
             )
             # Send the admin panel markup
-            bot.send_message(call.message.chat.id, "🔙 <b>Returned to Admin Panel</b>", parse_mode="HTML", reply_markup=admin_markup)
+            bot.send_message(call.message.chat.id, "🔙 <b>Rᴇᴛᴜʀɴᴇᴅ ᴛᴏ Aᴅᴍɪɴ Pᴀɴᴇʟ</b>", parse_mode="HTML", reply_markup=admin_markup)
 
     @bot.callback_query_handler(func=lambda call: call.data == "close_delete_success")
     def handle_close_delete_success(call):
@@ -370,9 +370,9 @@ def register_delete_user_handlers(bot, admin_markup):
             bot.delete_message(call.message.chat.id, call.message.message_id)
         except:
             pass
-        bot.answer_callback_query(call.id, "Message closed")
+        bot.answer_callback_query(call.id, "Mᴇꜱꜱᴀɢᴇ ᴄʟᴏꜱᴇᴅ")
         # Send back to admin panel
-        bot.send_message(call.message.chat.id, "🔙 <b>Returned to Admin Panel</b>", parse_mode="HTML", reply_markup=admin_markup)
+        bot.send_message(call.message.chat.id, "🔙 <b>Rᴇᴛᴜʀɴᴇᴅ ᴛᴏ Aᴅᴍɪɴ Pᴀɴᴇʟ</b>", parse_mode="HTML", reply_markup=admin_markup)
 
     bot.register_message_handler(handle_delete_user, func=lambda m: m.text == "🗑 Delete User")
 
@@ -421,48 +421,48 @@ def register_bonus_config_handlers(bot, admin_markup, admin_user_ids):
     def bonus_menu(message):
         if str(message.from_user.id) not in map(str, admin_user_ids):
             return
-        bot.reply_to(message, "🎛 *Bonus Configuration:*", parse_mode="Markdown", reply_markup=bonus_markup)
+        bot.reply_to(message, "🎛 *Bᴏɴᴜꜱ Cᴏɴꜰɪɢᴜʀᴀᴛɪᴏɴ:*", parse_mode="Markdown", reply_markup=bonus_markup)
 
     @bot.message_handler(func=lambda m: m.text == "💰 Coins")
     def bonus_coins(message):
         if str(message.from_user.id) not in map(str, admin_user_ids):
             return
-        bot.reply_to(message, "🔢 Please enter the new bonus coins amount:")
+        bot.reply_to(message, "🔢 Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴛʜᴇ ɴᴇᴡ ʙᴏɴᴜꜱ ᴄᴏɪɴꜱ ᴀᴍᴏᴜɴᴛ:")
         bot.register_next_step_handler(message, process_bonus_coins)
 
     def process_bonus_coins(message):
         if message.text.lower() == "cancel":
-            bot.reply_to(message, "❌ Operation cancelled.", reply_markup=bonus_markup)
+            bot.reply_to(message, "❌ Oᴘᴇʀᴀᴛɪᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=bonus_markup)
             return
         try:
             amount = int(message.text)
             if amount < 0:
                 raise ValueError
             set_bonus_amount(amount)
-            bot.reply_to(message, f"✅ Bonus coins set to {amount}.", reply_markup=bonus_markup)
+            bot.reply_to(message, f"✅ Bᴏɴᴜꜱ ᴄᴏɪɴꜱ ꜱᴇᴛ ᴛᴏ {amount}.", reply_markup=bonus_markup)
         except:
-            bot.reply_to(message, "❌ Invalid input. Please enter a valid positive integer.", reply_markup=bonus_markup)
+            bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ ɪɴᴘᴜᴛ. Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ᴘᴏꜱɪᴛɪᴠᴇ ɪɴᴛᴇɢᴇʀ.", reply_markup=bonus_markup)
 
 
     @bot.message_handler(func=lambda m: m.text == "⏰ Time")
     def bonus_time(message):
         if str(message.from_user.id) not in map(str, admin_user_ids):
             return
-        bot.reply_to(message, "🕑 Please enter the bonus interval in *minutes*:", parse_mode="Markdown")
+        bot.reply_to(message, "🕑 Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴛʜᴇ ʙᴏɴᴜꜱ ɪɴᴛᴇʀᴠᴀʟ ɪɴ *ᴍɪɴᴜᴛᴇꜱ*:", parse_mode="Markdown")
         bot.register_next_step_handler(message, process_bonus_time)
 
     def process_bonus_time(message):
         if message.text.lower() == "cancel":
-            bot.reply_to(message, "❌ Operation cancelled.", reply_markup=bonus_markup)
+            bot.reply_to(message, "❌ Oᴘᴇʀᴀᴛɪᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=bonus_markup)
             return
         try:
             minutes = int(message.text)
             if minutes <= 0:
                 raise ValueError
             set_bonus_interval(minutes * 60)
-            bot.reply_to(message, f"✅ Bonus interval set to {minutes} minutes.", reply_markup=bonus_markup)
+            bot.reply_to(message, f"✅ Bᴏɴᴜꜱ ɪɴᴛᴇʀᴠᴀʟ ꜱᴇᴛ ᴛᴏ {minutes} ᴍɪɴᴜᴛᴇꜱ.", reply_markup=bonus_markup)
         except:
-            bot.reply_to(message, "❌ Invalid input. Please enter a valid positive integer.", reply_markup=bonus_markup)
+            bot.reply_to(message, "❌ Iɴᴠᴀʟɪᴅ ɪɴᴘᴜᴛ. Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ᴘᴏꜱɪᴛɪᴠᴇ ɪɴᴛᴇɢᴇʀ.", reply_markup=bonus_markup)
 
 
     @bot.message_handler(func=lambda m: m.text == "🔄 Switch")
@@ -470,13 +470,13 @@ def register_bonus_config_handlers(bot, admin_markup, admin_user_ids):
         if str(message.from_user.id) not in map(str, admin_user_ids):
             return
         status = toggle_bonus()
-        bot.reply_to(message, f"🔄 Bonus button is now {'enabled ✅' if status else 'disabled ❌'}.", reply_markup=bonus_markup)
+        bot.reply_to(message, f"🔄 Bᴏɴᴜꜱ ʙᴜᴛᴛᴏɴ ɪꜱ ɴᴏᴡ {'ᴇɴᴀʙʟᴇᴅ ✅' if status else 'ᴅɪꜱᴀʙʟᴇᴅ ❌'}.", reply_markup=bonus_markup)
 
     @bot.message_handler(func=lambda m: m.text == "🔙 Admin Panel")
     def return_to_admin_panel(message):
         if str(message.from_user.id) not in map(str, admin_user_ids):
             return
-        bot.reply_to(message, "🔧 Returning to Admin Panel...", reply_markup=admin_markup)
+        bot.reply_to(message, "🔧 Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Aᴅᴍɪɴ Pᴀɴᴇʟ...", reply_markup=admin_markup)
 
 # ======================= TOP RICH USERS ======================= #
 def register_top_rich_handler(bot, admin_user_ids):
@@ -491,25 +491,25 @@ def register_top_rich_handler(bot, admin_user_ids):
         for i, user in enumerate(page_users, start + 1):
             username = f"@{user.get('username')}" if user.get('username') else f"ID:{user['user_id']}"
             balance = round(float(user.get('balance', 0)), 2)
-            inner_list += f"{i}. {username} — <code>{balance}</code> coins\n"
+            inner_list += f"{i}. {username} — <code>{balance}</code> ᴄᴏɪɴꜱ\n"
 
         quoted_content = f"<blockquote><b>{inner_list}</b></blockquote>"
 
-        msg = f"🏆 <b>Top 10 Richest Users</b>\n\n{quoted_content}"
+        msg = f"🏆 <b>Top 10 Rɪᴄʜᴇꜱᴛ Uꜱᴇʀꜱ</b>\n\n{quoted_content}"
 
         # Pagination + Close
         markup = InlineKeyboardMarkup()
         nav_row = []
 
         if page > 0:
-            nav_row.append(InlineKeyboardButton("Back", callback_data=f"rich_page_{page-1}"))
+            nav_row.append(InlineKeyboardButton("⌫ Back", callback_data=f"rich_page_{page-1}"))
         if end < len(users):
-            nav_row.append(InlineKeyboardButton("Next", callback_data=f"rich_page_{page+1}"))
+            nav_row.append(InlineKeyboardButton("Next ⌦", callback_data=f"rich_page_{page+1}"))
 
         if nav_row:
             markup.row(*nav_row)
 
-        markup.add(InlineKeyboardButton("Close", callback_data="close_rich"))
+        markup.add(InlineKeyboardButton("⌧ Close ⌧", callback_data="close_rich"))
 
         return msg, markup
 
@@ -519,7 +519,7 @@ def register_top_rich_handler(bot, admin_user_ids):
 
         users = get_top_balances()
         if not users:
-            bot.reply_to(message, "No user data found.")
+            bot.reply_to(message, "Nᴏ ᴜꜱᴇʀ ᴅᴀᴛᴀ ꜰᴏᴜɴᴅ.")
             return
 
         text, reply_markup = build_rich_page(users, page=0)
@@ -528,7 +528,7 @@ def register_top_rich_handler(bot, admin_user_ids):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("rich_page_") or call.data == "close_rich")
     def handle_rich_pagination(call):
         if str(call.from_user.id) not in map(str, admin_user_ids):
-            bot.answer_callback_query(call.id, text="Access Denied", show_alert=True)
+            bot.answer_callback_query(call.id, text="Aᴄᴄᴇꜱꜱ Dᴇɴɪᴇᴅ", show_alert=True)
             return
 
         users = get_top_balances()
@@ -556,7 +556,7 @@ def register_top_rich_handler(bot, admin_user_ids):
             )
             bot.answer_callback_query(call.id)
         except:
-            bot.answer_callback_query(call.id, text="Error loading page")
+            bot.answer_callback_query(call.id, text="Eʀʀᴏʀ ʟᴏᴀᴅɪɴɢ ᴘᴀɢᴇ")
 
     # Register button — EMOJI PRESERVED
     bot.register_message_handler(show_top_rich, func=lambda m: m.text == "💰 Top Rich")
@@ -574,25 +574,25 @@ def register_top_affiliates_handler(bot, admin_user_ids):
         for i, user in enumerate(page_users, start + 1):
             username = f"@{user.get('username')}" if user.get('username') else f"ID:{user['user_id']}"
             earnings = round(float(user.get('affiliate_earnings', 0)), 2)
-            inner_list += f"{i}. {username} — <code>{earnings}</code> coins\n"
+            inner_list += f"{i}. {username} — <code>{earnings}</code> ᴄᴏɪɴꜱ\n"
 
         quoted_content = f"<blockquote><b>{inner_list}</b></blockquote>"
 
-        msg = f"👥 <b>Top 10 Affiliates</b>\n\n{quoted_content}"
+        msg = f"👥 <b>Top 10 Aꜰꜰɪʟɪᴀᴛᴇꜱ</b>\n\n{quoted_content}"
 
         # Pagination + Close
         markup = InlineKeyboardMarkup()
         nav_row = []
 
         if page > 0:
-            nav_row.append(InlineKeyboardButton("Back", callback_data=f"affiliates_page_{page-1}"))
+            nav_row.append(InlineKeyboardButton("⌫ Bᴀᴄᴋ", callback_data=f"affiliates_page_{page-1}"))
         if end < len(users):
-            nav_row.append(InlineKeyboardButton("Next", callback_data=f"affiliates_page_{page+1}"))
+            nav_row.append(InlineKeyboardButton("Nᴇxᴛ ⌦", callback_data=f"affiliates_page_{page+1}"))
 
         if nav_row:
             markup.row(*nav_row)
 
-        markup.add(InlineKeyboardButton("Close", callback_data="close_affiliates"))
+        markup.add(InlineKeyboardButton("⌧ Cʟᴏꜱᴇ ⌧", callback_data="close_affiliates"))
 
         return msg, markup
 
@@ -602,7 +602,7 @@ def register_top_affiliates_handler(bot, admin_user_ids):
 
         users = get_top_affiliate_earners()
         if not users:
-            bot.reply_to(message, "No affiliate earnings data found.")
+            bot.reply_to(message, "Nᴏ Aꜰꜰɪʟɪᴀᴛᴇ Eᴀʀɴɪɴɢꜱ Dᴀᴛᴀ ᴏᴜɴᴅ.")
             return
 
         text, reply_markup = build_affiliates_page(users, page=0)
@@ -611,7 +611,7 @@ def register_top_affiliates_handler(bot, admin_user_ids):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("affiliates_page_") or call.data == "close_affiliates")
     def handle_affiliates_pagination(call):
         if str(call.from_user.id) not in map(str, admin_user_ids):
-            bot.answer_callback_query(call.id, text="Access Denied", show_alert=True)
+            bot.answer_callback_query(call.id, text="Aᴄᴄᴇꜱꜱ Dᴇɴɪᴇᴅ", show_alert=True)
             return
 
         users = get_top_affiliate_earners()
@@ -639,7 +639,7 @@ def register_top_affiliates_handler(bot, admin_user_ids):
             )
             bot.answer_callback_query(call.id)
         except:
-            bot.answer_callback_query(call.id, text="Error loading page")
+            bot.answer_callback_query(call.id, text="Eʀʀᴏʀ ʟᴏᴀᴅɪɴɢ ᴘᴀɢᴇ")
 
     # Register button
     bot.register_message_handler(show_top_affiliates, func=lambda m: m.text == "👥 Top Affiliates")
@@ -669,23 +669,23 @@ def register_anti_fraud_handler(bot, admin_user_ids):
 
         quoted_content = f"<blockquote><b>{inner_list}</b></blockquote>"
 
-        msg = f"<b>🛡️Suspicious Users Detected:</b>\n\n{quoted_content}"
+        msg = f"<b>🛡️ Sᴜꜱᴘɪᴄɪᴏᴜꜱ Uꜱᴇʀꜱ Dᴇᴛᴇᴄᴛᴇᴅ:</b>\n\n{quoted_content}"
 
         # Buttons
         markup = InlineKeyboardMarkup()
         nav_row = []
 
         if page > 0:
-            nav_row.append(InlineKeyboardButton("Back", callback_data=f"fraud_page_{page-1}"))
+            nav_row.append(InlineKeyboardButton("⌫ Bᴀᴄᴋ", callback_data=f"fraud_page_{page-1}"))
         if end < len(suspects):
-            nav_row.append(InlineKeyboardButton("Next", callback_data=f"fraud_page_{page+1}"))
+            nav_row.append(InlineKeyboardButton("Nᴇxᴛ ⌦", callback_data=f"fraud_page_{page+1}"))
 
         if nav_row:
             markup.row(*nav_row)
 
         action_row = []
-        action_row.append(InlineKeyboardButton("Clear Users", callback_data="clear_suspicious"))
-        action_row.append(InlineKeyboardButton("Close", callback_data="close_fraud"))
+        action_row.append(InlineKeyboardButton("⥁ Cʟᴇᴀʀ Uꜱᴇʀꜱ ⥁", callback_data="clear_suspicious"))
+        action_row.append(InlineKeyboardButton("⌧ Cʟᴏꜱᴇ ⌧", callback_data="close_fraud"))
         markup.row(*action_row)
 
         return msg, markup
@@ -697,7 +697,7 @@ def register_anti_fraud_handler(bot, admin_user_ids):
         suspects = get_suspicious_users()
 
         if not suspects:
-            bot.reply_to(message, "No suspicious users found.")
+            bot.reply_to(message, "Nᴏ sᴜꜱᴘɪᴄɪᴏᴜꜱ uꜱᴇʀꜱ ꜰᴏᴜɴᴅ.")
             return
 
         text, reply_markup = build_fraud_page(suspects, page=0)
@@ -706,7 +706,7 @@ def register_anti_fraud_handler(bot, admin_user_ids):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("fraud_page_") or call.data in ["close_fraud", "clear_suspicious"])
     def handle_fraud_actions(call):
         if str(call.from_user.id) not in map(str, admin_user_ids):
-            bot.answer_callback_query(call.id, text="Access Denied", show_alert=True)
+            bot.answer_callback_query(call.id, text="Aᴄᴄᴇꜱꜱ Dᴇɴɪᴇᴅ", show_alert=True)
             return
 
         if call.data == "close_fraud":
@@ -721,12 +721,11 @@ def register_anti_fraud_handler(bot, admin_user_ids):
             # === MODIFIED CLEAR LOGIC: Only clear bonus coins, don't deduct from balance ===
             suspects = get_suspicious_users()
             cleared_count = 0
-            
+
             for s in suspects:
                 user_id = s['user_id']
                 user = users_collection.find_one({"user_id": user_id})
                 if user:
-                    # Simply reset bonus coins to 0 without affecting balance
                     bonus = float(user.get("bonus_coins", 0))
                     if bonus > 0:
                         users_collection.update_one(
@@ -735,16 +734,15 @@ def register_anti_fraud_handler(bot, admin_user_ids):
                         )
                         cleared_count += 1
 
-            bot.answer_callback_query(call.id, text=f"Cleared bonus coins from {cleared_count} users!", show_alert=True)
+            bot.answer_callback_query(call.id, text=f"Cʟᴇᴀʀᴇᴅ ʙᴏɴᴜꜱ ᴄᴏɪɴꜱ ꜰʀᴏᴍ {cleared_count} uꜱᴇʀꜱ!", show_alert=True)
 
-            # Refresh page - should show no suspicious users now
             suspects = get_suspicious_users()
             if not suspects:
                 try:
                     bot.edit_message_text(
                         chat_id=call.message.chat.id,
                         message_id=call.message.message_id,
-                        text="No suspicious users found.",
+                        text="Nᴏ sᴜꜱᴘɪᴄɪᴏᴜꜱ uꜱᴇʀꜱ ꜰᴏᴜɴᴅ.",
                         parse_mode="HTML"
                     )
                 except:
@@ -775,7 +773,7 @@ def register_anti_fraud_handler(bot, admin_user_ids):
             )
             bot.answer_callback_query(call.id)
         except:
-            bot.answer_callback_query(call.id, text="Error loading page")
+            bot.answer_callback_query(call.id, text="Eʀʀᴏʀ ʟᴏᴀᴅɪɴɢ ᴘᴀɢᴇ")
 
     # EMOJI PRESERVED — NEVER TOUCHED
     bot.register_message_handler(show_anti_fraud, func=lambda m: m.text == "🛡️ Anti-Fraud")
@@ -844,7 +842,7 @@ def register_panel_balance_handler(bot, admin_user_ids, admin_markup=None, main_
         )
 
         close_button = InlineKeyboardMarkup()
-        close_button.add(InlineKeyboardButton("Close", callback_data="close_panel_balance"))
+        close_button.add(InlineKeyboardButton("⌧ Close ⌧", callback_data="close_panel_balance"))
 
         bot.send_message(
             chat_id=message.chat.id,
@@ -871,8 +869,8 @@ def register_update_users_handler(bot, admin_user_ids, admin_markup=None, main_m
 
         markup = InlineKeyboardMarkup()
         markup.row(
-            InlineKeyboardButton("✅ Start Update", callback_data="start_user_update"),
-            InlineKeyboardButton("❌ Cancel", callback_data="cancel_user_update")
+            InlineKeyboardButton("⟳ Start Update", callback_data="start_user_update"),
+            InlineKeyboardButton("☒ Cancel ☒", callback_data="cancel_user_update")
         )
         
         bot.reply_to(message,
