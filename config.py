@@ -25,7 +25,7 @@ WELCOME_BONUS = int(getenv("WELCOME_BONUS", 30))
 REF_BONUS = int(getenv("REF_BONUS", 50)) 
 
 # ───── Maintenance Settings ───── #
-MAINTENANCE_AUTO_DISABLE_TIME = int(getenv("MAINTENANCE_AUTO_DISABLE_TIME", "60"))  # 1 hour in seconds
+MAINTENANCE_AUTO_DISABLE_TIME = int(getenv("MAINTENANCE_AUTO_DISABLE_TIME", "1440"))  # 1 hour in seconds
 MAINTENANCE_MODE = getenv("MAINTENANCE_MODE", "False").lower() == "true" # Convert to boolean
 
 # ───── Server Settings ───── #
@@ -50,3 +50,4 @@ CHANNEL_BUTTONS = {
     #"BACKUP_CHANNEL": {"name": "🔙 BACKUP CHANNEL", "url": "https://t.me/Freenethubchannel"},
     #"COINS_STORE_CHANNEL": {"name": "🪙 COINS STORE CHANNEL", "url": "https://t.me/iCoinStores"}
 }
+
