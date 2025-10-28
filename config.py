@@ -42,14 +42,11 @@ WHATSAPP_CHANNEL = getenv("WHATSAPP_CHANNEL", "https://whatsapp.com/channel/0029
 SUPPORT_BOT = getenv("SUPPORT_BOT", "https://t.me/SocialHubBoosterTMbot")
 
 # ───── Force Join Channels ───── #
-REQUIRED_CHANNELS = getenv("REQUIRED_CHANNELS", "XPTOOLSTEAM,Freenethubz").split(",")  # Comma-separated channel usernames
+REQUIRED_CHANNELS = getenv("REQUIRED_CHANNELS", "XPTOOLSTEAM,Freenethubz,SmmBoosterz,Freenethubchannel").split(",")  # Comma-separated channel usernames
 CHANNEL_BUTTONS = {
     "Freenethubz": {"name": "📢 PROMOTER CHANNEL", "url": "https://t.me/Freenethubz"},
     "WHATSAPP_CHANNEL": {"name": "📱 WHATSAPP", "url": "https://whatsapp.com/channel/0029VaDnY2y0rGiPV41aSX0l"},
     "BOTS_UPDATE_CHANNEL": {"name": "🤖 BOTS UPDATE", "url": "https://t.me/XPTOOLSTEAM"},
-    #"BACKUP_CHANNEL": {"name": "🔙 BACKUP CHANNEL", "url": "https://t.me/Freenethubchannel"},
-    #"COINS_STORE_CHANNEL": {"name": "🪙 COINS STORE CHANNEL", "url": "https://t.me/iCoinStores"}
+    "SERVICES_UPDATE": {"name": "🏪 SERVICES UPDATE", "url": "https://t.me/SmmBoosterz"},
+    "COINS_CHANNEL": {"name": "🪙 COINS STORE", "url": "https://t.me/Freenethubchannel"}
 }
-
-
-
