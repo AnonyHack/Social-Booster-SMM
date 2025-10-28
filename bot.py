@@ -31,7 +31,8 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                          get_affiliate_earnings, add_affiliate_earning, get_affiliate_users, 
                          update_affiliate_earning, get_user_deposits, get_locked_services,
                            addBonusBalance, removeOldBonus, get_bonus_amount, get_bonus_interval,
-                           is_bonus_enabled, setup_close_handler, update_order_statuses, status_updater) # Import your functions from functions.py
+                           is_bonus_enabled, setup_close_handler, update_order_statuses, status_updater)
+from startup_notifier import send_startup_message # Import your functions from functions.py
  
 # Load environment variables from .env file
 load_dotenv()
@@ -40,10 +41,13 @@ from config import (SUPPORT_CHAT, UPDATES_CHANNEL_LINK, WELCOME_IMAGE_URL,
                     MAINTENANCE_AUTO_DISABLE_TIME)
  
 # =============== Bot Configuration =============== #
-from config import BOT_TOKEN, SMM_PANEL_API, SMM_PANEL_API_URL, ADMIN_USER_IDS, WELCOME_BONUS, REF_BONUS
+from config import BOT_TOKEN, SMM_PANEL_API, SMM_PANEL_API_URL, MEGAHUB_PANEL_API, MEGAHUB_PANEL_API_URL, FREE_ORDERS_DAILY_LIMIT, ADMIN_USER_IDS, WELCOME_BONUS, REF_BONUS
+
 admin_user_ids = ADMIN_USER_IDS
 SmmPanelApiUrl = SMM_PANEL_API_URL
 SmmPanelApi = SMM_PANEL_API
+MegahubPanelApiUrl = MEGAHUB_PANEL_API_URL
+MegahubPanelApi = MEGAHUB_PANEL_API
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -54,27 +58,27 @@ ref_bonus = REF_BONUS
 # Setup the universal close handler for inline buttons
 setup_close_handler(bot)
 
-from startup_notifier import send_startup_message
-
 # Send startup message when bot starts
 send_startup_message(bot, is_restart=True)  # or False if you want default
 
 #======================= Keyboards =======================#
 # Main keyboard markup
 main_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-button1 = KeyboardButton("🛒 Buy Services")
-button2 = KeyboardButton("👤 My Account")
-button3 = KeyboardButton("💳 Pricing")
-button4 = KeyboardButton("📊 Order Stats")
-button5 = KeyboardButton("💰 Refer&Earn")
-button6 = KeyboardButton("🏆 Leaderboard")  # New Affiliate button
-button7 = KeyboardButton("📜 Help")
-button8 = KeyboardButton("🎉 Bᴏɴᴜs")
+button1 = KeyboardButton("🆓 Free Services")
+button2 = KeyboardButton("🛒 Buy Services")
+button3 = KeyboardButton("👤 My Account")
+button4 = KeyboardButton("💳 Pricing")
+button5 = KeyboardButton("📊 Order Stats")
+button6 = KeyboardButton("💰 Refer&Earn")
+button7 = KeyboardButton("🏆 Leaderboard")  # New Affiliate button
+button8 = KeyboardButton("📜 Help")
+button9 = KeyboardButton("🎉 Bᴏɴᴜs")
 
 main_markup.add(button1, button2)
 main_markup.add(button3, button4)
 main_markup.add(button5, button6)
 main_markup.add(button7, button8)
+main_markup.add(button9)
 
 # Admin keyboard markup
 admin_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -89,6 +93,7 @@ admin_markup.row("📦 Batch Coins", "🔐 Lock/Unlock")
 admin_markup.row("🗑 Delete User", "🪙 Bonus")
 admin_markup.row("💰 Top Rich", "👥 Top Affiliates")
 admin_markup.row("🛡️ Anti-Fraud", "📟 Panel Balance")
+admin_markup.row("🔄 Update Users")
 admin_markup.row("🔙 Main Menu")
 
 #======================= Send Orders main menu =======================#
@@ -123,6 +128,10 @@ send_orders_markup.add(KeyboardButton("🔙 Main Menu"))
 # === Import and register order handlers ===
 from orders import register_order_handlers
 register_order_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL)
+
+# === Import and register free services handlers ===
+from free_services import register_free_handlers
+register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL)
 
 # In bot.py (near other imports)
 from adpanel import register_admin_features
@@ -203,8 +212,6 @@ whatsapp_services_markup.row(
     KeyboardButton("😀 Post EmojiReaction")
 )
 whatsapp_services_markup.add(KeyboardButton("↩️ Go Back"))
-
-
 
 ############################ END OF NEW FEATURES #############################
 
@@ -967,6 +974,7 @@ def show_order_stats(message):
         completion_rate = (stats['completed'] / stats['total']) * 100 if stats['total'] > 0 else 0
 
         msg = f"""
+<blockquote>
 📦 <b>Yᴏᴜʀ SMM Oʀᴅᴇʀ Pᴏʀᴛꜰᴏʟɪᴏ</b>
 ━━━━━━━━━━━━━━━━━━━━
 
@@ -977,8 +985,9 @@ def show_order_stats(message):
 └ ❌ Fᴀɪʟᴇᴅ: <code>{stats['failed']}</code>
 
 📌 <b>NOTE:</b> Iꜰ ʏᴏᴜ ʜᴀᴠᴇ ᴀ Fᴀɪʟᴇᴅ Oʀᴅᴇʀ ᴀɴᴅ ʏᴏᴜʀ Cᴏɪɴꜱ ᴡᴇʀᴇ Dᴇᴅᴜᴄᴛᴇᴅ, 
-Vɪꜱɪᴛ ᴛʜᴇ @smmserviceslogs ᴀɴᴅ ɢᴇᴛ ʏᴏᴜʀ Oʀᴅᴇʀ Iᴅ. 
+Vɪꜱɪᴛ ᴛʜᴇ @xptoolslogs ᴀɴᴅ ɢᴇᴛ ʏᴏᴜʀ Oʀᴅᴇʀ Iᴅ. 
 Tʜᴇɴ ꜱᴇɴᴅ ɪᴛ ᴛᴏ ᴛʜᴇ Aᴅᴍɪɴ ꜰᴏʀ Aꜱꜱɪꜱᴛᴀɴᴄᴇ @SocialHubBoosterTMbot.
+</blockquote>
 """
 
         markup = InlineKeyboardMarkup()
@@ -3522,9 +3531,12 @@ def show_analytics_dashboard(message, is_refresh=False):
         markup = InlineKeyboardMarkup()
         markup.row(
             InlineKeyboardButton("🔄 Refresh", callback_data="refresh_analytics"),
-            InlineKeyboardButton("📊 Full Report", callback_data="full_report")
+            InlineKeyboardButton("📊 Full Report", callback_data="full_report")     
         )
-        
+        markup.row(
+            InlineKeyboardButton("❌ ᴄʟᴏꜱᴇ", callback_data="close_button")  
+        )
+
         if hasattr(message, 'is_callback') or is_refresh:
             # Edit existing message
             bot.edit_message_text(
@@ -4082,7 +4094,6 @@ def handle_ban_pagination(call):
     except:
         bot.answer_callback_query(call.id, "Error loading page", show_alert=True)
 
-# ============================= Premium Leaderboard ============================= #
 # ============================= Premium Leaderboard ============================= #
 @bot.message_handler(func=lambda m: m.text == "🏆 Leaderboard")
 def show_leaderboard(message):
@@ -4980,4 +4991,3 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         web_app.notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
-
