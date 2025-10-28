@@ -94,7 +94,7 @@ admin_markup.row("🗑 Delete User", "🪙 Bonus")
 admin_markup.row("💰 Top Rich", "👥 Top Affiliates")
 admin_markup.row("🛡️ Anti-Fraud", "📟 Panel Balance")
 admin_markup.row("🔄 Update Users")
-admin_markup.row("🔙 Main Menu")
+admin_markup.row("⌫ ᴍᴀɪɴ ᴍᴇɴᴜ")
 
 #======================= Send Orders main menu =======================#
 send_orders_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -123,7 +123,7 @@ send_orders_markup.row(
     KeyboardButton("🎶 Order Spotify")
 )
 
-send_orders_markup.add(KeyboardButton("🔙 Main Menu"))
+send_orders_markup.add(KeyboardButton("⌫ ᴍᴀɪɴ ᴍᴇɴᴜ"))
 
 # === Import and register order handlers ===
 from orders import register_order_handlers
@@ -149,7 +149,7 @@ telegram_services_markup.row(
     KeyboardButton("👥 Channel Members"),
 )
 telegram_services_markup.row(
-    KeyboardButton("↩️ Go Back")
+    KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
 )
 
 # TikTok services menu (placeholder for now)
@@ -162,7 +162,7 @@ tiktok_services_markup.row(
     KeyboardButton("👥 Tiktok Followers"),
 )
 tiktok_services_markup.row(
-    KeyboardButton("↩️ Go Back")
+    KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
 )
 
 # Instagram services menu
@@ -175,7 +175,7 @@ instagram_services_markup.row(
     KeyboardButton("👥 Insta Followers"),
 )
 instagram_services_markup.row(
-    KeyboardButton("↩️ Go Back")
+    KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
 )
 
 # YouTube services menu
@@ -188,7 +188,7 @@ youtube_services_markup.row(
     KeyboardButton("👥 YT Subscribers"),
 )
 youtube_services_markup.row(
-    KeyboardButton("↩️ Go Back")
+    KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
 )
 
 # Facebook services menu
@@ -201,7 +201,7 @@ facebook_services_markup.row(
     KeyboardButton("🎥 Video/Reel Views"),
     KeyboardButton("❤️ Post Likes")
 )
-facebook_services_markup.add(KeyboardButton("↩️ Go Back"))
+facebook_services_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
 # WhatsApp services menu
 whatsapp_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -211,7 +211,7 @@ whatsapp_services_markup.row(
 whatsapp_services_markup.row(
     KeyboardButton("😀 Post EmojiReaction")
 )
-whatsapp_services_markup.add(KeyboardButton("↩️ Go Back"))
+whatsapp_services_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
 ############################ END OF NEW FEATURES #############################
 
@@ -1259,7 +1259,7 @@ def handle_telegram_order(message):
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
         KeyboardButton("✘ Cancel"),
-        KeyboardButton("↩️ Go Back")
+        KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
     )
     
     # Store service data in user session (you may need a session system)
@@ -1293,7 +1293,7 @@ def process_telegram_quantity(message, service):
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
-    elif message.text == "↩️ Go Back":
+    elif message.text == "⌫ ɢᴏ ʙᴀᴄᴋ":
         bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Tᴇʟᴇɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=telegram_services_markup)
         return
     
@@ -1598,7 +1598,7 @@ def handle_tiktok_order(message):
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
     KeyboardButton("✘ Cancel"),
-    KeyboardButton("↩️ Go Back")
+    KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
 )
     
     msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -1629,7 +1629,7 @@ def process_tiktok_quantity(message, service):
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
-    elif message.text == "↩️ Go Back":
+    elif message.text == "⌫ ɢᴏ ʙᴀᴄᴋ":
         bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ TɪᴋTᴏᴋ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=tiktok_services_markup)
         return
     
@@ -1929,7 +1929,7 @@ def handle_instagram_order(message):
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
         KeyboardButton("✘ Cancel"),
-        KeyboardButton("↩️ Go Back")
+        KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
     )
     
     msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -1960,7 +1960,7 @@ def process_instagram_quantity(message, service):
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
-    elif message.text == "↩️ Go Back":
+    elif message.text == "⌫ ɢᴏ ʙᴀᴄᴋ":
         bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Iɴꜱᴛᴀɢʀᴀᴍ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=instagram_services_markup)
         return
     
@@ -2237,7 +2237,7 @@ def handle_youtube_order(message):
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
         KeyboardButton("✘ Cancel"),
-        KeyboardButton("↩️ Go Back")
+        KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
     )
     
     msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -2268,7 +2268,7 @@ def process_youtube_quantity(message, service):
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
-    elif message.text == "↩️ Go Back":
+    elif message.text == "⌫ ɢᴏ ʙᴀᴄᴋ":
         bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ YᴏᴜTᴜʙᴇ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=youtube_services_markup)
         return
     
@@ -2574,7 +2574,7 @@ def handle_facebook_order(message):
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
         KeyboardButton("✘ Cancel"),
-        KeyboardButton("↩️ Go Back")
+        KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
     )
     
     msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -2605,7 +2605,7 @@ def process_facebook_quantity(message, service):
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
-    elif message.text == "↩️ Go Back":
+    elif message.text == "⌫ ɢᴏ ʙᴀᴄᴋ":
         bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Fᴀᴄᴇʙᴏᴏᴋ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=facebook_services_markup)
         return
     
@@ -2891,7 +2891,7 @@ def handle_whatsapp_order(message):
     cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     cancel_back_markup.row(
         KeyboardButton("✘ Cancel"),
-        KeyboardButton("↩️ Go Back")
+        KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
     )
     
     msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -2922,7 +2922,7 @@ def process_whatsapp_quantity(message, service):
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
-    elif message.text == "↩️ Go Back":
+    elif message.text == "⌫ ɢᴏ ʙᴀᴄᴋ":
         bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ WʜᴀᴛꜱAᴘᴘ ꜱᴇʀᴠɪᴄᴇꜱ...", reply_markup=whatsapp_services_markup)
         return
     
@@ -3163,10 +3163,10 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
 #======================== End of Whastapp Orders =====================#
 
 #=================== The back button handler =========================================
-@bot.message_handler(func=lambda message: message.text in ["↩️ Go Back", "✘ Cancel"])
+@bot.message_handler(func=lambda message: message.text in ["⌫ ɢᴏ ʙᴀᴄᴋ", "✘ Cancel"])
 def handle_back_buttons(message):
     """Handle all back/cancel buttons"""
-    if message.text == "↩️ Go Back":
+    if message.text == "⌫ ɢᴏ ʙᴀᴄᴋ":
         # Determine where to go back based on context
         if message.text in ["👀 Order Views", "❤️ Order Reactions", "👥 Order Members"]:
             bot.reply_to(message, "Rᴇᴛᴜʀɴɪɴɢ Tᴏ Tᴇʟᴇɢʀᴀᴍ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=telegram_services_markup)
@@ -3189,7 +3189,7 @@ def handle_back_buttons(message):
 
 
 #=================== The back button handler =========================================
-@bot.message_handler(func=lambda message: message.text == "🔙 Main Menu")
+@bot.message_handler(func=lambda message: message.text == "⌫ ᴍᴀɪɴ ᴍᴇɴᴜ")
 def back_to_main(message):
     if message.from_user.id in admin_user_ids:
         # For admins, show both admin and user keyboards
@@ -4160,10 +4160,10 @@ def show_banned_page(message, banned_users, page=0):
     nav_buttons = []
     
     if page > 0:
-        nav_buttons.append(InlineKeyboardButton("⬅️ Back", callback_data=f"ban_page_{page-1}"))
+        nav_buttons.append(InlineKeyboardButton("⌫ ʙᴀᴄᴋ", callback_data=f"ban_page_{page-1}"))
     
     if end_idx < len(banned_users):
-        nav_buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"ban_page_{page+1}"))
+        nav_buttons.append(InlineKeyboardButton("ɴᴇxᴛ ⌦", callback_data=f"ban_page_{page+1}"))
     
     if nav_buttons:
         markup.row(*nav_buttons)
@@ -4253,10 +4253,10 @@ def show_leaderboard_page(message, top_users, page=0):
     nav_buttons = []
     
     if page > 0:
-        nav_buttons.append(InlineKeyboardButton("⬅️ Back", callback_data=f"leader_page_{page-1}"))
+        nav_buttons.append(InlineKeyboardButton("⌫ ʙᴀᴄᴋ", callback_data=f"leader_page_{page-1}"))
     
     if end_idx < len(top_users):
-        nav_buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"leader_page_{page+1}"))
+        nav_buttons.append(InlineKeyboardButton("ɴᴇxᴛ ⌦", callback_data=f"leader_page_{page+1}"))
     
     if nav_buttons:
         markup.row(*nav_buttons)
