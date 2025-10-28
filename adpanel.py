@@ -406,7 +406,7 @@ def register_admin_handlers(bot, admin_markup, main_markup, admin_user_ids):
     register_lock_handlers(bot, admin_markup, admin_user_ids)
     register_delete_user_handlers(bot, admin_markup)
 
-    @bot.message_handler(func=lambda m: m.text == "🔙 Main Menu")
+    @bot.message_handler(func=lambda m: m.text == "⌫ ᴍᴀɪɴ ᴍᴇɴᴜ")
     def return_to_main(message):
         bot.reply_to(message, "Returning to main menu...", reply_markup=main_markup)
         
@@ -947,7 +947,7 @@ def register_update_users_handler(bot, admin_user_ids, admin_markup=None, main_m
     @bot.callback_query_handler(func=lambda call: call.data in ["start_user_update", "cancel_user_update"])
     def handle_user_update(call):
         if call.data == "cancel_user_update":
-            bot.answer_callback_query(call.id, "Update cancelled")
+            bot.answer_callback_query(call.id, "✔ ᴜᴘᴅᴀᴛᴇ ᴄᴀɴᴄᴇʟʟᴇᴅ")
             try:
                 bot.delete_message(call.message.chat.id, call.message.message_id)
             except:
@@ -955,7 +955,7 @@ def register_update_users_handler(bot, admin_user_ids, admin_markup=None, main_m
             return
         
         # Start the update process
-        bot.answer_callback_query(call.id, "Starting user update...")
+        bot.answer_callback_query(call.id, "⟳ ꜱᴛᴀʀᴛɪɴɢ ᴜꜱᴇʀ ᴜᴘᴅᴀᴛᴇ...")
         perform_user_cleanup(call.message)
 
     bot.register_message_handler(update_users_start, func=lambda m: m.text == "🔄 Update Users")
