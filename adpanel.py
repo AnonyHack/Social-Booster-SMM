@@ -1,11 +1,18 @@
 # adpanel.py
 from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup
 from functions import (get_all_users,
-    delete_user, lock_service, unlock_service, get_locked_services,
+    delete_user, lock_service, unlock_service, get_locked_services, isExists, getData,
     set_bonus_amount, set_bonus_interval, toggle_bonus, get_top_balances,
     get_top_affiliate_earners, get_suspicious_users, get_panel_balance, users_collection
 )
 import time
+import requests
+import logging
+from config import MEGAHUB_PANEL_API, MEGAHUB_PANEL_API_URL, SUPPORT_BOT
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # ======================= SHARED FUNCTIONS ======================= #
 def format_timespan(seconds):
@@ -163,24 +170,209 @@ def register_delete_user_handlers(bot, admin_markup):
     def handle_delete_user(message):
         if str(message.from_user.id) not in map(str, admin_user_ids):
             return
+        
+        # Create cancel button
+        cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        cancel_markup.add(KeyboardButton("❌ Cancel Delete"))
             
-        bot.reply_to(message, "🗑 Please send the user ID you want to delete:")
+        bot.reply_to(message, 
+                    "🗑 <b>Delete User Account</b>\n\n"
+                    "Please send the user ID you want to delete:\n\n"
+                    "⚠️ <b>Note:</b> Only numeric user IDs are accepted\n"
+                    "📝 <b>Example:</b> <code>123456789</code>\n\n"
+                    "❌ Click the button below to cancel:",
+                    parse_mode="HTML",
+                    reply_markup=cancel_markup)
         bot.register_next_step_handler(message, process_delete_user)
 
     def process_delete_user(message):
-        if message.text.lower() == 'cancel':
-            bot.reply_to(message, "❌ Operation cancelled.", reply_markup=admin_markup)
+        # Check if user cancelled
+        if message.text and message.text.strip() == "❌ Cancel Delete":
+            bot.reply_to(message, "❌ Delete operation cancelled.", reply_markup=admin_markup)
             return
             
-        user_id = message.text.strip()
+        user_input = message.text.strip()
+        
+        # Validate if input is numeric (user ID)
+        if not user_input.isdigit():
+            bot.reply_to(message, 
+                        "❌ <b>Invalid User ID</b>\n\n"
+                        "Please enter a valid numeric user ID.\n"
+                        "📝 <b>Example:</b> <code>123456789</code>\n\n"
+                        "Try again or use the cancel button:",
+                        parse_mode="HTML",
+                        reply_markup=admin_markup)
+            return
+            
+        user_id = user_input
+        
+        # Show checking animation
+        checking_msg = bot.reply_to(message,
+                    f"🔍 <b>Checking User Database...</b>\n\n"
+                    f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
+                    f"⏳ Searching for user in database...\n\n"
+                    f"[░░░░░░░░░░] 0%",
+                    parse_mode="HTML")
+        
+        # Simulate checking progress
+        for progress in [25, 50, 75, 100]:
+            time.sleep(0.5)
+            progress_bar = '█' * (progress // 10) + '░' * (10 - progress // 10)
+            bot.edit_message_text(
+                f"🔍 <b>Checking User Database...</b>\n\n"
+                f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
+                f"⏳ Searching for user in database...\n\n"
+                f"[{progress_bar}] {progress}%",
+                message.chat.id,
+                checking_msg.message_id,
+                parse_mode="HTML"
+            )
+        
+        # Check if user exists in database
+        user_exists = isExists(user_id)
+        
+        if not user_exists:
+            bot.edit_message_text(
+                f"❌ <b>User Not Found</b>\n\n"
+                f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
+                f"🔍 <b>Database Search Result:</b> User not found\n"
+                f"📊 <b>Status:</b> No user with this ID in database\n\n"
+                f"⚠️ <i>Please check the user ID and try again.</i>",
+                message.chat.id,
+                checking_msg.message_id,
+                parse_mode="HTML"
+            )
+            # Send back to admin panel
+            bot.send_message(message.chat.id, "🔙 <b>Returned to Admin Panel</b>", parse_mode="HTML", reply_markup=admin_markup)
+            return
+        
+        # User exists - show confirmation
+        confirm_markup = InlineKeyboardMarkup()
+        confirm_markup.row(
+            InlineKeyboardButton("✅ Confirm Delete", callback_data=f"confirm_delete_{user_id}"),
+            InlineKeyboardButton("❌ Cancel", callback_data="cancel_delete")
+        )
+        
+        # Get user data for confirmation
+        user_data = getData(user_id) or {}
+        username = f"@{user_data.get('username', 'N/A')}" if user_data.get('username') else "No Username"
+        balance = user_data.get('balance', 0)
+        orders_count = user_data.get('orders_count', 0)
+        
+        bot.edit_message_text(
+            f"⚠️ <b>Confirm User Deletion</b>\n\n"
+            f"👤 <b>User Details:</b>\n"
+            f"├ 🆔 ID: <code>{user_id}</code>\n"
+            f"├ 📛 Username: {username}\n"
+            f"├ 💰 Balance: {balance} coins\n"
+            f"└ 📦 Orders: {orders_count}\n\n"
+            f"🔴 <b>This action will:</b>\n"
+            f"• Delete user from database\n"
+            f"• Remove all user orders\n"
+            f"• Notify the user\n"
+            f"• Cannot be undone!\n\n"
+            f"Are you sure you want to delete this user?",
+            message.chat.id,
+            checking_msg.message_id,
+            parse_mode="HTML",
+            reply_markup=confirm_markup
+        )
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("confirm_delete_") or call.data == "cancel_delete")
+    def handle_delete_confirmation(call):
+        if call.data == "cancel_delete":
+            bot.answer_callback_query(call.id, "❌ Deletion cancelled")
+            
+            bot.edit_message_text(
+                "❌ <b>Deletion Cancelled</b>\n\n"
+                "User deletion has been cancelled.",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+            # Send the admin panel markup
+            bot.send_message(call.message.chat.id, "🔙 <b>Returned to Admin Panel</b>", parse_mode="HTML", reply_markup=admin_markup)
+            return
+            
+        # Extract user ID from callback data
+        user_id = call.data.replace("confirm_delete_", "")
+        
+        # Show deleting animation with progress bar
+        for progress in [0, 25, 50, 75, 100]:
+            progress_bar = '█' * (progress // 10) + '░' * (10 - progress // 10)
+            bot.edit_message_text(
+                f"🗑️ <b>Deleting User...</b>\n\n"
+                f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
+                f"⏳ Removing user data from database...\n\n"
+                f"[{progress_bar}] {progress}%",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+            if progress < 100:
+                time.sleep(0.5)
+        
+        # Perform deletion
         if delete_user(user_id):
             try:
-                bot.send_message(user_id, "⚠️ Your account has been deleted by admin. You can no longer use this bot.")
+                # Create support button for user notification
+                support_markup = InlineKeyboardMarkup()
+                support_markup.add(InlineKeyboardButton("📞 Contact Support", url=SUPPORT_BOT))
+                
+                bot.send_message(
+                    user_id, 
+                    "⚠️ <b>Account Deletion Notice</b>\n\n"
+                    "Your account has been deleted by admin. You can no longer use this bot.\n\n"
+                    "If you believe this was a mistake or have any questions:",
+                    parse_mode="HTML",
+                    reply_markup=support_markup
+                )
+                notified = "Yes"
             except:
-                pass
-            bot.reply_to(message, f"✅ User {user_id} has been deleted from the database.", reply_markup=admin_markup)
+                notified = "No"
+            
+            # Success message with close button
+            success_markup = InlineKeyboardMarkup()
+            success_markup.add(InlineKeyboardButton("❌ Close", callback_data="close_delete_success"))
+            
+            bot.edit_message_text(
+                f"✅ <b>User Successfully Deleted</b>\n\n"
+                f"👤 <b>User Details:</b>\n"
+                f"├ 🆔 ID: <code>{user_id}</code>\n"
+                f"├ 🗑️ Status: Database entry removed\n"
+                f"├ 📊 Orders: All orders deleted\n"
+                f"└ 👤 User Notified: {notified}\n\n"
+                f"✨ <i>User account has been completely removed from the system.</i>",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML",
+                reply_markup=success_markup
+            )
+            bot.answer_callback_query(call.id, "✅ User deleted successfully")
         else:
-            bot.reply_to(message, f"❌ Failed to delete user {user_id}.", reply_markup=admin_markup)
+            bot.answer_callback_query(call.id, "❌ Failed to delete user", show_alert=True)
+            
+            bot.edit_message_text(
+                f"❌ <b>Deletion Failed</b>\n\n"
+                f"🆔 <b>User ID:</b> <code>{user_id}</code>\n\n"
+                f"Failed to delete user from database.\n"
+                f"User may not exist or there was a database error.",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+            # Send the admin panel markup
+            bot.send_message(call.message.chat.id, "🔙 <b>Returned to Admin Panel</b>", parse_mode="HTML", reply_markup=admin_markup)
+
+    @bot.callback_query_handler(func=lambda call: call.data == "close_delete_success")
+    def handle_close_delete_success(call):
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except:
+            pass
+        bot.answer_callback_query(call.id, "Message closed")
+        # Send back to admin panel
+        bot.send_message(call.message.chat.id, "🔙 <b>Returned to Admin Panel</b>", parse_mode="HTML", reply_markup=admin_markup)
 
     bot.register_message_handler(handle_delete_user, func=lambda m: m.text == "🗑 Delete User")
 
@@ -590,24 +782,38 @@ def register_anti_fraud_handler(bot, admin_user_ids):
 
 # ======================= PANEL BALANCE ======================= #
 def register_panel_balance_handler(bot, admin_user_ids, admin_markup=None, main_markup=None):
+    def get_megahub_balance():
+        """Fetch balance from Megahub API"""
+        try:
+            payload = {
+                "key": MEGAHUB_PANEL_API,
+                "action": "balance"
+            }
+            
+            resp = requests.post(MEGAHUB_PANEL_API_URL, data=payload, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            
+            balance = data.get("balance")
+            currency = data.get("currency", "USD")
+            
+            if balance is not None:
+                return f"{balance} {currency}"
+            else:
+                logger.warning(f"Megahub balance missing in response: {data}")
+                return "❌ Failed to fetch"
+                
+        except Exception as e:
+            logger.error(f"Megahub API error: {e}")
+            return "❌ API Error"
+
     def show_panel_balance(message):
         if str(message.from_user.id) not in map(str, admin_user_ids):
             return
 
-        balance = get_panel_balance()
-
-        if not balance:
-            error_hint = (
-                "Fᴀɪʟᴇᴅ ᴛᴏ ꜰᴇᴛᴄʜ ʙᴀʟᴀɴᴄᴇ.\n\n"
-                "<b>Cʜᴇᴄᴋ ᴛʜᴇ ꜰᴏʟʟᴏᴡɪɴɢ:</b>\n"
-                "• <code>SMM_PANEL_API_KEY</code> ɪs sᴇᴛ ɪɴ <code>.env</code>\n"
-                "• <code>SMM_PANEL_API_URL</code> = <code>https://shakergainske.com/api/v2</code>\n"
-                "• Yᴏᴜʀ API ᴋᴇʏ ɪs ᴠᴀʟɪᴅ (ᴛᴇsᴛ ᴏɴ ᴡᴇʙsɪᴛᴇ)\n"
-                "• Iɴᴛᴇʀɴᴇᴛ ᴄᴏɴɴᴇᴄᴛɪᴏɴ ɪs sᴛᴀʙʟᴇ\n\n"
-                "<i>Tɪᴘ: Rᴇsᴛᴀʀᴛ ʙᴏᴛ ᴀꜰᴛᴇʀ ꜰɪxɪɴɢ .env</i>"
-            )
-            bot.reply_to(message, error_hint, parse_mode="HTML")
-            return
+        # Get balances from both APIs
+        shakerg_balance = get_panel_balance()  # Your existing function
+        megahub_balance = get_megahub_balance()
 
         from datetime import datetime
         now = datetime.now()
@@ -617,24 +823,24 @@ def register_panel_balance_handler(bot, admin_user_ids, admin_markup=None, main_
         admin_id = message.from_user.id
         admin_username = f"@{message.from_user.username}" if message.from_user.username else "N/A"
 
-        inner_content = (
+        panel_text = (
+            "<b>⍟──[ ᴘᴀɴᴇʟ ʙᴀʟᴀɴᴄᴇ ]──⍟</b>\n\n"
+            "<blockquote>"
             "🆔 ᴀᴅᴍɪɴ Iᴅ: <code>{admin_id}</code>\n"
-            "👤 Uꜱᴇʀɴᴀᴍᴇ: <code>{admin_username}</code>\n"
-            "💵 Bᴀʟᴀɴᴄᴇ: <b>{balance}</b>\n\n"
+            "👤 Uꜱᴇʀɴᴀᴍᴇ: <code>{admin_username}</code>\n\n"
+            "💵 <b>Sʜᴀᴋᴇʀɢ :</b> <code>{shakerg_balance}</code>\n"
+            "💵 <b>Mᴇɢᴀʜᴜʙ :</b> <code>{megahub_balance}</code>\n\n"
             "⏰ Tɪᴍᴇ: <b>{current_time}</b>\n"
             "📅 Dᴀᴛᴇ: <b>{current_date}</b>"
+            "</blockquote>\n\n"
+            "⍟────────────────────⍟"
         ).format(
             admin_id=admin_id,
             admin_username=admin_username,
-            balance=balance,
+            shakerg_balance=shakerg_balance,
+            megahub_balance=megahub_balance,
             current_time=current_time,
             current_date=current_date
-        )
-
-        panel_text = (
-            "<b>⍟──[ ᴘᴀɴᴇʟ ʙᴀʟᴀɴᴄᴇ ]──⍟</b>\n\n"
-            f"<blockquote><b>{inner_content}</b></blockquote>\n\n"
-            "⍟────────────────────⍟"
         )
 
         close_button = InlineKeyboardMarkup()
@@ -656,6 +862,105 @@ def register_panel_balance_handler(bot, admin_user_ids, admin_markup=None, main_
         except:
             pass
         bot.answer_callback_query(call.id)
+
+# ======================= UPDATE USERS BUTTON ======================= #
+def register_update_users_handler(bot, admin_user_ids, admin_markup=None, main_markup=None):
+    def update_users_start(message):
+        if str(message.from_user.id) not in map(str, admin_user_ids):
+            return
+
+        markup = InlineKeyboardMarkup()
+        markup.row(
+            InlineKeyboardButton("✅ Start Update", callback_data="start_user_update"),
+            InlineKeyboardButton("❌ Cancel", callback_data="cancel_user_update")
+        )
+        
+        bot.reply_to(message,
+            "🔄 <b>Uᴘᴅᴀᴛᴇ Usᴇʀ Dᴀᴛᴀʙᴀꜱᴇ</b>\n\n"
+            "Tʜɪꜱ ᴡɪʟʟ ᴄʜᴇᴄᴋ ᴀʟʟ ᴜꜱᴇʀꜱ ᴀɴᴅ ʀᴇᴍᴏᴠᴇ ᴛʜᴏꜱᴇ ᴡʜᴏ ʜᴀᴠᴇɴ'ᴛ ꜱᴛᴀʀᴛᴇᴅ ᴛʜᴇ ɴᴇᴡ ʙᴏᴛ.\n\n"
+            "📊 <b>Current Users:</b> <code>{}</code>\n\n"
+            "⚠️ <b>This action cannot be undone!</b>".format(len(get_all_users())),
+            parse_mode="HTML",
+            reply_markup=markup
+        )
+
+    def perform_user_cleanup(message):
+        """Remove users who haven't started the new bot"""
+        from functions import get_all_users, delete_user
+        
+        all_users = get_all_users()
+        total_users = len(all_users)
+        active_users = 0
+        removed_users = 0
+        
+        progress_msg = bot.send_message(message.chat.id, 
+            "🔄 <b>Uᴘᴅᴀᴛɪɴɢ Usᴇʀꜱ...</b>\n\n"
+            "📊 Pʀᴏɢʀᴇꜱꜱ: <code>0%</code>\n"
+            "✅ Aᴄᴛɪᴠᴇ: <code>0</code>\n"
+            "🗑️ Rᴇᴍᴏᴠᴇᴅ: <code>0</code>\n"
+            "👥 Tᴏᴛᴀʟ: <code>{}</code>".format(total_users),
+            parse_mode="HTML"
+        )
+        
+        for index, user_id in enumerate(all_users):
+            try:
+                # Try to send a hidden message to check if user exists
+                bot.send_chat_action(user_id, 'typing')
+                active_users += 1
+            except:
+                # User blocked/deleted bot - remove from database
+                delete_user(user_id)
+                removed_users += 1
+            
+            # Update progress every 10 users or at the end
+            if (index + 1) % 10 == 0 or (index + 1) == total_users:
+                progress = int((index + 1) / total_users * 100)
+                progress_bar = '█' * (progress // 10) + '░' * (10 - progress // 10)
+                
+                bot.edit_message_text(
+                    "🔄 <b>Uᴘᴅᴀᴛɪɴɢ Usᴇʀꜱ...</b>\n\n"
+                    "📊 Pʀᴏɢʀᴇꜱꜱ: <code>{}%</code>\n"
+                    "[{}]\n\n"
+                    "✅ Aᴄᴛɪᴠᴇ: <code>{}</code>\n"
+                    "🗑️ Rᴇᴍᴏᴠᴇᴅ: <code>{}</code>\n"
+                    "👥 Tᴏᴛᴀʟ: <code>{}</code>".format(progress, progress_bar, active_users, removed_users, total_users),
+                    message.chat.id,
+                    progress_msg.message_id,
+                    parse_mode="HTML"
+                )
+        
+        # Final result
+        bot.edit_message_text(
+            "✅ <b>Uᴘᴅᴀᴛᴇ Cᴏᴍᴘʟᴇᴛᴇᴅ!</b>\n\n"
+            "📊 <b>Fɪɴᴀʟ Rᴇꜱᴜʟᴛꜱ:</b>\n"
+            "├ ✅ Aᴄᴛɪᴠᴇ Usᴇʀꜱ: <code>{}</code>\n"
+            "├ 🗑️ Rᴇᴍᴏᴠᴇᴅ Usᴇʀꜱ: <code>{}</code>\n"
+            "└ 📈 Sᴜᴄᴄᴇꜱꜱ Rᴀᴛᴇ: <code>{}%</code>\n\n"
+            "✨ <b>Dᴀᴛᴀʙᴀꜱᴇ ɪꜱ ɴᴏᴡ ᴜᴘ ᴛᴏ ᴅᴀᴛᴇ!</b>".format(
+                active_users, 
+                removed_users, 
+                int(active_users / total_users * 100) if total_users > 0 else 0
+            ),
+            message.chat.id,
+            progress_msg.message_id,
+            parse_mode="HTML"
+        )
+
+    @bot.callback_query_handler(func=lambda call: call.data in ["start_user_update", "cancel_user_update"])
+    def handle_user_update(call):
+        if call.data == "cancel_user_update":
+            bot.answer_callback_query(call.id, "Update cancelled")
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+            except:
+                pass
+            return
+        
+        # Start the update process
+        bot.answer_callback_query(call.id, "Starting user update...")
+        perform_user_cleanup(call.message)
+
+    bot.register_message_handler(update_users_start, func=lambda m: m.text == "🔄 Update Users")
 
 # ======================= REGISTER ALL ADMIN FEATURES ======================= #
 def register_admin_features(bot, admin_markup, main_markup, admin_user_ids_list):
@@ -681,4 +986,6 @@ def register_admin_features(bot, admin_markup, main_markup, admin_user_ids_list)
     register_panel_balance_handler(bot, admin_user_ids)
     # Register other handlers as needed
     register_anti_fraud_handler(bot, admin_user_ids)
+    # Register Update Users handler
+    register_update_users_handler(bot, admin_user_ids)
     # Register other handlers as needed
