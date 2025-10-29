@@ -124,12 +124,11 @@ def process_free_link(bot, message, service, quantity, link_pattern, service_mar
                 parse_mode='HTML'
             )
 
-            go_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
-            go_back_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
+            # CHANGED: Immediately return to main menu instead of showing "go back" button
             bot.send_message(
                 message.chat.id,
-                "🔙 Yᴏᴜ ᴄᴀɴ ɢᴏ ʙᴀᴄᴋ ᴛᴏ ᴛʜᴇ ꜱᴇʀᴠɪᴄᴇꜱ ᴍᴇɴᴜ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ.",
-                reply_markup=go_back_markup
+                "🔙 Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ ᴍᴀɪɴ ᴍᴇɴᴜ...",
+                reply_markup=main_markup
             )
 
         else:
@@ -341,7 +340,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
             free_orders_today = 0
         
         if free_orders_today >= FREE_ORDERS_DAILY_LIMIT:
-            bot.reply_to(message, f"❌ Yᴏᴜ ʜᴀᴠᴇ ʀᴇᴀᴄʜᴇᴅ ᴛʜᴇ ᴅᴀɪʟʏ ʟɪᴍɪᴛ ᴏꜱ {FREE_ORDERS_DAILY_LIMIT} ꜰʀᴇᴇ ᴏʀᴅᴇʀ(ꜱ). Tʀʏ ᴀɢᴀɪɴ ᴛᴏᴍᴏʀʀᴏᴡ.")
+            bot.reply_to(message, f"❌ Yᴏᴜ ʜᴀᴠᴇ ʀᴇᴀᴄʜᴇᴅ ᴛʜᴇ ᴅᴀɪʟʏ ʟɪᴍɪᴛ ᴏꜰ {FREE_ORDERS_DAILY_LIMIT} ꜰʀᴇᴇ ᴏʀᴅᴇʀ(ꜱ). Tʀʏ ᴀɢᴀɪɴ ᴛᴏᴍᴏʀʀᴏᴡ.")
             return
         
         updateUser(user_id, data)
