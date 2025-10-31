@@ -31,7 +31,9 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                          get_affiliate_earnings, add_affiliate_earning, get_affiliate_users, 
                          update_affiliate_earning, get_user_deposits, get_locked_services,
                            addBonusBalance, removeOldBonus, get_bonus_amount, get_bonus_interval,
-                           is_bonus_enabled, setup_close_handler, update_order_statuses, status_updater)
+                           is_bonus_enabled, setup_close_handler, update_order_statuses, status_updater,
+                           get_free_orders_cost, get_deleted_users_count, get_free_orders_count, get_total_referrals,
+                           get_premium_orders_count, get_premium_orders_cost)
 from startup_notifier import send_startup_message # Import your functions from functions.py
  
 # Load environment variables from .env file
@@ -3188,7 +3190,7 @@ def handle_back_buttons(message):
         bot.reply_to(message, "Oᴘᴇʀᴀᴛɪᴏɴ Cᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
 
 
-#=================== The back button handler =========================================
+#=================== The back button handler =========================================#
 @bot.message_handler(func=lambda message: message.text == "⌫ ᴍᴀɪɴ ᴍᴇɴᴜ")
 def back_to_main(message):
     if message.from_user.id in admin_user_ids:
@@ -3562,13 +3564,13 @@ f"▸ Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID: {int(time.time())}\n\n"
 #=============================== Admin Stats Command =====================================#
 @bot.message_handler(func=lambda m: m.text == "📊 Analytics" and m.from_user.id in admin_user_ids)
 def show_analytics(message):
-    """Show comprehensive bot analytics with premium dashboard"""
+    """Show comprehensive bot analytics with multi-page dashboard"""
     try:
         # Store the original message ID if this is a new request
         if not hasattr(message, 'is_callback'):
             message.original_message_id = message.message_id + 1  # Next message will be +1
             
-        show_analytics_dashboard(message)
+        show_users_stats(message)
         
     except Exception as e:
         print(f"Analytics error: {e}")
@@ -3578,17 +3580,19 @@ def show_analytics(message):
 "Pʟᴇᴀꜱᴇ ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ",
             parse_mode='HTML')
 
-def show_analytics_dashboard(message, is_refresh=False):
-    """Show or update the analytics dashboard"""
+def show_users_stats(message, is_refresh=False):
+    """Show users statistics page"""
     try:
-        # Get all stats
+        # Get user stats
         total_users = get_user_count()
         active_users = get_active_users(7)
         new_users_24h = get_new_users(1)
-        total_orders = get_total_orders()
-        completed_orders = get_completed_orders()
-        total_deposits = get_total_deposits()
+        banned_users = len(get_banned_users())
+        deleted_users = get_deleted_users_count()
+        
+        # Get referral stats
         top_referrer = get_top_referrer()
+        total_referrals = get_total_referrals()
         
         # Format top referrer
         if top_referrer['user_id']:
@@ -3596,43 +3600,36 @@ def show_analytics_dashboard(message, is_refresh=False):
             referrer_display = f"🏆 {username} (Invited {top_referrer['count']} users)"
         else:
             referrer_display = "📭 No referrals yet"
-        
-        # Calculate conversion rates
-        conversion_rate = (completed_orders/total_orders)*100 if total_orders > 0 else 0
-        deposit_per_user = total_deposits/total_users if total_users > 0 else 0
-        
-        # Create premium dashboard
+
+        # Create users stats page
         msg = f"""
 <blockquote>
-📈 <b>SMM Bᴏᴏꜱᴛᴇʀ Aɴᴀʟʏᴛɪᴄꜱ</b>
+📊 <b>Uꜱᴇʀꜱ Aɴᴀʟʏᴛɪᴄꜱ  Rᴇᴘᴏʀᴛ</b>
 ━━━━━━━━━━━━━━━━━━━━
 
 👥 <b>Uꜱᴇʀ Sᴛᴀᴛɪꜱᴛɪᴄꜱ</b>
-├ 👤 Tᴏᴛᴀʟ Uꜱᴇʀꜱ: <code>{total_users}</code>
-├ 🔥 Aᴄᴛɪᴠᴇ (7ᴅ): <code>{active_users}</code>
-├ 🆕 Nᴇᴡ (24ʜ): <code>{new_users_24h}</code>
-└ 💰 Aᴠɢ Dᴇᴘᴏꜱɪᴛ/Uꜱᴇʀ: <code>{deposit_per_user:.2f}</code> ᴄᴏɪɴꜱ
-
-🛒 <b>Oʀᴅᴇʀ Mᴇᴛʀɪᴄꜱ</b>
-├ 🚀 Tᴏᴛᴀʟ Oʀᴅᴇʀꜱ: <code>{total_orders}</code>
-├ ✅ Cᴏᴍᴘʟᴇᴛᴇᴅ: <code>{completed_orders}</code>
-├ 📊 Cᴏɴᴠᴇʀꜱɪᴏɴ: <code>{conversion_rate:.1f}%</code>
-└ 💸 Tᴏᴛᴀʟ Dᴇᴘᴏꜱɪᴛꜱ: <code>{total_deposits:.2f}</code> ᴄᴏɪɴꜱ
+├ Tᴏᴛᴀʟ Uꜱᴇʀꜱ: <code>{total_users}</code>
+├ Aᴄᴛɪᴠᴇ (7ᴅ): <code>{active_users}</code>
+├ Nᴇᴡ (24ʜ): <code>{new_users_24h}</code>
+├ Bᴀɴɴᴇᴅ Uꜱᴇʀꜱ: <code>{banned_users}</code>
+└ Dᴇʟᴇᴛᴇᴅ ᴜꜱᴇʀꜱ: <code>{deleted_users}</code>
 
 🔗 <b>Rᴇꜰᴇʀʀᴀʟ Pʀᴏɢʀᴀᴍ</b>
 └ {referrer_display}
+└ Tᴏᴛᴀʟ Rᴇꜰᴇʀʀᴀʟꜱ: <code>{total_referrals}</code>
 
-⏳ <i>Lᴀꜱᴛ Uᴘᴅᴀᴛᴇᴅ: {datetime.now().strftime('%Y-%m-%d %H:%M')}</i>
+📅 Gᴇɴᴇʀᴀᴛᴇᴅ: {datetime.now().strftime('%Y-%m-%d %H:%M')}
 </blockquote>
 """
         
-        # Add quick action buttons
+        # Create navigation buttons
         markup = InlineKeyboardMarkup()
         markup.row(
-            InlineKeyboardButton("🔄 Refresh", callback_data="refresh_analytics"),
-            InlineKeyboardButton("📊 Full Report", callback_data="full_report")     
+            InlineKeyboardButton("🛒 Orders Stats", callback_data="orders_stats"),
+            InlineKeyboardButton("💰 Finance Stats", callback_data="finance_stats")
         )
         markup.row(
+            InlineKeyboardButton("🔄 Refresh", callback_data="refresh_users_stats"),
             InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")  
         )
 
@@ -3656,99 +3653,168 @@ def show_analytics_dashboard(message, is_refresh=False):
             message.original_message_id = sent_msg.message_id
         
     except Exception as e:
-        print(f"Analytics dashboard error: {e}")
+        print(f"Users stats error: {e}")
 
-# Handle Refresh Analytics button
-@bot.callback_query_handler(func=lambda call: call.data == "refresh_analytics")
-def handle_refresh_analytics(call):
+def show_orders_stats(message):
+    """Show orders statistics page"""
     try:
-        call.message.is_callback = True
-        show_analytics_dashboard(call.message, is_refresh=True)
-        bot.answer_callback_query(call.id, "🔄 Data refreshed")
-    except Exception as e:
-        print(f"Error refreshing analytics: {e}")
-        bot.answer_callback_query(call.id, "⚠️ Failed to refresh", show_alert=True)
-
-# Handle Back button in analytics
-@bot.callback_query_handler(func=lambda call: call.data == "analytics_back")
-def handle_analytics_back(call):
-    try:
-        call.message.is_callback = True
-        show_analytics_dashboard(call.message)
-        bot.answer_callback_query(call.id)
-    except Exception as e:
-        print(f"Error going back in analytics: {e}")
-        bot.answer_callback_query(call.id, "⚠️ Failed to go back", show_alert=True)
-
-# Handle Full Report button
-@bot.callback_query_handler(func=lambda call: call.data == "full_report")
-def handle_full_report(call):
-    try:
-        bot.answer_callback_query(call.id, "📊 Generating report...")
-
-        total_users = get_user_count()
-        active_users = get_active_users(7)
-        new_users_24h = get_new_users(1)
+        # Get order stats
         total_orders = get_total_orders()
         completed_orders = get_completed_orders()
-        total_deposits = get_total_deposits()
-        top_referrer = get_top_referrer()
-        banned_users = len(get_banned_users())
-
+        
+        # Get free orders stats
+        free_orders_daily = get_free_orders_count(1)   # Daily
+        free_orders_weekly = get_free_orders_count(7)  # Weekly
+        free_orders_monthly = get_free_orders_count(30) # Monthly
+        
+        # Get premium orders stats
+        premium_orders_daily = get_premium_orders_count(1)   # Daily
+        premium_orders_weekly = get_premium_orders_count(7)  # Weekly
+        premium_orders_monthly = get_premium_orders_count(30) # Monthly
+        
+        # Calculate conversion rates
         conversion_rate = (completed_orders/total_orders)*100 if total_orders > 0 else 0
-        deposit_per_user = total_deposits/total_users if total_users > 0 else 0
-        active_rate = (active_users/total_users)*100 if total_users > 0 else 0
 
-        if top_referrer['user_id']:
-            username = f"@{top_referrer['username']}" if top_referrer['username'] else f"User {top_referrer['user_id']}"
-            referrer_display = f"🏆 {username} (Invited {top_referrer['count']} users)"
-        else:
-            referrer_display = "📭 No referrals yet"
-
+        # Create orders stats page
         msg = f"""
 <blockquote>
-📊 <b>Fᴜʟʟ Aɴᴀʟʏᴛɪᴄꜱ Rᴇᴘᴏʀᴛ</b>
+📊 <b>Oʀᴅᴇʀꜱ Aɴᴀʟʏᴛɪᴄꜱ  Rᴇᴘᴏʀᴛ</b>
 ━━━━━━━━━━━━━━━━━━━━
-
-👥 <b>Uꜱᴇʀ Sᴛᴀᴛɪꜱᴛɪᴄꜱ</b>
-├ Tᴏᴛᴀʟ Uꜱᴇʀꜱ: <code>{total_users}</code>
-├ Aᴄᴛɪᴠᴇ (7ᴅ): <code>{active_users}</code> ({active_rate:.1f}%)
-├ Nᴇᴡ (24ʜ): <code>{new_users_24h}</code>
-├ Bᴀɴɴᴇᴅ Uꜱᴇʀꜱ: <code>{banned_users}</code>
-└ Aᴠɢ Dᴇᴘᴏꜱɪᴛ/Uꜱᴇʀ: <code>{deposit_per_user:.2f}</code> ᴄᴏɪɴꜱ
 
 🛒 <b>Oʀᴅᴇʀ Mᴇᴛʀɪᴄꜱ</b>
 ├ Tᴏᴛᴀʟ Oʀᴅᴇʀꜱ: <code>{total_orders}</code>
 ├ Cᴏᴍᴘʟᴇᴛᴇᴅ: <code>{completed_orders}</code>
 └ Cᴏɴᴠᴇʀꜱɪᴏɴ Rᴀᴛᴇ: <code>{conversion_rate:.1f}%</code>
 
-💰 <b>Fɪɴᴀɴᴄɪᴀʟꜱ</b>
-├ Tᴏᴛᴀʟ Dᴇᴘᴏꜱɪᴛꜱ: <code>{total_deposits:.2f}</code> ᴄᴏɪɴꜱ
-└ Aᴠɢ Oʀᴅᴇʀ Vᴀʟᴜᴇ: <code>{(total_deposits/total_orders):.2f}</code> ᴄᴏɪɴꜱ
+💎 <b>Pʀᴇᴍɪᴜᴍ Oʀᴅᴇʀꜱ</b>
+▫️ Dᴀɪʟʏ: <code>{premium_orders_daily}</code>
+▫️ Wᴇᴇᴋʟʏ: <code>{premium_orders_weekly}</code>
+▫️ Mᴏɴᴛʜʟʏ: <code>{premium_orders_monthly}</code>
 
-🔗 <b>Rᴇꜰᴇʀʀᴀʟ Pʀᴏɢʀᴀᴍ</b>
-└ {referrer_display}
+🆓 <b>Fʀᴇᴇ Oʀᴅᴇʀꜱ</b>
+▫️ Dᴀɪʟʏ: <code>{free_orders_daily}</code>
+▫️ Wᴇᴇᴋʟʏ: <code>{free_orders_weekly}</code>
+▫️ Mᴏɴᴛʜʟʏ: <code>{free_orders_monthly}</code>
 
 📅 Gᴇɴᴇʀᴀᴛᴇᴅ: {datetime.now().strftime('%Y-%m-%d %H:%M')}
 </blockquote>
 """
-
-        # Add back button
+        
+        # Create navigation buttons
         markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("🔙 Back to Overview", callback_data="analytics_back"))
-
-        # Overwrite the current message
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=msg,
-            parse_mode="HTML",
-            reply_markup=markup
+        markup.row(
+            InlineKeyboardButton("👥 Users Stats", callback_data="users_stats"),
+            InlineKeyboardButton("💰 Finance Stats", callback_data="finance_stats")
+        )
+        markup.row(
+            InlineKeyboardButton("🔄 Refresh", callback_data="refresh_orders_stats"),
+            InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")  
         )
 
+        # Edit existing message
+        bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=message.message_id,
+            text=msg,
+            parse_mode='HTML',
+            reply_markup=markup
+        )
+        
     except Exception as e:
-        print(f"Error sending full report: {e}")
-        bot.answer_callback_query(call.id, "⚠️ Failed to load full report", show_alert=True)
+        print(f"Orders stats error: {e}")
+
+def show_finance_stats(message):
+    """Show financial statistics page"""
+    try:
+        # Get financial stats
+        total_users = get_user_count()
+        total_orders = get_total_orders()
+        total_deposits = get_total_deposits()
+        
+        # Get order costs
+        free_orders_cost = get_free_orders_cost()        # Total cost of all free orders
+        premium_orders_cost = get_premium_orders_cost()  # Total cost of all premium orders
+        total_orders_cost = free_orders_cost + premium_orders_cost
+        
+        # Calculate averages
+        avg_order_value = total_deposits / total_orders if total_orders > 0 else 0
+        avg_deposit_per_user = total_deposits / total_users if total_users > 0 else 0
+
+        # Create finance stats page
+        msg = f"""
+<blockquote>
+💰 <b>Fɪɴᴀɴᴄɪᴀʟꜱ Aɴᴀʟʏᴛɪᴄꜱ  Rᴇᴘᴏʀᴛ</b>
+━━━━━━━━━━━━━━━━━━━━
+
+▫️ Tᴏᴛᴀʟ Dᴇᴘᴏꜱɪᴛꜱ: <code>{total_deposits:.2f}</code> ᴄᴏɪɴꜱ
+▫️ Aᴠɢ Oʀᴅᴇʀ Vᴀʟᴜᴇ: <code>{avg_order_value:.2f}</code> ᴄᴏɪɴꜱ
+▫️ ꜰʀᴇᴇ ᴏʀᴅᴇʀꜱ ᴄᴏꜱᴛ: <code>{free_orders_cost:.2f}</code> ᴄᴏɪɴꜱ
+▫️ ᴘʀᴇᴍɪᴜᴍ ᴏʀᴅᴇʀꜱ ᴄᴏꜱᴛ: <code>{premium_orders_cost:.2f}</code> ᴄᴏɪɴꜱ
+▫️ ᴛᴏᴛᴀʟ ᴏʀᴅᴇʀꜱ ᴄᴏꜱᴛ: <code>{total_orders_cost:.2f}</code> ᴄᴏɪɴꜱ
+▫️ Aᴠɢ Dᴇᴘᴏꜱɪᴛ/Uꜱᴇʀ: <code>{avg_deposit_per_user:.2f}</code> ᴄᴏɪɴꜱ
+
+📅 Gᴇɴᴇʀᴀᴛᴇᴅ: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+</blockquote>
+"""
+        
+        # Create navigation buttons
+        markup = InlineKeyboardMarkup()
+        markup.row(
+            InlineKeyboardButton("👥 Users Stats", callback_data="users_stats"),
+            InlineKeyboardButton("🛒 Orders Stats", callback_data="orders_stats")
+        )
+        markup.row(
+            InlineKeyboardButton("🔄 Refresh", callback_data="refresh_finance_stats"),
+            InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="close_button")  
+        )
+
+        # Edit existing message
+        bot.edit_message_text(
+            chat_id=message.chat.id,
+            message_id=message.message_id,
+            text=msg,
+            parse_mode='HTML',
+            reply_markup=markup
+        )
+        
+    except Exception as e:
+        print(f"Finance stats error: {e}")
+
+# Handle Refresh buttons
+@bot.callback_query_handler(func=lambda call: call.data in ["refresh_users_stats", "refresh_orders_stats", "refresh_finance_stats"])
+def handle_refresh_stats(call):
+    try:
+        call.message.is_callback = True
+        
+        if call.data == "refresh_users_stats":
+            show_users_stats(call.message, is_refresh=True)
+        elif call.data == "refresh_orders_stats":
+            show_orders_stats(call.message)
+        elif call.data == "refresh_finance_stats":
+            show_finance_stats(call.message)
+            
+        bot.answer_callback_query(call.id, "🔄 Data refreshed")
+    except Exception as e:
+        print(f"Error refreshing stats: {e}")
+        bot.answer_callback_query(call.id, "⚠️ Failed to refresh", show_alert=True)
+
+# Handle Navigation buttons
+@bot.callback_query_handler(func=lambda call: call.data in ["users_stats", "orders_stats", "finance_stats"])
+def handle_stats_navigation(call):
+    try:
+        call.message.is_callback = True
+        
+        if call.data == "users_stats":
+            show_users_stats(call.message)
+        elif call.data == "orders_stats":
+            show_orders_stats(call.message)
+        elif call.data == "finance_stats":
+            show_finance_stats(call.message)
+            
+        bot.answer_callback_query(call.id)
+    except Exception as e:
+        print(f"Error navigating stats: {e}")
+        bot.answer_callback_query(call.id, "⚠️ Failed to navigate", show_alert=True)
 
 # =========================== Broadcast Command ================= #
 @bot.message_handler(func=lambda m: m.text == "📤 Broadcast" and m.from_user.id in admin_user_ids)
