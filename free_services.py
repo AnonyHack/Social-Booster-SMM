@@ -14,7 +14,7 @@ def process_free_quantity(bot, message, service, service_markup, main_markup, ne
     if message.text == "✘ Cancel":
         bot.reply_to(message, "❌ Oʀᴅᴇʀ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=main_markup)
         return
-    elif message.text == "⌫ ɢᴏ ʙᴀᴄᴋ":
+    elif message.text == "⭅ ɢᴏ ʙᴀᴄᴋ":
         bot.reply_to(message, "↩️ Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=service_markup)
         return
     
@@ -173,7 +173,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
     free_telegram_services_markup.row(
         KeyboardButton("👥 Free TG Members")
     )
-    free_telegram_services_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
+    free_telegram_services_markup.add(KeyboardButton("⭅ ɢᴏ ʙᴀᴄᴋ"))
 
     # --- Free Instagram Services ---
     free_instagram_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -185,14 +185,14 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
     #     KeyboardButton("❤️ Insta Likes"),
     #     KeyboardButton("👥 Insta Followers")
     # )
-    free_instagram_services_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
+    free_instagram_services_markup.add(KeyboardButton("⭅ ɢᴏ ʙᴀᴄᴋ"))
 
     # --- Free Tiktok Services ---
     free_tiktok_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
     free_tiktok_services_markup.row(
         KeyboardButton("👀 Free Tiktok Views"),
     )
-    free_tiktok_services_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
+    free_tiktok_services_markup.add(KeyboardButton("⭅ ɢᴏ ʙᴀᴄᴋ"))
 
     # --- Free Facebook Services ---
     free_facebook_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -201,7 +201,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         KeyboardButton("👀 Free FB Followers")
 
     )
-    free_facebook_services_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
+    free_facebook_services_markup.add(KeyboardButton("⭅ ɢᴏ ʙᴀᴄᴋ"))
 
 
     # Telegram free services dictionary
@@ -317,7 +317,9 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         },
     }
         
+
     def order_free_menu(message):
+            
         user_id = str(message.from_user.id)
         if is_banned(user_id):
             bot.reply_to(message, "⛔ Yᴏᴜ ʜᴀᴠᴇ ʙᴇᴇɴ ʙᴀɴɴᴇᴅ ꜰʀᴏᴍ ᴜꜱɪɴɢ ᴛʜɪꜱ ʙᴏᴛ.")
@@ -360,6 +362,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         bot.reply_to(message, "📘 Fʀᴇᴇ Fᴀᴄᴇʙᴏᴏᴋ Sᴇʀᴠɪᴄᴇꜱ:", reply_markup=free_facebook_services_markup)
 
     def handle_free_telegram_order(message):
+            
         if message.text not in telegram_free_services:
             return
         
@@ -377,7 +380,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
+            KeyboardButton("⭅ ɢᴏ ʙᴀᴄᴋ")
         )
 
         msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -409,6 +412,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         )
 
     def handle_free_tiktok_order(message):
+            
         if message.text not in tiktok_free_services:
             return
 
@@ -426,7 +430,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
+            KeyboardButton("⭅ ɢᴏ ʙᴀᴄᴋ")
         )
 
         msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -458,6 +462,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         )
 
     def handle_free_instagram_order(message):
+
         if message.text not in instagram_free_services:  # FIXED: Changed from facebook_free_services to instagram_free_services
             return
 
@@ -475,7 +480,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
+            KeyboardButton("⭅ ɢᴏ ʙᴀᴄᴋ")
         )
 
         msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -507,6 +512,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         )
 
     def handle_free_facebook_order(message):
+            
         if message.text not in facebook_free_services:
             return
         
@@ -524,7 +530,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         cancel_back_markup = ReplyKeyboardMarkup(resize_keyboard=True)
         cancel_back_markup.row(
             KeyboardButton("✘ Cancel"),
-            KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
+            KeyboardButton("⭅ ɢᴏ ʙᴀᴄᴋ")
         )
 
         msg = f"""⭐️ ｢{service['name']} Dᴇᴛᴀɪʟꜱ 」⭐️
@@ -556,6 +562,7 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
         )
 
     # Register handlers
+    # Register handlers
     bot.register_message_handler(order_free_menu, func=lambda m: m.text == "🆓 Free Services")
     bot.register_message_handler(order_free_telegram_menu, func=lambda m: m.text == "📱 Free Telegram")
     bot.register_message_handler(order_free_instagram_menu, func=lambda m: m.text == "🌐 Free Instagram")
@@ -565,10 +572,13 @@ def register_free_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL
     bot.register_message_handler(handle_free_instagram_order, func=lambda m: m.text in instagram_free_services)
     bot.register_message_handler(handle_free_tiktok_order, func=lambda m: m.text in tiktok_free_services)
     bot.register_message_handler(handle_free_facebook_order, func=lambda m: m.text in facebook_free_services)
+    
+    # Register global handler for "⭅ ɢᴏ ʙᴀᴄᴋ" button
     bot.register_message_handler(
         lambda m: bot.reply_to(m, "↩️ Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Fʀᴇᴇ Sᴇʀᴠɪᴄᴇꜱ...", reply_markup=free_send_orders_markup),
-        func=lambda m: m.text == "⌫ ɢᴏ ʙᴀᴄᴋ"
+        func=lambda m: m.text == "⭅ ɢᴏ ʙᴀᴄᴋ"
     )
+    
     bot.register_message_handler(
         lambda m: bot.reply_to(m, "🔙 Rᴇᴛᴜʀɴɪɴɢ ᴛᴏ Mᴀɪɴ Mᴇɴᴜ...", reply_markup=main_markup),
         func=lambda m: m.text == "⌫ ᴍᴀɪɴ ᴍᴇɴᴜ"
