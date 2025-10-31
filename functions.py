@@ -11,7 +11,7 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 import logging
 import config  # Make sure this points to your config.py
-from config import SMM_PANEL_API, SMM_PANEL_API_URL
+from config import SMM_PANEL_API, SMM_PANEL_API_URL, MEGAHUB_PANEL_API_URL, MEGAHUB_PANEL_API
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -867,5 +867,117 @@ def status_updater():
 
 # Start the updater in a separate thread
 Thread(target=status_updater, daemon=True).start()
+
+# ==================== NEW ANALYTICS HELPER FUNCTIONS ==================== #
+
+def get_deleted_users_count():
+    """Get count of deleted users (users with no data but referenced elsewhere)"""
+    try:
+        # This would depend on how you track deleted users
+        # For now, return 0 as we don't have a deletion tracking system
+        return 0
+    except Exception as e:
+        logger.error(f"Error getting deleted users count: {e}")
+        return 0
+
+def get_total_referrals():
+    """Get total number of referrals across all users"""
+    try:
+        result = users_collection.aggregate([{
+            "$group": {
+                "_id": None,
+                "total": {"$sum": "$total_refs"}
+            }
+        }])
+        return next(result, {"total": 0})["total"]
+    except Exception as e:
+        logger.error(f"Error getting total referrals: {e}")
+        return 0
+
+def get_free_orders_count(days):
+    """Get count of free orders in the last X days"""
+    try:
+        cutoff_time = time.time() - (days * 24 * 60 * 60)
+        
+        return orders_collection.count_documents({
+            "cost": "0.00",  # Free orders have cost as "0.00" string
+            "timestamp": {"$gte": cutoff_time}
+        })
+    except Exception as e:
+        logger.error(f"Error getting free orders count for {days} days: {e}")
+        return 0
+
+def get_premium_orders_count(days):
+    """Get count of premium orders in the last X days"""
+    try:
+        cutoff_time = time.time() - (days * 24 * 60 * 60)
+        
+        return orders_collection.count_documents({
+            "cost": {"$ne": "0.00"},  # Premium orders have cost not equal to "0.00"
+            "timestamp": {"$gte": cutoff_time}
+        })
+    except Exception as e:
+        logger.error(f"Error getting premium orders count for {days} days: {e}")
+        return 0
+
+def get_free_orders_cost():
+    """Get total cost of all free orders by fetching prices from Megahub API"""
+    try:
+        # Fetch services from Megahub to get actual prices
+        response = requests.post(
+            MEGAHUB_PANEL_API_URL,
+            data={
+                'key': MEGAHUB_PANEL_API,
+                'action': 'services'
+            },
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            services_data = response.json()
+            service_prices = {}
+            
+            # Create mapping of service_id to price
+            for service in services_data:
+                service_prices[str(service.get('service'))] = float(service.get('rate', 0))
+            
+            # Calculate total cost of free orders
+            free_orders = orders_collection.find({"cost": "0.00"})
+            total_cost = 0.0
+            
+            for order in free_orders:
+                service_id = order.get('service_id')
+                quantity = order.get('quantity', 0)
+                
+                if service_id in service_prices:
+                    # Convert quantity to thousands and calculate cost
+                    quantity_in_k = quantity / 1000
+                    service_price = service_prices[service_id]
+                    order_cost = quantity_in_k * service_price
+                    total_cost += order_cost
+            
+            return round(total_cost, 2)
+        else:
+            return 0.0
+            
+    except Exception as e:
+        logger.error(f"Error getting free orders cost from API: {e}")
+        return 0.0
+
+def get_premium_orders_cost():
+    """Get total cost of all premium orders (what users paid)"""
+    try:
+        pipeline = [
+            {"$match": {"cost": {"$ne": "0.00"}}},  # Premium orders only
+            {"$group": {
+                "_id": None,
+                "total": {"$sum": {"$toDouble": "$cost"}}
+            }}
+        ]
+        result = list(orders_collection.aggregate(pipeline))
+        return float(result[0]["total"]) if result else 0.0
+    except Exception as e:
+        logger.error(f"Error getting premium orders cost: {e}")
+        return 0.0
 
 print("functions.py loaded with MongoDB support")
