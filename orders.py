@@ -2,7 +2,9 @@ from telebot.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardBut
 import re, os
 import requests
 import time
-from functions import getData, cutBalance, add_order, updateUser, get_affiliate_earnings, add_affiliate_earning, get_locked_services
+import threading
+from functions import (getData, cutBalance, add_order, updateUser, get_affiliate_earnings, 
+                       add_affiliate_earning, get_locked_services,send_affiliate_notification)
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter
 from io import BytesIO
 import os
@@ -110,7 +112,6 @@ def process_order_quantity(bot, message, service, service_markup, main_markup, n
     except ValueError:
         bot.reply_to(message, "❌ Please enter a valid number", reply_markup=service_markup)
 
-        
 def process_order_link(bot, message, service, quantity, cost, link_pattern, service_markup, service_type, PAYMENT_CHANNEL, main_markup):
     """Process order link"""
     if message.text == "✘ Cancel":
@@ -196,10 +197,10 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
             go_back_markup.add(KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ"))
 
             bot.send_message(
-    message.chat.id,
-    "✅ Your order was submitted! Use the button below to go back and place another order.",
-    reply_markup=go_back_markup
-)
+                message.chat.id,
+                "✅ Your order was submitted! Use the button below to go back and place another order.",
+                reply_markup=go_back_markup
+            )
 
             # Update user data with order count
             user_id = str(message.from_user.id)
@@ -213,18 +214,17 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 try:
                     commission = cost * 0.05
                     add_affiliate_earning(data['ref_by'], commission)
-
-                    bot.send_message(
-                        data['ref_by'],
-                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
-                        f"💸 <b>Yᴏᴜ'ᴠᴇ �ᴇᴀʀɴᴇᴅ:</b> <code>{commission:.2f} ᴄᴏɪɴꜱ</code>\n"
-                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
-                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
-                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> {cost} ᴄᴏɪɴꜱ\n"
-                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
-                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
-                        parse_mode='HTML'
+                    
+                    # Use the global affiliate notification function
+                    send_affiliate_notification(
+                        bot=bot,
+                        ref_by_user_id=data['ref_by'],
+                        commission=commission,
+                        customer_name=message.from_user.first_name,
+                        service_name=service['name'],
+                        order_cost=cost
                     )
+
                 except Exception as e:
                     print(f"Failed to send affiliate notification: {e}")
 
@@ -360,7 +360,7 @@ def register_twitter_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHAN
     def process_twitter_link(message, service, quantity, cost):
         process_order_link(
             bot, message, service, quantity, cost,
-            r'^https?://(www\.)?(tiktok\.com|vm\.tiktok\.com)/',
+            r'^https?://(www\.)?(twitter\.com|x\.com)/',
             twitter_services_markup,
             'twitter',
             PAYMENT_CHANNEL,
@@ -775,4 +775,3 @@ def register_order_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNE
     register_pinterest_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL)
     register_snapchat_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL)
     # Add more service registrations here as needed
-
