@@ -1,4 +1,5 @@
 import os
+import threading
 import time
 import requests
 from threading import Thread
@@ -10,6 +11,8 @@ from datetime import datetime, timedelta
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 import logging
+
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 import config  # Make sure this points to your config.py
 from config import SMM_PANEL_API, SMM_PANEL_API_URL, MEGAHUB_PANEL_API_URL, MEGAHUB_PANEL_API
 
@@ -980,4 +983,59 @@ def get_premium_orders_cost():
         logger.error(f"Error getting premium orders cost: {e}")
         return 0.0
 
+def send_affiliate_notification(bot, ref_by_user_id, commission, customer_name, service_name, order_cost):
+    """Send affiliate commission notification with close button and auto-delete timer"""
+    try:
+        # Create markup with close button
+        affiliate_markup = InlineKeyboardMarkup()
+        affiliate_markup.add(InlineKeyboardButton(
+            text="⤬ ᴄʟᴏꜱᴇ ⤬",
+            callback_data=f"close_affiliate_{int(time.time())}"
+        ))
+
+        # Send affiliate notification with close button
+        affiliate_msg = bot.send_message(
+            ref_by_user_id,
+            f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
+            f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>{commission:.2f} UGX</code>\n"
+            f"👤 <b>Fʀᴏᴍ:</b> {customer_name}\n"
+            f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service_name}\n"
+            f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> {order_cost} ᴄᴏɪɴꜱ\n"
+            f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n"
+            f"⏰ <b>Aᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ:</b> 1 ʜᴏᴜʀ\n\n"
+            f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
+            parse_mode='HTML',
+            reply_markup=affiliate_markup
+        )
+
+        # Schedule auto-delete after 1 hour (3600 seconds)
+        def delete_affiliate_message():
+            try:
+                bot.delete_message(ref_by_user_id, affiliate_msg.message_id)
+            except Exception as e:
+                print(f"Failed to auto-delete affiliate message: {e}")
+
+        timer = threading.Timer(3600.0, delete_affiliate_message)
+        timer.start()
+
+        return True
+
+    except Exception as e:
+        print(f"Failed to send affiliate notification: {e}")
+        return False
+
+def setup_affiliate_handlers(bot):
+    """Setup affiliate callback handlers"""
+    
+    @bot.callback_query_handler(func=lambda call: call.data.startswith('close_affiliate_'))
+    def handle_affiliate_close_callback(call):
+        """Handle affiliate notification close button"""
+        try:
+            # Delete the message when close button is clicked
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+            bot.answer_callback_query(call.id, "✅ Notification closed")
+        except Exception as e:
+            print(f"Error closing affiliate notification: {e}")
+            bot.answer_callback_query(call.id, "❌ Failed to close notification")
+        
 print("functions.py loaded with MongoDB support")
