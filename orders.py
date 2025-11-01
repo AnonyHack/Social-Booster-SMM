@@ -39,7 +39,6 @@ def send_order_notification(bot, PAYMENT_CHANNEL, message, service, quantity, co
 🔢 <b>Qᴜᴀɴᴛɪᴛʏ:</b> {quantity}
 💰 <b>Cᴏꜱᴛ:</b> {cost} ᴄᴏɪɴꜱ
 ━━━━━━━━━━━━━━━━━━━━━━━
-📎 <b>Lɪɴᴋ:</b> {link}
 🆔 <b>Oʀᴅᴇʀ Iᴅ:</b> <code>{order_id}</code>
 ━━━━━━━━━━━━━━━━━━━━━━━
 ⚡ <b>Sᴛᴀᴛᴜꜱ:</b> <code>PENDING</code>
@@ -776,3 +775,4 @@ def register_order_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNE
     register_pinterest_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL)
     register_snapchat_handlers(bot, send_orders_markup, main_markup, PAYMENT_CHANNEL)
     # Add more service registrations here as needed
+
