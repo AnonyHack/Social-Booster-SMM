@@ -33,7 +33,7 @@ from functions import (insertUser, track_exists, addBalance, cutBalance, getData
                            addBonusBalance, removeOldBonus, get_bonus_amount, get_bonus_interval,
                            is_bonus_enabled, setup_close_handler, update_order_statuses, status_updater,
                            get_free_orders_cost, get_deleted_users_count, get_free_orders_count, get_total_referrals,
-                           get_premium_orders_count, get_premium_orders_cost)
+                           get_premium_orders_count, get_premium_orders_cost, send_affiliate_notification, setup_affiliate_handlers)
 from startup_notifier import send_startup_message # Import your functions from functions.py
  
 # Load environment variables from .env file
@@ -51,7 +51,11 @@ SmmPanelApi = SMM_PANEL_API
 MegahubPanelApiUrl = MEGAHUB_PANEL_API_URL
 MegahubPanelApi = MEGAHUB_PANEL_API
 
+# After creating your bot instance
 bot = telebot.TeleBot(BOT_TOKEN)
+
+# Setup affiliate handlers
+setup_affiliate_handlers(bot)
 
 # Welcome and referral bonuses
 welcome_bonus = WELCOME_BONUS
@@ -1465,8 +1469,7 @@ f"""⭐️ ｢Nᴇᴡ {service['name'].upper()} Oʀᴅᴇʀ 」⭐️
                 url=f"https://t.me/{PAYMENT_CHANNEL.lstrip('@')}"
             )
             markup.add(check_status_button)
-            
-            # Stylish confirmation message
+
             # Stylish confirmation message
             bot.reply_to(
                 message,
@@ -1496,23 +1499,22 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
             data['orders_count'] += 1
             updateUser(user_id, data)
 
-            # ✅ Affiliate Commission Tracking
+            # ✅ Affiliate Commission Tracking - USING GLOBAL FUNCTION
             if data.get('ref_by') and data['ref_by'] != "none":
                 try:
                     commission = cost * 0.05  # 5% commission
                     add_affiliate_earning(data['ref_by'], commission)
 
-                    bot.send_message(
-                        data['ref_by'],
-                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
-                        f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>UGX {commission:.2f}</code>\n"
-                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
-                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
-                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> UGX {cost:.2f}\n"
-                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
-                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
-                        parse_mode='HTML'
+                    # Use the global affiliate notification function
+                    send_affiliate_notification(
+                        bot=bot,
+                        ref_by_user_id=data['ref_by'],
+                        commission=commission,
+                        customer_name=message.from_user.first_name,
+                        service_name=service['name'],
+                        order_cost=cost
                     )
+
                 except Exception as e:
                     print(f"Failed to send affiliate notification: {e}")
 
@@ -1829,23 +1831,22 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
             data['orders_count'] += 1
             updateUser(user_id, data)
 
-            # ✅ Affiliate Commission Tracking
+            # ✅ Affiliate Commission Tracking - USING GLOBAL FUNCTION
             if data.get('ref_by') and data['ref_by'] != "none":
                 try:
                     commission = cost * 0.05  # 5% commission
                     add_affiliate_earning(data['ref_by'], commission)
 
-                    bot.send_message(
-                        data['ref_by'],
-                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
-                        f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>UGX {commission:.2f}</code>\n"
-                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
-                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
-                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> UGX {cost:.2f}\n"
-                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
-                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
-                        parse_mode='HTML'
+                    # Use the global affiliate notification function
+                    send_affiliate_notification(
+                        bot=bot,
+                        ref_by_user_id=data['ref_by'],
+                        commission=commission,
+                        customer_name=message.from_user.first_name,
+                        service_name=service['name'],
+                        order_cost=cost
                     )
+
                 except Exception as e:
                     print(f"Failed to send affiliate notification: {e}")
 
@@ -2157,6 +2158,25 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
                 data['orders_count'] = 0
             data['orders_count'] += 1
             updateUser(user_id, data)
+
+            # ✅ Affiliate Commission Tracking - USING GLOBAL FUNCTION
+            if data.get('ref_by') and data['ref_by'] != "none":
+                try:
+                    commission = cost * 0.05  # 5% commission
+                    add_affiliate_earning(data['ref_by'], commission)
+
+                    # Use the global affiliate notification function
+                    send_affiliate_notification(
+                        bot=bot,
+                        ref_by_user_id=data['ref_by'],
+                        commission=commission,
+                        customer_name=message.from_user.first_name,
+                        service_name=service['name'],
+                        order_cost=cost
+                    )
+
+                except Exception as e:
+                    print(f"Failed to send affiliate notification: {e}")
             
         else:
             error_msg = result.get('error', 'Uɴᴋɴᴏᴡɴ ᴇʀʀᴏʀ ꜰʀᴏᴍ SMM ᴘᴀɴᴇʟ')
@@ -2465,23 +2485,22 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
             data['orders_count'] += 1
             updateUser(user_id, data)
 
-            # ✅ Affiliate Commission Tracking
+            # ✅ Affiliate Commission Tracking - USING GLOBAL FUNCTION
             if data.get('ref_by') and data['ref_by'] != "none":
                 try:
                     commission = cost * 0.05  # 5% commission
                     add_affiliate_earning(data['ref_by'], commission)
 
-                    bot.send_message(
-                        data['ref_by'],
-                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
-                        f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>UGX {commission:.2f}</code>\n"
-                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
-                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
-                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> UGX {cost:.2f}\n"
-                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
-                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
-                        parse_mode='HTML'
+                    # Use the global affiliate notification function
+                    send_affiliate_notification(
+                        bot=bot,
+                        ref_by_user_id=data['ref_by'],
+                        commission=commission,
+                        customer_name=message.from_user.first_name,
+                        service_name=service['name'],
+                        order_cost=cost
                     )
+
                 except Exception as e:
                     print(f"Failed to send affiliate notification: {e}")
 
@@ -2802,23 +2821,22 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
             data['orders_count'] += 1
             updateUser(user_id, data)
 
-            # ✅ Affiliate Commission Tracking
+            # ✅ Affiliate Commission Tracking - USING GLOBAL FUNCTION
             if data.get('ref_by') and data['ref_by'] != "none":
                 try:
                     commission = cost * 0.05  # 5% commission
                     add_affiliate_earning(data['ref_by'], commission)
 
-                    bot.send_message(
-                        data['ref_by'],
-                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
-                        f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>UGX {commission:.2f}</code>\n"
-                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
-                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
-                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> UGX {cost:.2f}\n"
-                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
-                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
-                        parse_mode='HTML'
+                    # Use the global affiliate notification function
+                    send_affiliate_notification(
+                        bot=bot,
+                        ref_by_user_id=data['ref_by'],
+                        commission=commission,
+                        customer_name=message.from_user.first_name,
+                        service_name=service['name'],
+                        order_cost=cost
                     )
+
                 except Exception as e:
                     print(f"Failed to send affiliate notification: {e}")
 
@@ -3118,23 +3136,22 @@ f"""✅ <b>{service['name']} Oʀᴅᴇʀ Sᴜʙᴍɪᴛᴛᴇᴅ!</b>
             data['orders_count'] += 1
             updateUser(user_id, data)
 
-            # ✅ Affiliate Commission Tracking
+            # ✅ Affiliate Commission Tracking - USING GLOBAL FUNCTION
             if data.get('ref_by') and data['ref_by'] != "none":
                 try:
                     commission = cost * 0.05  # 5% commission
                     add_affiliate_earning(data['ref_by'], commission)
 
-                    bot.send_message(
-                        data['ref_by'],
-                        f"🎉 <b>Aꜰꜰɪʟɪᴀᴛᴇ Cᴏᴍᴍɪꜱꜱɪᴏɴ Rᴇᴄᴇɪᴠᴇᴅ!</b>\n\n"
-                        f"💸 <b>Yᴏᴜ'ᴠᴇ ᴇᴀʀɴᴇᴅ:</b> <code>UGX {commission:.2f}</code>\n"
-                        f"👤 <b>Fʀᴏᴍ:</b> {message.from_user.first_name}\n"
-                        f"📦 <b>Sᴇʀᴠɪᴄᴇ:</b> {service['name']}\n"
-                        f"💵 <b>Oʀᴅᴇʀ Vᴀʟᴜᴇ:</b> UGX {cost:.2f}\n"
-                        f"🆔 <b>Tʀᴀɴꜱᴀᴄᴛɪᴏɴ ID:</b> <code>{int(time.time())}</code>\n\n"
-                        f"🚀 <i>Kᴇᴇᴘ sʜᴀʀɪɴɢ ʏᴏᴜʀ ʀᴇꜰᴇʀʀᴀʟ ᴀꜰꜰɪʟɪᴀᴛᴇ ʟɪɴᴋ ᴛᴏ ᴇᴀʀɴ ᴍᴏʀᴇ!</i>",
-                        parse_mode='HTML'
+                    # Use the global affiliate notification function
+                    send_affiliate_notification(
+                        bot=bot,
+                        ref_by_user_id=data['ref_by'],
+                        commission=commission,
+                        customer_name=message.from_user.first_name,
+                        service_name=service['name'],
+                        order_cost=cost
                     )
+
                 except Exception as e:
                     print(f"Failed to send affiliate notification: {e}")
 
