@@ -20,7 +20,7 @@ DATABASE_NAME = getenv("DATABASE_NAME", "smmhubbooster")
 ADMIN_USER_IDS = [int(id.strip()) for id in getenv("ADMIN_USER_IDS", "").split(",") if id.strip()]
 
 # ───── User Settings ───── #
-FREE_ORDERS_DAILY_LIMIT = int(getenv("FREE_ORDERS_DAILY_LIMIT", 5))
+FREE_ORDERS_DAILY_LIMIT = int(getenv("FREE_ORDERS_DAILY_LIMIT", 3))
 WELCOME_BONUS = int(getenv("WELCOME_BONUS", 30)) 
 REF_BONUS = int(getenv("REF_BONUS", 50)) 
 
@@ -50,5 +50,6 @@ CHANNEL_BUTTONS = {
     "SERVICES_UPDATE": {"name": "🏪 SERVICES UPDATE", "url": "https://t.me/SmmBoosterz"},
     "COINS_CHANNEL": {"name": "🪙 COINS STORE", "url": "https://t.me/Freenethubchannel"}
 }
+
 
 
