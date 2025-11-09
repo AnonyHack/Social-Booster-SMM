@@ -91,15 +91,15 @@ admin_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 admin_markup.row("➕ Add", "➖ Remove")
 admin_markup.row("📌 Pin Message", "📍 Unpin")
 admin_markup.row("🔒 Ban User", "✅ Unban User")
-admin_markup.row("📋 List Banned", "👤 User Info")  # New
-admin_markup.row("🖥 Server Status", "📤 Export Data")  # New
-admin_markup.row("📦 Order Manager", "📊 Analytics")  # New
+admin_markup.row("📋 List Banned", "👤 User Info")
+admin_markup.row("🖥 Server Status", "📤 Export Data")
+admin_markup.row("📦 Order Manager", "📊 Analytics")
 admin_markup.row("🔧 Maintenance", "📤 Broadcast")
-admin_markup.row("📦 Batch Coins", "🔐 Lock/Unlock")
-admin_markup.row("🗑 Delete User", "🪙 Bonus")
-admin_markup.row("💰 Top Rich", "👥 Top Affiliates")
-admin_markup.row("🛡️ Anti-Fraud", "📟 Panel Balance")
-admin_markup.row("🔄 Update Users")
+admin_markup.row("🚮 Broadcast Delete", "🔐 Lock/Unlock")  # Added Delete Broadcast here
+admin_markup.row("📦 Batch Coins", "🪙 Bonus")
+admin_markup.row("🗑 Delete User", "💰 Top Rich")
+admin_markup.row("👥 Top Affiliates", "🛡️ Anti-Fraud")
+admin_markup.row("📟 Panel Balance", "🔄 Update Users")
 admin_markup.row("⌫ ᴍᴀɪɴ ᴍᴇɴᴜ")
 
 #======================= Send Orders main menu =======================#
@@ -3833,7 +3833,7 @@ def handle_stats_navigation(call):
         print(f"Error navigating stats: {e}")
         bot.answer_callback_query(call.id, "⚠️ Failed to navigate", show_alert=True)
 
-# =========================== Broadcast Command ================= #
+# =========================== Enhanced Broadcast Command ================= #
 @bot.message_handler(func=lambda m: m.text == "📤 Broadcast" and m.from_user.id in admin_user_ids)
 def broadcast_start(message):
     """Start normal broadcast process (unpinned)"""
@@ -3841,17 +3841,18 @@ def broadcast_start(message):
     cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     cancel_markup.add(KeyboardButton("✘ Cᴀɴᴄᴇʟ"))
     
-    msg = bot.reply_to(message, "📢 ✨ <b>Cᴏᴍᴘᴏꜱᴇ Yᴏᴜʀ Bʀᴏᴀᴅᴄᴀꜱᴛ Mᴇꜱꜱᴀɢᴇ</b> ✨\n\n"
-                              "Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴛʜᴇ ᴍᴇꜱꜱᴀɢᴇ ʏᴏᴜ'ᴅ ʟɪᴋᴇ ᴛᴏ ꜱᴇɴᴅ ᴛᴏ ᴀʟʟ ᴜꜱᴇʀꜱ.\n"
-                              "Tʜɪꜱ ᴡɪʟʟ ʙᴇ ꜱᴇɴᴛ ᴀꜱ ᴀ ʀᴇɢᴜʟᴀʀ (ᴜɴᴘɪɴɴᴇᴅ) ᴍᴇꜱꜱᴀɢᴇ.\n\n"
-                              "🖋️ Yᴏᴜ ᴄᴀɴ ɪɴᴄʟᴜᴅᴇ ᴛᴇxᴛ, ᴘʜᴏᴛᴏꜱ, ᴏʀ ᴅᴏᴄᴜᴍᴇɴᴛꜱ.\n"
-                              "❌ Cʟɪᴄᴋ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ᴄᴀɴᴄᴇʟ:", 
-                       parse_mode="HTML",
-                       reply_markup=cancel_markup)
-    bot.register_next_step_handler(msg, process_broadcast)
+    msg = bot.reply_to(message, 
+                      "📢 ✨ <b>Cᴏᴍᴘᴏꜱᴇ Yᴏᴜʀ Bʀᴏᴀᴅᴄᴀꜱᴛ Mᴇꜱꜱᴀɢᴇ</b> ✨\n\n"
+                      "Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴛʜᴇ ᴍᴇꜱꜱᴀɢᴇ ʏᴏᴜ'ᴅ ʟɪᴋᴇ ᴛᴏ ꜱᴇɴᴅ ᴛᴏ ᴀʟʟ ᴜꜱᴇʀꜱ.\n"
+                      "Tʜɪꜱ ᴡɪʟʟ ʙᴇ ꜱᴇɴᴛ ᴀꜱ ᴀ ʀᴇɢᴜʟᴀʀ (ᴜɴᴘɪɴɴᴇᴅ) ᴍᴇꜱꜱᴀɢᴇ.\n\n"
+                      "🖋️ Yᴏᴜ ᴄᴀɴ ɪɴᴄʟᴜᴅᴇ ᴛᴇxᴛ, ᴘʜᴏᴛᴏꜱ, ᴏʀ ᴅᴏᴄᴜᴍᴇɴᴛꜱ.\n"
+                      "❌ Cʟɪᴄᴋ ᴛʜᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ᴄᴀɴᴄᴇʟ:", 
+                      parse_mode="HTML",
+                      reply_markup=cancel_markup)
+    bot.register_next_step_handler(msg, process_broadcast_message)
 
-def process_broadcast(message):
-    """Process and send the broadcast message (unpinned)"""
+def process_broadcast_message(message):
+    """Process the broadcast message and ask for confirmation"""
     if message.text and message.text.strip() == "✘ Cᴀɴᴄᴇʟ":
         bot.reply_to(message, "🛑 <b>Broadcast cancelled.</b>", 
                      parse_mode="HTML", reply_markup=admin_markup)
@@ -3862,6 +3863,106 @@ def process_broadcast(message):
         bot.reply_to(message, "❌ No users found to broadcast to", reply_markup=admin_markup)
         return
     
+    # Generate broadcast ID
+    from functions import generate_broadcast_id
+    broadcast_id = generate_broadcast_id()
+    
+    # Store the message for confirmation
+    broadcast_data = {
+        'message_obj': message,
+        'total_users': len(users),
+        'broadcast_id': broadcast_id
+    }
+    
+    # Create confirmation buttons
+    confirm_markup = InlineKeyboardMarkup()
+    confirm_markup.row(
+        InlineKeyboardButton("✅ Sᴇɴᴅ Bʀᴏᴀᴅᴄᴀꜱᴛ", callback_data="confirm_broadcast"),
+        InlineKeyboardButton("❌ Cᴀɴᴄᴇʟ", callback_data="cancel_broadcast")
+    )
+    
+    # Show preview and confirmation
+    try:
+        # Forward the message to show preview
+        preview_msg = bot.forward_message(message.chat.id, message.chat.id, message.message_id)
+        
+        confirmation_text = f"""📢 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Cᴏɴꜰɪʀᴍᴀᴛɪᴏɴ</b>
+
+🆔 <b>Broadcast ID:</b> <code>{broadcast_id}</code>
+👥 <b>Tᴏᴛᴀʟ Rᴇᴄɪᴘɪᴇɴᴛꜱ:</b> <code>{len(users)}</code>
+📊 <b>Mᴇꜱꜱᴀɢᴇ Tʏᴘᴇ:</b> {'Text' if message.text else 'Media'}
+
+🔍 <b>Pʀᴇᴠɪᴇᴡ ᴀʙᴏᴠᴇ</b> - ᴛʜɪꜱ ɪꜱ ʜᴏᴡ ʏᴏᴜʀ ᴍᴇꜱꜱᴀɢᴇ ᴡɪʟʟ ᴀᴘᴘᴇᴀʀ
+
+💡 <b>Note:</b> You can delete this broadcast later using the ID above
+⚠️ <b>Aʀᴇ ʏᴏᴜ ꜱᴜʀᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ꜱᴇɴᴅ ᴛʜɪꜱ ʙʀᴏᴀᴅᴄᴀꜱᴛ?</b>"""
+
+        bot.send_message(
+            message.chat.id,
+            confirmation_text,
+            parse_mode="HTML",
+            reply_markup=confirm_markup,
+            reply_to_message_id=preview_msg.message_id
+        )
+        
+        # Store broadcast data for callback
+        bot.current_broadcast_data = broadcast_data
+        
+    except Exception as e:
+        bot.reply_to(message, f"❌ Error processing message: {str(e)}", reply_markup=admin_markup)
+
+@bot.callback_query_handler(func=lambda call: call.data in ["confirm_broadcast", "cancel_broadcast"])
+def handle_broadcast_confirmation(call):
+    """Handle broadcast confirmation or cancellation"""
+    try:
+        if call.data == "cancel_broadcast":
+            bot.answer_callback_query(call.id, "❌ Bʀᴏᴀᴅᴄᴀꜱᴛ ᴄᴀɴᴄᴇʟʟᴇᴅ")
+            bot.edit_message_text(
+                "🛑 <b>Broadcast Cancelled</b>\n\n"
+                "Tʜᴇ ʙʀᴏᴀᴅᴄᴀꜱᴛ ʜᴀꜱ ʙᴇᴇɴ ᴄᴀɴᴄᴇʟʟᴇᴅ.",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+            return
+        
+        if call.data == "confirm_broadcast":
+            bot.answer_callback_query(call.id, "📤 Sᴛᴀʀᴛɪɴɢ ʙʀᴏᴀᴅᴄᴀꜱᴛ...")
+            
+            # Get the stored broadcast data
+            if not hasattr(bot, 'current_broadcast_data'):
+                bot.answer_callback_query(call.id, "❌ Bʀᴏᴀᴅᴄᴀꜱᴛ ᴅᴀᴛᴀ ɴᴏᴛ ꜰᴏᴜɴᴅ", show_alert=True)
+                return
+            
+            broadcast_data = bot.current_broadcast_data
+            message = broadcast_data['message_obj']
+            users = get_all_users()
+            broadcast_id = broadcast_data['broadcast_id']
+            
+            # Update message to show processing
+            bot.edit_message_text(
+                f"⏳ <b>Starting Broadcast...</b>\n\n"
+                f"🆔 <b>Broadcast ID:</b> <code>{broadcast_id}</code>\n"
+                f"👥 <b>Total Users:</b> <code>{len(users)}</code>\n\n"
+                f"🔄 Pʟᴇᴀꜱᴇ ᴡᴀɪᴛ ᴡʜɪʟᴇ ᴡᴇ ꜱᴇɴᴅ ᴛʜᴇ ᴍᴇꜱꜱᴀɢᴇ ᴛᴏ ᴀʟʟ ᴜꜱᴇʀꜱ...",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+            
+            # Start the actual broadcast
+            send_broadcast_message(bot, message, users, call.message, broadcast_id)
+            
+            # Clear the stored data
+            delattr(bot, 'current_broadcast_data')
+            
+    except Exception as e:
+        bot.answer_callback_query(call.id, f"❌ Eʀʀᴏʀ: {str(e)}", show_alert=True)
+
+def send_broadcast_message(bot, message, users, progress_message, broadcast_id):
+    """Send the actual broadcast message to all users and track message IDs"""
+    from functions import save_broadcast, save_user_message_id
+    
     success = 0
     failed = 0
     blocked = 0
@@ -3869,13 +3970,18 @@ def process_broadcast(message):
     not_found = 0
     bot_users = 0
     
-    # Enhanced sending notification with progress bar concept
-    progress_msg = bot.reply_to(message, f"""📨 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Iɴɪᴛɪᴀᴛᴇᴅ</b>
+    # Save broadcast to database first
+    message_data = {
+        'message_id': message.message_id,
+        'chat_id': message.chat.id,
+        'content_type': 'text' if message.text else 'media',
+        'content': message.text if message.text else 'media_content'
+    }
     
-📊 Tᴏᴛᴀʟ Rᴇᴄɪᴘɪᴇɴᴛꜱ: <code>{len(users)}</code>
-⏳ Sᴛᴀᴛᴜꜱ: <i>Processing...</i>
-
-[░░░░░░░░░░] 0%""", parse_mode="HTML")
+    save_broadcast(broadcast_id, message_data, len(users), 0, message.from_user.id)
+    
+    # Enhanced sending notification with progress bar concept
+    progress_msg = progress_message
     
     # Calculate update interval (at least 1)
     update_interval = max(1, len(users) // 10)
@@ -3884,7 +3990,10 @@ def process_broadcast(message):
     for index, user_id in enumerate(users):
         try:
             # Use copy_message to preserve all Telegram formatting exactly as sent
-            bot.copy_message(user_id, message.chat.id, message.message_id)
+            sent_message = bot.copy_message(user_id, message.chat.id, message.message_id)
+            
+            # Save the message ID for this user
+            save_user_message_id(broadcast_id, user_id, sent_message.message_id)
             success += 1
             
         except Exception as e:
@@ -3908,6 +4017,7 @@ def process_broadcast(message):
             try:
                 bot.edit_message_text(f"""📨 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Pʀᴏɢʀᴇꜱꜱ</b>
                 
+🆔 <b>Broadcast ID:</b> <code>{broadcast_id}</code>
 📊 Tᴏᴛᴀʟ Rᴇᴄɪᴘɪᴇɴᴛꜱ: <code>{len(users)}</code>
 ✅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟ: <code>{success}</code>
 🚫 Bʟᴏᴄᴋᴇᴅ: <code>{blocked}</code>
@@ -3918,13 +4028,13 @@ def process_broadcast(message):
 ⏳ Sᴛᴀᴛᴜꜱ: <i>Sᴇɴᴅɪɴɢ...</i>
 
 [{progress_bar}] {progress}%""", 
-                    message.chat.id, progress_msg.message_id, parse_mode="HTML")
+                    progress_message.chat.id, progress_message.message_id, parse_mode="HTML")
             except Exception as e:
                 logger.error(f"Failed to update progress: {e}")
         
         time.sleep(0.1)  # Rate limiting
     
-    # Calculate time taken - FIXED: Use the correct import
+    # Calculate time taken
     elapsed_time = int(time.time() - start_time)
     minutes = elapsed_time // 60
     seconds = elapsed_time % 60
@@ -3935,6 +4045,8 @@ def process_broadcast(message):
     
     # Enhanced completion message
     completion_text = f"""📣 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Cᴏᴍᴘʟᴇᴛᴇᴅ Sᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ!</b>
+
+🆔 <b>Broadcast ID:</b> <code>{broadcast_id}</code>
 
 📊 <b>Sᴛᴀᴛɪꜱᴛɪᴄꜱ:</b>
 ├ 📤 <i>Sᴇɴᴛ:</i> <code>{success}</code>
@@ -3947,15 +4059,16 @@ def process_broadcast(message):
 ⏱️ <i>Tɪᴍᴇ ᴛᴀᴋᴇɴ:</i> <code>{time_taken}</code>
 ⏰ <i>Fɪɴɪꜱʜᴇᴅ ᴀᴛ:</i> <code>{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</code>
 
+💡 <b>Note:</b> Use the Broadcast ID above to delete this message later if needed.
+
 ✨ <i>Tʜᴀɴᴋ ʏᴏᴜ ꜰᴏʀ ᴜꜱɪɴɢ ᴏᴜʀ ʙʀᴏᴀᴅᴄᴀꜱᴛ ꜱʏꜱᴛᴇᴍ!</i>"""
 
     try:
         bot.edit_message_text(completion_text, 
-                            message.chat.id, progress_msg.message_id, 
+                            progress_message.chat.id, progress_message.message_id, 
                             parse_mode="HTML")
     except:
-        bot.reply_to(message, completion_text, parse_mode="HTML", reply_markup=admin_markup)
-
+        bot.send_message(progress_message.chat.id, completion_text, parse_mode="HTML", reply_markup=admin_markup)
 # ============================= Enhanced Ban User Command ============================= #
 @bot.message_handler(func=lambda m: m.text == "🔒 Ban User" and m.from_user.id in admin_user_ids)
 def ban_user_start(message):
@@ -4499,7 +4612,7 @@ def process_pin_message(message):
     except:
         bot.reply_to(message, completion_text, parse_mode="HTML", reply_markup=admin_markup)
 
-# --- UNPIN Button Handler ---
+# ========================= UNPIN Button Handler ================================================#
 @bot.message_handler(func=lambda m: m.text == "📍 Unpin" and m.from_user.id in admin_user_ids)
 def unpin_and_delete_all(message):
     """Unpin and delete pinned messages for all users"""
