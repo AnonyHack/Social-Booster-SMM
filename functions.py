@@ -1037,5 +1037,113 @@ def setup_affiliate_handlers(bot):
         except Exception as e:
             print(f"Error closing affiliate notification: {e}")
             bot.answer_callback_query(call.id, "❌ Failed to close notification")
+
+# ======================= BROADCAST MANAGEMENT FUNCTIONS ======================= #
+
+# Add this collection definition near the top with other collections
+broadcasts_collection = db.broadcasts
+
+import random
+import string
+from datetime import datetime
+
+def generate_broadcast_id():
+    """Generate unique broadcast ID in format XP-XXXXXX"""
+    while True:
+        # Generate 6-character alphanumeric code
+        random_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        broadcast_id = f"XP-{random_code}"
+        
+        # Check if ID already exists
+        if not broadcasts_collection.find_one({"broadcast_id": broadcast_id}):
+            return broadcast_id
+
+def save_broadcast(broadcast_id, message_data, total_users, sent_count, admin_id):
+    """Save broadcast data to database"""
+    try:
+        broadcast_data = {
+            "broadcast_id": broadcast_id,
+            "message_data": message_data,
+            "total_users": total_users,
+            "sent_count": sent_count,
+            "admin_id": admin_id,
+            "timestamp": datetime.now(),
+            "user_message_ids": {}  # Store {user_id: message_id} pairs
+        }
+        broadcasts_collection.insert_one(broadcast_data)
+        return broadcast_id
+    except Exception as e:
+        logger.error(f"Error saving broadcast {broadcast_id}: {e}")
+        return None
+
+def save_user_message_id(broadcast_id, user_id, message_id):
+    """Save the message ID for a specific user"""
+    try:
+        broadcasts_collection.update_one(
+            {"broadcast_id": broadcast_id},
+            {"$set": {f"user_message_ids.{user_id}": message_id}}
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Error saving user message ID for broadcast {broadcast_id}: {e}")
+        return False
+
+def get_broadcast(broadcast_id):
+    """Get broadcast data by ID"""
+    try:
+        return broadcasts_collection.find_one({"broadcast_id": broadcast_id})
+    except Exception as e:
+        logger.error(f"Error getting broadcast {broadcast_id}: {e}")
+        return None
+
+def get_all_broadcasts(limit=50):
+    """Get recent broadcasts"""
+    try:
+        return list(broadcasts_collection.find().sort("timestamp", -1).limit(limit))
+    except Exception as e:
+        logger.error(f"Error getting all broadcasts: {e}")
+        return []
+
+def delete_broadcast(broadcast_id):
+    """Delete broadcast data from database"""
+    try:
+        result = broadcasts_collection.delete_one({"broadcast_id": broadcast_id})
+        return result.deleted_count > 0
+    except Exception as e:
+        logger.error(f"Error deleting broadcast {broadcast_id}: {e}")
+        return False
+
+def get_broadcast_user_message_ids(broadcast_id):
+    """Get all user message IDs for a broadcast"""
+    try:
+        broadcast = broadcasts_collection.find_one({"broadcast_id": broadcast_id})
+        if broadcast and "user_message_ids" in broadcast:
+            return broadcast["user_message_ids"]
+        return {}
+    except Exception as e:
+        logger.error(f"Error getting user message IDs for broadcast {broadcast_id}: {e}")
+        return {}
+
+def get_recent_broadcasts_with_stats(limit=10):
+    """Get recent broadcasts with statistics"""
+    try:
+        broadcasts = list(broadcasts_collection.find().sort("timestamp", -1).limit(limit))
+        
+        for broadcast in broadcasts:
+            # Calculate delivery rate
+            total_users = broadcast.get('total_users', 0)
+            sent_count = broadcast.get('sent_count', 0)
+            if total_users > 0:
+                delivery_rate = (sent_count / total_users) * 100
+            else:
+                delivery_rate = 0
+                
+            broadcast['delivery_rate'] = round(delivery_rate, 1)
+            broadcast['timestamp_str'] = broadcast['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+            
+        return broadcasts
+    except Exception as e:
+        logger.error(f"Error getting recent broadcasts with stats: {e}")
+        return []
         
 print("functions.py loaded with MongoDB support")
