@@ -39,7 +39,7 @@ def delete_after_delay(bot, chat_id, message_id, delay):
         print(f"Could not delete message: {e}")
 
 # ======================= LOCK/UNLOCK SERVICES ======================= #
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from functions import lock_service, unlock_service, get_locked_services, get_all_users
 import time
 
@@ -63,29 +63,28 @@ def register_lock_handlers(bot, admin_markup, admin_user_ids):
         bot.register_next_step_handler(message, process_lock_service)
 
     def process_lock_service(message):
-        if message.text.lower() == 'cancel':
+        if message.text and message.text.lower() == 'cancel':
             bot.reply_to(message, "❌ Oᴘᴇʀᴀᴛɪᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=admin_markup)
             return
 
         service_id = message.text.strip()
         if lock_service(service_id):
+            # Create yes/no buttons
+            notify_markup = InlineKeyboardMarkup()
+            notify_markup.row(
+                InlineKeyboardButton("✅ Yes", callback_data=f"notify_lock_yes_{service_id}"),
+                InlineKeyboardButton("❌ No", callback_data=f"notify_lock_no_{service_id}")
+            )
+            
             bot.reply_to(
                 message,
-                f"✅ *Sᴇʀᴠɪᴄᴇ {service_id} ʜᴀꜱ ʙᴇᴇɴ ʟᴏᴄᴋᴇᴅ ꜰᴏʀ ʀᴇɢᴜʟᴀʀ ᴜꜱᴇʀꜱ.*\n"
-                f"Dᴏ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ɴᴏᴛɪꜰʏ ᴜꜱᴇʀꜱ? *(yes/no)*",
-                parse_mode="Markdown"
+                f"✅ *Sᴇʀᴠɪᴄᴇ {service_id} ʜᴀꜱ ʙᴇᴇɴ ʟᴏᴄᴋᴇᴅ ꜰᴏʀ ʀᴇɢᴜʟᴀʀ ᴜꜱᴇʀꜱ.*\n\n"
+                f"Dᴏ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ɴᴏᴛɪꜰʏ ᴜꜱᴇʀꜱ?",
+                parse_mode="Markdown",
+                reply_markup=notify_markup
             )
-            bot.register_next_step_handler(message, lambda m: process_notify_lock(m, service_id))
         else:
             bot.reply_to(message, f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ʟᴏᴄᴋ ꜱᴇʀᴠɪᴄᴇ `{service_id}`.", parse_mode="Markdown", reply_markup=admin_markup)
-
-    def process_notify_lock(message, service_id):
-        choice = message.text.lower()
-        if choice == 'yes':
-            notify_users_about_service(service_id, action="lock")
-            bot.reply_to(message, "📢 Nᴏᴛɪꜰɪᴄᴀᴛɪᴏɴ ꜱᴇɴᴛ ᴛᴏ ᴜꜱᴇʀꜱ.", reply_markup=admin_markup)
-        else:
-            bot.reply_to(message, "👍 Nᴏ ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴꜱ ᴡᴇʀᴇ ꜱᴇɴᴛ.", reply_markup=admin_markup)
 
     def handle_unlock_service(message):
         if str(message.from_user.id) not in map(str, admin_user_ids):
@@ -95,58 +94,70 @@ def register_lock_handlers(bot, admin_markup, admin_user_ids):
         bot.register_next_step_handler(message, process_unlock_service)
 
     def process_unlock_service(message):
-        if message.text.lower() == 'cancel':
+        if message.text and message.text.lower() == 'cancel':
             bot.reply_to(message, "❌ Oᴘᴇʀᴀᴛɪᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=admin_markup)
             return
 
         service_id = message.text.strip()
         if unlock_service(service_id):
+            # Create yes/no buttons
+            notify_markup = InlineKeyboardMarkup()
+            notify_markup.row(
+                InlineKeyboardButton("✅ Yes", callback_data=f"notify_unlock_yes_{service_id}"),
+                InlineKeyboardButton("❌ No", callback_data=f"notify_unlock_no_{service_id}")
+            )
+            
             bot.reply_to(
                 message,
-                f"✅ *Sᴇʀᴠɪᴄᴇ {service_id} ʜᴀꜱ ʙᴇᴇɴ ᴜɴʟᴏᴄᴋᴇᴅ ꜰᴏʀ ᴀʟʟ ᴜꜱᴇʀꜱ.*\n"
-                f"Dᴏ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ɴᴏᴛɪꜰʏ ᴜꜱᴇʀꜱ? *(yes/no)*",
-                parse_mode="Markdown"
+                f"✅ *Sᴇʀᴠɪᴄᴇ {service_id} ʜᴀꜱ ʙᴇᴇɴ ᴜɴʟᴏᴄᴋᴇᴅ ꜰᴏʀ ᴀʟʟ ᴜꜱᴇʀꜱ.*\n\n"
+                f"Dᴏ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ɴᴏᴛɪꜰʏ ᴜꜱᴇʀꜱ?",
+                parse_mode="Markdown",
+                reply_markup=notify_markup
             )
-            bot.register_next_step_handler(message, lambda m: process_notify_unlock(m, service_id))
         else:
             bot.reply_to(message, f"❌ Fᴀɪʟᴇᴅ ᴛᴏ ᴜɴʟᴏᴄᴋ ꜱᴇʀᴠɪᴄᴇ `{service_id}`.", parse_mode="Markdown", reply_markup=admin_markup)
 
-    def process_notify_unlock(message, service_id):
-        choice = message.text.lower()
-        if choice == 'yes':
-            notify_users_about_service(service_id, action="unlock")
-            bot.reply_to(message, "📢 Nᴏᴛɪꜰɪᴄᴀᴛɪᴏɴ ꜱᴇɴᴛ ᴛᴏ ᴜꜱᴇʀꜱ.", reply_markup=admin_markup)
-        else:
-            bot.reply_to(message, "👍 Nᴏ ɴᴏᴛɪꜰɪᴄᴀᴛɪᴏɴꜱ ᴡᴇʀᴇ ꜱᴇɴᴛ.", reply_markup=admin_markup)
-
     def notify_users_about_service(service_id, action):
         users = get_all_users()
+        
+        # Create close button markup
+        close_markup = InlineKeyboardMarkup()
+        close_markup.add(InlineKeyboardButton("⤬ ᴄʟᴏꜱᴇ ⤬", callback_data=f"close_service_notif_{int(time.time())}"))
 
         if action == "lock":
             text = (
-                f"🚫 *Sᴇʀᴠɪᴄᴇ Uᴘᴅᴀᴛᴇ*\n\n"
-                f"📌 *Service ID:* `{service_id}`\n"
-                f"✅ *Status:* Lᴏᴄᴋᴇᴅ 🔒\n\n"
+                f"🚫 <b>Sᴇʀᴠɪᴄᴇ Uᴘᴅᴀᴛᴇ</b>\n\n"
+                f"🆔 <b>Service ID:</b> <code>{service_id}</code>\n"
+                f"✅ <b>Status:</b> Lᴏᴄᴋᴇᴅ 🔒\n\n"
                 f"Tʜᴇ sᴇʀᴠɪᴄᴇ ʜᴀs ʙᴇᴇɴ ᴛᴇᴍᴘᴏʀᴀʟʏ ʟᴏᴄᴋᴇᴅ ʙʏ ᴏᴜʀ Aᴅᴍɪɴ Tᴇᴀᴍ.\n"
-                f"Yᴏᴜ ᴡɪʟʟ ɴᴏᴛ ʙᴇ ᴀʙʟᴇ ᴛᴏ ᴏʀᴅᴇʀ ᴛʜɪs sᴇʀᴠɪᴄᴇ ᴜɴᴛɪʟ ꜰᴜʀᴛʜᴇʀ ɴᴏᴛɪᴄᴇ.\n\n"            )
+                f"Yᴏᴜ ᴡɪʟʟ ɴᴏᴛ ʙᴇ ᴀʙʟᴇ ᴛᴏ ᴏʀᴅᴇʀ ᴛʜɪs sᴇʀᴠɪᴄᴇ ᴜɴᴛɪʟ ꜰᴜʀᴛʜᴇʀ ɴᴏᴛɪᴄᴇ."
+            )
         else:
             text = (
-                f"✅ *Sᴇʀᴠɪᴄᴇ Uᴘᴅᴀᴛᴇ*\n\n"
-                f"📌 *Service ID:* `{service_id}`\n"
-                f"✅ *Status:* Uɴʟᴏᴄᴋᴇᴅ 🔓\n\n"
-                f"Tʜᴇ sᴇʀᴠɪᴄᴇ ɪs ɴᴏᴡ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴏʀᴅᴇʀɪɴɢ.\n\n"
+                f"✅ <b>Sᴇʀᴠɪᴄᴇ Uᴘᴅᴀᴛᴇ</b>\n\n"
+                f"🆔 <b>Service ID:</b> <code>{service_id}</code>\n"
+                f"✅ <b>Status:</b> Uɴʟᴏᴄᴋᴇᴅ 🔓\n\n"
+                f"Tʜᴇ sᴇʀᴠɪᴄᴇ ɪs ɴᴏᴡ ᴀᴠᴀɪʟᴀʙʟᴇ ꜰᴏʀ ᴏʀᴅᴇʀɪɴɢ."
             )
 
+        sent_count = 0
+        failed_count = 0
+        
         for user_id in users:
             try:
                 bot.send_message(
                     chat_id=user_id,
                     text=text,
-                    parse_mode="Markdown"
+                    parse_mode="HTML",
+                    reply_markup=close_markup
                 )
+                sent_count += 1
                 time.sleep(0.05)  # Throttle
             except Exception as e:
+                failed_count += 1
                 print(f"Failed to notify user {user_id}: {e}")
+        
+        return sent_count, failed_count
 
     def list_locked_services(message):
         if str(message.from_user.id) not in map(str, admin_user_ids):
@@ -157,8 +168,146 @@ def register_lock_handlers(bot, admin_markup, admin_user_ids):
             bot.reply_to(message, "🔓 ɴᴏ ꜱᴇʀᴠɪᴄᴇꜱ ᴀʀᴇ ᴄᴜʀʀᴇɴᴛʟʏ ʟᴏᴄᴋᴇᴅ.", reply_markup=admin_markup)
             return
 
-        services_list = "\n".join([f"• `{service_id}`" for service_id in locked_services])
-        bot.reply_to(message, f"🔒 *Lᴏᴄᴋᴇᴅ Sᴇʀᴠɪᴄᴇꜱ:*\n{services_list}", parse_mode="Markdown", reply_markup=admin_markup)
+        # Show first page
+        show_locked_services_page(message, locked_services, page=0)
+
+    def show_locked_services_page(message, locked_services, page=0):
+        """Show paginated locked services list"""
+        PAGE_SIZE = 10
+        start_idx = page * PAGE_SIZE
+        end_idx = start_idx + PAGE_SIZE
+        
+        total_pages = (len(locked_services) + PAGE_SIZE - 1) // PAGE_SIZE
+        current_page_services = locked_services[start_idx:end_idx]
+        
+        # Build services list
+        services_text = "🔒 <b>Lᴏᴄᴋᴇᴅ Sᴇʀᴠɪᴄᴇꜱ</b>\n\n"
+        
+        for i, service_id in enumerate(current_page_services, start_idx + 1):
+            services_text += f"{i}. 🆔 <code>{service_id}</code>\n\n"
+        
+        services_text += f"📄 <b>Page {page + 1} of {total_pages}</b>"
+        
+        # Create pagination buttons
+        markup = InlineKeyboardMarkup()
+        buttons_row = []
+        
+        # Previous button
+        if page > 0:
+            buttons_row.append(InlineKeyboardButton("⌫ ʙᴀᴄᴋ", callback_data=f"lock_prev_{page-1}"))
+        
+        # Next button
+        if end_idx < len(locked_services):
+            buttons_row.append(InlineKeyboardButton("ɴᴇxᴛ ⌦", callback_data=f"lock_next_{page+1}"))
+        
+        if buttons_row:
+            markup.row(*buttons_row)
+        
+        # Close button
+        markup.add(InlineKeyboardButton("⌧ ᴄʟᴏꜱᴇ ⌧", callback_data="lock_close"))
+        
+        if hasattr(message, 'text'):  # Original message
+            bot.reply_to(message, services_text, parse_mode="HTML", reply_markup=markup)
+        else:  # Callback query
+            bot.edit_message_text(
+                services_text,
+                message.chat.id,
+                message.message_id,
+                parse_mode="HTML",
+                reply_markup=markup
+            )
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith(("lock_prev_", "lock_next_", "lock_close", "notify_lock_", "notify_unlock_")) or call.data.startswith("close_service_notif_"))
+    def handle_lock_callbacks(call):
+        """Handle lock/unlock related callbacks"""
+        
+        # Handle service notification close button
+        if call.data.startswith("close_service_notif_"):
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+                bot.answer_callback_query(call.id, "✅ Notification closed")
+            except Exception as e:
+                bot.answer_callback_query(call.id, "❌ Message already deleted")
+            return
+        
+        # Handle locked services list close button
+        if call.data == "lock_close":
+            try:
+                bot.delete_message(call.message.chat.id, call.message.message_id)
+                bot.answer_callback_query(call.id, "✅ List closed")
+            except Exception as e:
+                bot.answer_callback_query(call.id, "❌ Message already deleted")
+            return
+        
+        # Handle notify yes/no buttons for lock
+        if call.data.startswith("notify_lock_yes_"):
+            service_id = call.data.replace("notify_lock_yes_", "")
+            sent_count, failed_count = notify_users_about_service(service_id, action="lock")
+            bot.edit_message_text(
+                f"📢 <b>Lock Notification Sent</b>\n\n"
+                f"🆔 <b>Service ID:</b> <code>{service_id}</code>\n"
+                f"✅ <b>Sent:</b> {sent_count} users\n"
+                f"❌ <b>Failed:</b> {failed_count} users\n\n"
+                f"🔒 <i>Service has been locked and users notified.</i>",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+            bot.answer_callback_query(call.id, "✅ Users notified")
+            
+        elif call.data.startswith("notify_lock_no_"):
+            service_id = call.data.replace("notify_lock_no_", "")
+            bot.edit_message_text(
+                f"🔒 <b>Service Locked</b>\n\n"
+                f"🆔 <b>Service ID:</b> <code>{service_id}</code>\n"
+                f"✅ <b>Status:</b> Locked for regular users\n\n"
+                f"👤 <i>Users were not notified.</i>",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+            bot.answer_callback_query(call.id, "✅ Service locked (no notification)")
+        
+        # Handle notify yes/no buttons for unlock
+        elif call.data.startswith("notify_unlock_yes_"):
+            service_id = call.data.replace("notify_unlock_yes_", "")
+            sent_count, failed_count = notify_users_about_service(service_id, action="unlock")
+            bot.edit_message_text(
+                f"📢 <b>Unlock Notification Sent</b>\n\n"
+                f"🆔 <b>Service ID:</b> <code>{service_id}</code>\n"
+                f"✅ <b>Sent:</b> {sent_count} users\n"
+                f"❌ <b>Failed:</b> {failed_count} users\n\n"
+                f"🔓 <i>Service has been unlocked and users notified.</i>",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+            bot.answer_callback_query(call.id, "✅ Users notified")
+            
+        elif call.data.startswith("notify_unlock_no_"):
+            service_id = call.data.replace("notify_unlock_no_", "")
+            bot.edit_message_text(
+                f"🔓 <b>Service Unlocked</b>\n\n"
+                f"🆔 <b>Service ID:</b> <code>{service_id}</code>\n"
+                f"✅ <b>Status:</b> Unlocked for all users\n\n"
+                f"👤 <i>Users were not notified.</i>",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+            bot.answer_callback_query(call.id, "✅ Service unlocked (no notification)")
+        
+        # Handle pagination
+        elif call.data.startswith("lock_prev_") or call.data.startswith("lock_next_"):
+            locked_services = get_locked_services()
+            if not locked_services:
+                bot.answer_callback_query(call.id, "❌ No locked services found")
+                return
+            
+            # Extract page number
+            page = int(call.data.split("_")[-1])
+            show_locked_services_page(call.message, locked_services, page)
+            bot.answer_callback_query(call.id)
 
     # Register buttons
     bot.register_message_handler(lock_service_menu, func=lambda m: m.text == "🔐 Lock/Unlock")
@@ -1233,3 +1382,4 @@ def register_admin_features(bot, admin_markup, main_markup, admin_user_ids_list)
     # Register Delete broadcast handler
     register_delete_broadcast_handler(bot, admin_user_ids, admin_markup)
     # Register other handlers as needed
+
