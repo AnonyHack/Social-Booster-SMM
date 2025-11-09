@@ -1762,8 +1762,8 @@ def handle_tiktok_order(message):
             "min": 1000,
             "max": 1000,
             "price": 3500,
-            "unit": "1k comments",
-            "service_id": "23923"
+            "unit": "25 comments",
+            "service_id": "17497"
         },
             "💬 Stream Comments": {
             "name": "Stream Emoji Comments",
