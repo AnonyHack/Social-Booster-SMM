@@ -5,6 +5,7 @@ from functions import (get_all_users,
     set_bonus_amount, set_bonus_interval, toggle_bonus, get_top_balances,
     get_top_affiliate_earners, get_suspicious_users, get_panel_balance, users_collection
 )
+from datetime import datetime
 import time
 import requests
 import logging
@@ -960,6 +961,249 @@ def register_update_users_handler(bot, admin_user_ids, admin_markup=None, main_m
 
     bot.register_message_handler(update_users_start, func=lambda m: m.text == "🔄 Update Users")
 
+# ======================= DELETE BROADCAST BY ID ======================= #
+def register_delete_broadcast_handler(bot, admin_user_ids, admin_markup):
+    """Handler for deleting broadcast messages by ID"""
+    
+    def delete_broadcast_start(message):
+        if str(message.from_user.id) not in map(str, admin_user_ids):
+            return
+        
+        # Create cancel button
+        cancel_markup = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        cancel_markup.add(KeyboardButton("⌧ ᴄᴀɴᴄᴇʟ ⌧"))
+        
+        # Get recent broadcasts for reference
+        from functions import get_recent_broadcasts_with_stats
+        recent_broadcasts = get_recent_broadcasts_with_stats(limit=5)
+        
+        recent_broadcasts_text = ""
+        if recent_broadcasts:
+            recent_broadcasts_text = "\n\n📋 <b>Recent Broadcasts:</b>\n"
+            for bc in recent_broadcasts:
+                recent_broadcasts_text += f"├ 🆔 <code>{bc['broadcast_id']}</code> - {bc['sent_count']}/{bc['total_users']} sent\n"
+            recent_broadcasts_text += "└ 💡 Use any of these IDs above"
+        
+        bot.reply_to(
+            message,
+            f"🗑️ <b>Dᴇʟᴇᴛᴇ Bʀᴏᴀᴅᴄᴀꜱᴛ Mᴇꜱꜱᴀɢᴇꜱ</b>\n\n"
+            f"📝 <b>Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴛʜᴇ Bʀᴏᴀᴅᴄᴀꜱᴛ ID:</b>\n"
+            f"🆔 <b>Format:</b> <code>XP-XXXXXX</code>\n\n"
+            f"💡 <b>Example:</b> <code>XP-A1B2C3</code>\n"
+            f"❌ Click the button below to cancel:{recent_broadcasts_text}",
+            parse_mode="HTML",
+            reply_markup=cancel_markup
+        )
+        bot.register_next_step_handler(message, process_broadcast_id_input)
+
+    def process_broadcast_id_input(message):
+        """Process the broadcast ID input"""
+        # Check if user cancelled
+        if message.text and message.text.strip() == "⌧ ᴄᴀɴᴄᴇʟ ⌧":
+            bot.reply_to(message, "❌ Dᴇʟᴇᴛᴇ ᴏᴘᴇʀᴀᴛɪᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ.", reply_markup=admin_markup)
+            return
+        
+        broadcast_id = message.text.strip().upper()
+        
+        # Validate broadcast ID format
+        if not broadcast_id.startswith("XP-") or len(broadcast_id) != 9:
+            bot.reply_to(message,
+                        "❌ <b>Iɴᴠᴀʟɪᴅ Bʀᴏᴀᴅᴄᴀꜱᴛ ID</b>\n\n"
+                        "Pʟᴇᴀꜱᴇ ᴇɴᴛᴇʀ ᴀ ᴠᴀʟɪᴅ ʙʀᴏᴀᴅᴄᴀꜱᴛ ID ɪɴ ᴛʜᴇ ꜰᴏʀᴍᴀᴛ:\n"
+                        "🆔 <b>Format:</b> <code>XP-XXXXXX</code>\n"
+                        "📝 <b>Example:</b> <code>XP-A1B2C3</code>\n\n"
+                        "Try again or use the cancel button:",
+                        parse_mode="HTML",
+                        reply_markup=admin_markup)
+            return
+        
+        # Check if broadcast exists
+        from functions import get_broadcast
+        broadcast = get_broadcast(broadcast_id)
+        
+        if not broadcast:
+            bot.reply_to(message,
+                        f"❌ <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Nᴏᴛ Fᴏᴜɴᴅ</b>\n\n"
+                        f"🆔 <b>Broadcast ID:</b> <code>{broadcast_id}</code>\n\n"
+                        f"Tʜᴇ ꜱᴘᴇᴄɪꜰɪᴇᴅ ʙʀᴏᴀᴅᴄᴀꜱᴛ ID ᴡᴀꜱ ɴᴏᴛ ꜰᴏᴜɴᴅ ɪɴ ᴛʜᴇ ᴅᴀᴛᴀʙᴀꜱᴇ.\n"
+                        f"Pʟᴇᴀꜱᴇ ᴄʜᴇᴄᴋ ᴛʜᴇ ID ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.",
+                        parse_mode="HTML",
+                        reply_markup=admin_markup)
+            return
+        
+        # Show broadcast details and ask for confirmation
+        user_message_ids = broadcast.get('user_message_ids', {})
+        total_messages = len(user_message_ids)
+        sent_count = broadcast.get('sent_count', 0)
+        timestamp = broadcast.get('timestamp', datetime.now())
+        
+        confirm_markup = InlineKeyboardMarkup()
+        confirm_markup.row(
+            InlineKeyboardButton("✅ Cᴏɴꜰɪʀᴍ Dᴇʟᴇᴛᴇ", callback_data=f"bc_confirm_delete_{broadcast_id}"),  # Changed to bc_confirm_delete_
+            InlineKeyboardButton("❌ Cᴀɴᴄᴇʟ", callback_data="bc_cancel_delete")  # Changed to bc_cancel_delete
+        )
+        
+        bot.reply_to(message,
+                    f"⚠️ <b>Cᴏɴꜰɪʀᴍ Bʀᴏᴀᴅᴄᴀꜱᴛ Dᴇʟᴇᴛɪᴏɴ</b>\n\n"
+                    f"🆔 <b>Broadcast ID:</b> <code>{broadcast_id}</code>\n"
+                    f"📅 <b>Sent Date:</b> {timestamp.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    f"📊 <b>Statistics:</b>\n"
+                    f"├ 👥 Total Users: {broadcast.get('total_users', 0)}\n"
+                    f"├ 📤 Successfully Sent: {sent_count}\n"
+                    f"└ 🗑️ Messages to Delete: {total_messages}\n\n"
+                    f"🔴 <b>Tʜɪꜱ ᴀᴄᴛɪᴏɴ ᴡɪʟʟ:</b>\n"
+                    f"• Delete the broadcast message from all users\n"
+                    f"• Remove broadcast data from database\n"
+                    f"• Cannot be undone!\n\n"
+                    f"<b>Aʀᴇ ʏᴏᴜ ꜱᴜʀᴇ ʏᴏᴜ ᴡᴀɴᴛ ᴛᴏ ᴅᴇʟᴇᴛᴇ ᴛʜɪꜱ ʙʀᴏᴀᴅᴄᴀꜱᴛ?</b>",
+                    parse_mode="HTML",
+                    reply_markup=confirm_markup)
+
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("bc_confirm_delete_") or call.data == "bc_cancel_delete")  # Changed callback patterns
+    def handle_delete_broadcast_confirmation(call):
+        if call.data == "bc_cancel_delete":  # Changed to bc_cancel_delete
+            bot.answer_callback_query(call.id, "❌ Dᴇʟᴇᴛɪᴏɴ ᴄᴀɴᴄᴇʟʟᴇᴅ")
+            bot.edit_message_text(
+                "🛑 <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Dᴇʟᴇᴛɪᴏɴ Cᴀɴᴄᴇʟʟᴇᴅ</b>\n\n"
+                "Nᴏ ᴍᴇꜱꜱᴀɢᴇꜱ ᴡᴇʀᴇ ᴅᴇʟᴇᴛᴇᴅ.",
+                call.message.chat.id,
+                call.message.message_id,
+                parse_mode="HTML"
+            )
+            return
+        
+        # Extract broadcast ID from callback data
+        broadcast_id = call.data.replace("bc_confirm_delete_", "")  # Changed to bc_confirm_delete_
+        
+        bot.answer_callback_query(call.id, "🗑️ Sᴛᴀʀᴛɪɴɢ ʙʀᴏᴀᴅᴄᴀꜱᴛ ᴅᴇʟᴇᴛɪᴏɴ...")
+        delete_broadcast_messages(bot, call.message, broadcast_id)
+    
+    def delete_broadcast_messages(bot, progress_message, broadcast_id):
+        """Delete broadcast messages using stored message IDs"""
+        from functions import get_broadcast_user_message_ids, delete_broadcast
+        
+        # Get all user message IDs for this broadcast
+        user_message_ids = get_broadcast_user_message_ids(broadcast_id)
+        
+        if not user_message_ids:
+            bot.edit_message_text(
+                f"❌ <b>Nᴏ Mᴇꜱꜱᴀɢᴇꜱ Fᴏᴜɴᴅ</b>\n\n"
+                f"🆔 <b>Broadcast ID:</b> <code>{broadcast_id}</code>\n\n"
+                f"Nᴏ ᴍᴇꜱꜱᴀɢᴇ IDs ᴡᴇʀᴇ ꜰᴏᴜɴᴅ ꜰᴏʀ ᴛʜɪꜱ ʙʀᴏᴀᴅᴄᴀꜱᴛ.\n"
+                f"Tʜᴇ ᴍᴇꜱꜱᴀɢᴇꜱ ᴍᴀʏ ʜᴀᴠᴇ ᴀʟʀᴇᴀᴅʏ ʙᴇᴇɴ ᴅᴇʟᴇᴛᴇᴅ.",
+                progress_message.chat.id,
+                progress_message.message_id,
+                parse_mode="HTML"
+            )
+            return
+        
+        deleted_count = 0
+        failed_count = 0
+        not_allowed = 0
+        blocked_count = 0
+        not_found = 0
+        
+        # Update to show processing
+        bot.edit_message_text(
+            f"🗑️ <b>Dᴇʟᴇᴛɪɴɢ Bʀᴏᴀᴅᴄᴀꜱᴛ Mᴇꜱꜱᴀɢᴇꜱ...</b>\n\n"
+            f"🆔 <b>Broadcast ID:</b> <code>{broadcast_id}</code>\n"
+            f"📊 Tᴏᴛᴀʟ Mᴇꜱꜱᴀɢᴇꜱ: <code>{len(user_message_ids)}</code>\n"
+            f"✅ Dᴇʟᴇᴛᴇᴅ: <code>0</code>\n"
+            f"❌ Fᴀɪʟᴇᴅ: <code>0</code>\n"
+            f"🚫 Nᴏᴛ Aʟʟᴏᴡᴇᴅ: <code>0</code>\n"
+            f"🚷 Bʟᴏᴄᴋᴇᴅ: <code>0</code>\n"
+            f"🔍 Nᴏᴛ Fᴏᴜɴᴅ: <code>0</code>\n\n"
+            f"⏳ Sᴛᴀᴛᴜꜱ: <i>Pʀᴏᴄᴇꜱꜱɪɴɢ...</i>",
+            progress_message.chat.id,
+            progress_message.message_id,
+            parse_mode="HTML"
+        )
+        
+        update_interval = max(1, len(user_message_ids) // 10)
+        start_time = time.time()
+        
+        for index, (user_id, message_id) in enumerate(user_message_ids.items()):
+            try:
+                # Delete the specific message using stored message ID
+                bot.delete_message(user_id, message_id)
+                deleted_count += 1
+                
+            except Exception as e:
+                error_msg = str(e).lower()
+                if "message can't be deleted" in error_msg or "not enough rights" in error_msg:
+                    not_allowed += 1
+                elif "blocked" in error_msg or "user is deactivated" in error_msg:
+                    blocked_count += 1
+                elif "message to delete not found" in error_msg or "bad request" in error_msg:
+                    not_found += 1
+                else:
+                    failed_count += 1
+            
+            # Update progress periodically
+            if (index + 1) % update_interval == 0 or (index + 1) == len(user_message_ids):
+                progress = int((index + 1) / len(user_message_ids) * 100)
+                progress_bar = '█' * (progress // 10) + '░' * (10 - progress // 10)
+                
+                try:
+                    bot.edit_message_text(
+                        f"🗑️ <b>Dᴇʟᴇᴛɪɴɢ Bʀᴏᴀᴅᴄᴀꜱᴛ Mᴇꜱꜱᴀɢᴇꜱ...</b>\n\n"
+                        f"🆔 <b>Broadcast ID:</b> <code>{broadcast_id}</code>\n"
+                        f"📊 Tᴏᴛᴀʟ Mᴇꜱꜱᴀɢᴇꜱ: <code>{len(user_message_ids)}</code>\n"
+                        f"✅ Dᴇʟᴇᴛᴇᴅ: <code>{deleted_count}</code>\n"
+                        f"❌ Fᴀɪʟᴇᴅ: <code>{failed_count}</code>\n"
+                        f"🚫 Nᴏᴛ Aʟʟᴏᴡᴇᴅ: <code>{not_allowed}</code>\n"
+                        f"🚷 Bʟᴏᴄᴋᴇᴅ: <code>{blocked_count}</code>\n"
+                        f"🔍 Nᴏᴛ Fᴏᴜɴᴅ: <code>{not_found}</code>\n\n"
+                        f"⏳ Sᴛᴀᴛᴜꜱ: <i>Pʀᴏᴄᴇꜱꜱɪɴɢ...</i>\n"
+                        f"[{progress_bar}] {progress}%",
+                        progress_message.chat.id,
+                        progress_message.message_id,
+                        parse_mode="HTML"
+                    )
+                except Exception as e:
+                    print(f"Failed to update delete progress: {e}")
+            
+            time.sleep(0.2)  # Rate limiting
+        
+        # Delete broadcast data from database
+        delete_broadcast(broadcast_id)
+        
+        # Calculate time taken
+        elapsed_time = int(time.time() - start_time)
+        minutes = elapsed_time // 60
+        seconds = elapsed_time % 60
+        time_taken = f"{minutes}m {seconds}s" if minutes > 0 else f"{seconds}s"
+        
+        # Final results
+        result_text = f"""✅ <b>Bʀᴏᴀᴅᴄᴀꜱᴛ Dᴇʟᴇᴛɪᴏɴ Cᴏᴍᴘʟᴇᴛᴇᴅ</b>
+
+🆔 <b>Broadcast ID:</b> <code>{broadcast_id}</code>
+
+📊 <b>Rᴇꜱᴜʟᴛꜱ:</b>
+├ ✅ <i>Sᴜᴄᴄᴇꜱꜱꜰᴜʟ:</i> <code>{deleted_count}</code>
+├ ❌ <i>Fᴀɪʟᴇᴅ:</i> <code>{failed_count}</code>
+├ 🚫 <i>Nᴏᴛ Aʟʟᴏᴡᴇᴅ:</i> <code>{not_allowed}</code>
+├ 🚷 <i>Bʟᴏᴄᴋᴇᴅ:</i> <code>{blocked_count}</code>
+├ 🔍 <i>Nᴏᴛ Fᴏᴜɴᴅ:</i> <code>{not_found}</code>
+└ 📊 <i>Tᴏᴛᴀʟ Mᴇꜱꜱᴀɢᴇꜱ:</i> <code>{len(user_message_ids)}</code>
+
+⏱️ <i>Tɪᴍᴇ ᴛᴀᴋᴇɴ:</i> <code>{time_taken}</code>
+
+🗑️ <b>Broadcast data has been removed from the database.</b>"""
+
+        try:
+            bot.edit_message_text(
+                result_text,
+                progress_message.chat.id,
+                progress_message.message_id,
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            print(f"Failed to update final result: {e}")
+    
+    # Register the handler
+    bot.register_message_handler(delete_broadcast_start, func=lambda m: m.text == "🚮 Broadcast Delete")
+
 # ======================= REGISTER ALL ADMIN FEATURES ======================= #
 def register_admin_features(bot, admin_markup, main_markup, admin_user_ids_list):
     global admin_user_ids
@@ -986,4 +1230,6 @@ def register_admin_features(bot, admin_markup, main_markup, admin_user_ids_list)
     register_anti_fraud_handler(bot, admin_user_ids)
     # Register Update Users handler
     register_update_users_handler(bot, admin_user_ids)
+    # Register Delete broadcast handler
+    register_delete_broadcast_handler(bot, admin_user_ids, admin_markup)
     # Register other handlers as needed
