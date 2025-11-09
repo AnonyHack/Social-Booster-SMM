@@ -149,10 +149,23 @@ register_admin_features(bot, admin_markup, main_markup, admin_user_ids)
 telegram_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 telegram_services_markup.row(
     KeyboardButton("👀 Post Views"),
-    KeyboardButton("❤️ Post Reactions")
+    KeyboardButton("👀 Story Views")
+)
+telegram_services_markup.row(
+    KeyboardButton("❤️ Cheap Reactions"),
+    KeyboardButton("❤️ Premium Reactions"),
 )
 telegram_services_markup.row(
     KeyboardButton("👥 Channel Members"),
+    KeyboardButton("👥 Premium Members")
+)
+telegram_services_markup.row(
+    KeyboardButton("👥 Cheap Members"),
+    KeyboardButton("👥 Bot Members")
+)
+telegram_services_markup.row(
+    KeyboardButton("🔄 Post Shares"),
+    KeyboardButton("💬 Post Comments")
 )
 telegram_services_markup.row(
     KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
@@ -162,10 +175,28 @@ telegram_services_markup.row(
 tiktok_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 tiktok_services_markup.row(
     KeyboardButton("👀 Tiktok Views"),
-    KeyboardButton("❤️ Tiktok Likes")
+    KeyboardButton("👁️‍🗨️ Stream Views")
 )
 tiktok_services_markup.row(
-    KeyboardButton("👥 Tiktok Followers"),
+    KeyboardButton("❤️ Video Likes"),
+    KeyboardButton("💕 Stream Likes"),
+    KeyboardButton("💕 Story Likes")
+)
+tiktok_services_markup.row(
+    KeyboardButton("👥 Cheap Followers"),
+    KeyboardButton("👥 Real Followers")
+)
+tiktok_services_markup.row(
+    KeyboardButton("💬 Video Comments"),
+    KeyboardButton("💬 Stream Comments")
+)
+tiktok_services_markup.row(
+    KeyboardButton("🔄 Video Shares"),
+    KeyboardButton("🔄 Stream Shares")
+)
+tiktok_services_markup.row(
+    KeyboardButton("💾 Add Favorites"),
+    KeyboardButton("⚔️ PKBattle Points")
 )
 tiktok_services_markup.row(
     KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
@@ -174,11 +205,34 @@ tiktok_services_markup.row(
 # Instagram services menu
 instagram_services_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 instagram_services_markup.row(
-    KeyboardButton("🎥 Video Views"),
-    KeyboardButton("❤️ Insta Likes")
+    KeyboardButton("🎥 Reel Views"),
+    KeyboardButton("👁️‍🗨️ Story Views")
 )
 instagram_services_markup.row(
-    KeyboardButton("👥 Insta Followers"),
+    KeyboardButton("👁️‍🗨️ Photo Views"),
+    KeyboardButton("👁️‍🗨️ Live Views")
+)
+instagram_services_markup.row(
+    KeyboardButton("💓 Real Likes"),
+    KeyboardButton("💓 Cheap Likes")
+)
+instagram_services_markup.row(
+    KeyboardButton("👥 Real Followerss"),
+    KeyboardButton("👥 Cheap Followerss")
+)
+instagram_services_markup.row(
+    KeyboardButton("🗨️ Real Comments"),
+    KeyboardButton("🗨️ Random Comments")
+)
+instagram_services_markup.row(
+    KeyboardButton("🪪 Profile Visits"),
+    KeyboardButton("👥 Channel Memberss")
+    
+)
+instagram_services_markup.row(
+    KeyboardButton("🔄 Insta Shares"),
+    KeyboardButton("🔂 Insta Reposts")
+    
 )
 instagram_services_markup.row(
     KeyboardButton("⌫ ɢᴏ ʙᴀᴄᴋ")
@@ -1213,7 +1267,7 @@ def order_telegram_menu(message):
     """Show Telegram service options"""
     bot.reply_to(message, "📱 Telegram Services:", reply_markup=telegram_services_markup)
 
-@bot.message_handler(func=lambda message: message.text in ["👀 Post Views", "❤️ Post Reactions", "👥 Channel Members"])
+@bot.message_handler(func=lambda message: message.text in ["👀 Post Views", "❤️ Cheap Reactions", "❤️ Premium Reactions", "👀 Story Views", "👥 Channel Members", "👥 Premium Members", "👥 Cheap Members", "👥 Bot Members", "🔄 Post Shares", "💬 Post Comments"])
 def handle_telegram_order(message):
     """Handle Telegram service selection"""
     user_id = str(message.from_user.id)
@@ -1230,7 +1284,17 @@ def handle_telegram_order(message):
             "service_id": "10576",  # Your SMM panel service ID for views
             "link_hint": "Telegram post link"
         },
-        "❤️ Post Reactions": {
+            "👀 Story Views": {
+            "name": "Story Views",
+            "quality": "Super Fast",
+            "min": 100,
+            "max": 100000,
+            "price": 2000,
+            "unit": "1k views",
+            "service_id": "22852",  # Your SMM panel service ID for views
+            "link_hint": "Telegram story link"
+        },
+        "❤️ Cheap Reactions": {
             "name": "Positive Reactions",
             "quality": "No Refil",
             "min": 100,
@@ -1238,6 +1302,17 @@ def handle_telegram_order(message):
             "price": 700,
             "unit": "1k reactions",
             "service_id": "22171",  # Replace with actual service ID
+            "link_hint": "Telegram post link"
+            
+        },
+            "❤️ Premium Reactions": {
+            "name": "Positive Reactions",
+            "quality": "NonDrop-NR",
+            "min": 50,
+            "max": 1000,
+            "price": 700,
+            "unit": "1k reactions",
+            "service_id": "14498",  # Replace with actual service ID
             "link_hint": "Telegram post link"
             
         },
@@ -1250,6 +1325,56 @@ def handle_telegram_order(message):
             "unit": "1k members",
             "service_id": "18578", # Replace with actual service ID
             "link_hint": "Telegram channel link"  # Replace with actual service ID
+        },
+            "👥 Premium Members": {
+            "name": "Members [Premium]",
+            "quality": "No Refill",
+            "min": 100,
+            "max": 100000,
+            "price": 12000,
+            "unit": "1k members",
+            "service_id": "17400", # Replace with actual service ID
+            "link_hint": "Telegram channel link"  # Replace with actual service ID
+        },
+            "👥 Cheap Members": {
+            "name": "Members [Cheap]",
+            "quality": "No Refill",
+            "min": 500,
+            "max": 350000,
+            "price": 500,
+            "unit": "1k members",
+            "service_id": "22809", # Replace with actual service ID
+            "link_hint": "Telegram channel link"  # Replace with actual service ID
+        },
+            "👥 Bot Members": {
+            "name": "Bot Members",
+            "quality": "Mixed - NR",
+            "min": 500,
+            "max": 60000,
+            "price": 1000,
+            "unit": "1k members",
+            "service_id": "21200", # Replace with actual service ID
+            "link_hint": "Telegram channel link"  # Replace with actual service ID
+        },
+            "🔄 Post Shares": {
+            "name": "Post Shares",
+            "quality": "No Refill",
+            "min": 50,
+            "max": 500000,
+            "price": 150,
+            "unit": "1k shares",
+            "service_id": "21448", # Replace with actual service ID
+            "link_hint": "Telegram post link"  # Replace with actual service ID
+        },
+            "💬 Post Comments": {
+            "name": "Post Comments",
+            "quality": "Random - NR",
+            "min": 100,
+            "max": 4500,
+            "price": 78000,
+            "unit": "1k commments",
+            "service_id": "21451", # Replace with actual service ID
+            "link_hint": "Telegram post link"  # Replace with actual service ID
         }
     }
     
@@ -1551,7 +1676,9 @@ def order_tiktok_menu(message):
     bot.reply_to(message, "🎵 TikTok Services:", reply_markup=tiktok_services_markup)
 
 
-@bot.message_handler(func=lambda message: message.text in ["👀 Tiktok Views", "❤️ Tiktok Likes", "👥 Tiktok Followers"])
+@bot.message_handler(func=lambda message: message.text in ["👀 Tiktok Views", "👁️‍🗨️ Stream Views", "❤️ Video Likes", "💕 Stream Likes", "💕 Story Likes",
+                                                            "👥 Cheap Followers", "👥 Real Followers", "💬 Video Comments", "💬 Stream Comments", 
+                                                           "🔄 Video Shares", "🔄 Stream Shares", "💾 Add Favorites", "⚔️ PKBattle Points"])
 def handle_tiktok_order(message):
     """Handle TikTok service selection"""
     user_id = str(message.from_user.id)
@@ -1568,18 +1695,48 @@ def handle_tiktok_order(message):
             "unit": "1k views",
             "service_id": "23719"
         },
-        "❤️ Tiktok Likes": {
-            "name": "TikTok Likes",
+            "👁️‍🗨️ Stream Views": {
+            "name": "Live Stream Views",
+            "quality": "15 Minutes",
+            "link_hint": "Tiktok Stream Link",
+            "min": 300,
+            "max": 10000,
+            "price": 4000,
+            "unit": "1k views",
+            "service_id": "21428"
+        },
+        "❤️ Video Likes": {
+            "name": "Video Likes",
             "quality": "Refill 365D",
-            "link_hint": "Tiktok Post Link",
+            "link_hint": "Tiktok Video Link",
             "min": 100,
             "max": 10000,
             "price": 500,
             "unit": "1k likes",
             "service_id": "23890"
         },
-        "👥 Tiktok Followers": {
-            "name": "TikTok Followers",
+            "💕 Stream Likes": {
+            "name": "Live Stream Likes",
+            "quality": "NO Refill",
+            "link_hint": "Tiktok Stream Link",
+            "min": 500,
+            "max": 1000000,
+            "price": 200,
+            "unit": "1k likes",
+            "service_id": "23687"
+        },
+            "💕 Story Likes": {
+            "name": "Story Likes",
+            "quality": "Real Quality",
+            "link_hint": "Tiktok Story Link",
+            "min": 500,
+            "max": 1000000,
+            "price": 1500,
+            "unit": "1k likes",
+            "service_id": "15793"
+        },
+        "👥 Cheap Followers": {
+            "name": "TikTok Cheap Followers",
             "quality": "HQ ~ Refill 30D",
             "link_hint": "Tiktok Profile Link",
             "min": 100,
@@ -1587,6 +1744,76 @@ def handle_tiktok_order(message):
             "price": 10000,
             "unit": "1k followers",
             "service_id": "23923"
+        },
+            "👥 Real Followers": {
+            "name": "TikTok Real Followers",
+            "quality": "No Refill",
+            "link_hint": "Tiktok Profile Link",
+            "min": 100,
+            "max": 1000000,
+            "price": 14000,
+            "unit": "1k followers",
+            "service_id": "24763"
+        },
+            "💬 Video Comments": {
+            "name": "TikTok Video Comments",
+            "quality": "Mixed Quality",
+            "link_hint": "Tiktok Video Link",
+            "min": 1000,
+            "max": 1000,
+            "price": 3500,
+            "unit": "1k comments",
+            "service_id": "23923"
+        },
+            "💬 Stream Comments": {
+            "name": "Stream Emoji Comments",
+            "quality": "No Refill",
+            "link_hint": "Tiktok Stream Link",
+            "min": 100,
+            "max": 1000000,
+            "price": 42000,
+            "unit": "1k comments",
+            "service_id": "11607"
+        },
+            "🔄 Video Shares": {
+            "name": "TikTok Video shares",
+            "quality": "No Refill",
+            "link_hint": "Tiktok Video Link",
+            "min": 500,
+            "max": 1000000,
+            "price": 200,
+            "unit": "1k shares",
+            "service_id": "18622"
+        },
+            "🔄 Stream Shares": {
+            "name": "Stream shares",
+            "quality": "No Refill",
+            "link_hint": "Tiktok Stream Link",
+            "min": 100,
+            "max": 1000000,
+            "price": 1500,
+            "unit": "1k shares",
+            "service_id": "11604"
+        },
+            "💾 Add Favorites": {
+            "name": "TikTok Save Favorites",
+            "quality": "No Refill",
+            "link_hint": "Tiktok Video Link",
+            "min": 100,
+            "max": 1000000,
+            "price": 500,
+            "unit": "1k favorites",
+            "service_id": "22288"
+        },
+            "⚔️ PKBattle Points": {
+            "name": "PKBattle Points",
+            "quality": "No Refill",
+            "link_hint": "Tiktok Stream Link",
+            "min": 200,
+            "max": 50000,
+            "price": 1500,
+            "unit": "1k points",
+            "service_id": "17564"
         }
     }
     
@@ -1883,42 +2110,155 @@ def order_instagram_menu(message):
     """Show Instagram service options"""
     bot.reply_to(message, "📸 Instagram Services:", reply_markup=instagram_services_markup)
 
-@bot.message_handler(func=lambda message: message.text in ["🎥 Video Views", "❤️ Insta Likes", "👥 Insta Followers"])
+@bot.message_handler(func=lambda message: message.text in ["🎥 Reel Views", "👁️‍🗨️ Story Views", "👁️‍🗨️ Photo Views", "👁️‍🗨️ Live Views",
+                                                           "💓 Real Likes", "💓 Cheap Likes", "👥 Cheap Followerss", "👥 Real Followerss",
+                                                           "🗨️ Real Comments", "🗨️ Random Comments", "🪪 Profile Visits", "👥 Channel Memberss",
+                                                           "🔄 Insta Shares", "🔂 Insta Reposts"])
 def handle_instagram_order(message):
     """Handle Instagram service selection"""
     user_id = str(message.from_user.id)
     
     services = {
-        "🎥 Video Views": {
-            "name": "Instagram Video Views",
+        "🎥 Reel Views": {
+            "name": "Instagram Reel Views",
             "quality": "Fast ~ NR",
             "min": 1000,
             "max": 100000,
             "price": 10,
             "unit": "1k views",
             "service_id": "24117",
-            "link_hint": "Instagram video link"
+            "link_hint": "Instagram Reel link"
         },
-        "❤️ Insta Likes": {
-            "name": "Instagram Likes",
+            "👁️‍🗨️ Story Views": {
+            "name": "Instagram Story Views",
+            "quality": "Fast ~ NR",
+            "min": 200,
+            "max": 1000000,
+            "price": 600,
+            "unit": "1k views",
+            "service_id": "23566",
+            "link_hint": "Instagram Story link"
+        },
+            "👁️‍🗨️ Photo Views": {
+            "name": "Instagram Photo Views",
+            "quality": "Only for Post",
+            "min": 100,
+            "max": 1000000,
+            "price": 150,
+            "unit": "1k views",
+            "service_id": "24073",
+            "link_hint": "Instagram Photo link"
+        },
+            "👁️‍🗨️ Live Views": {
+            "name": "Instagram Live Views",
+            "quality": "15 Minutes",
+            "min": 200,
+            "max": 1000,
+            "price": 5000,
+            "unit": "1k views",
+            "service_id": "23938",
+            "link_hint": "Instagram live link"
+        },
+            "💓 Real Likes": {
+            "name": "Instagram Real Likes",
+            "quality": "Fast - Refill 30D",
+            "min": 100,
+            "max": 1000000,
+            "price": 5000,
+            "unit": "1k likes",
+            "service_id": "24375",
+            "link_hint": "Instagram post link"
+        },
+            "💓 Cheap Likes": {
+            "name": "Instagram Cheap Likes",
             "quality": "Fast Working",
             "min": 100,
             "max": 1000000,
             "price": 1500,
             "unit": "1k likes",
-            "service_id": "24602",
+            "service_id": "24790",
             "link_hint": "Instagram post link"
         },
-        "👥 Insta Followers": {
-            "name": "Instagram Followers",
-            "quality": "Refill 30D",
-            "min": 500,
-            "max": 10000,
-            "price": 15000,
+            "👥 Real Followerss": {
+            "name": "Insta Real Followers",
+            "quality": "Refill 365D",
+            "min": 100,
+            "max": 100000,
+            "price": 17000,
             "unit": "1k followers",
-            "service_id": "24109",
+            "service_id": "24768",
             "link_hint": "Instagram profile link and Disable The Flag for Review from Settings"
-        }
+        },
+            "👥 Cheap Followerss": {
+            "name": "Insta Cheap Followers",
+            "quality": "Refill 30D",
+            "min": 200,
+            "max": 10000,
+            "price": 10000,
+            "unit": "1k followers",
+            "service_id": "24670",
+            "link_hint": "Instagram profile link and Disable The Flag for Review from Settings"
+        },
+            "🗨️ Real Comments": {
+            "name": "Insta Real Comments",
+            "quality": "Real Users",
+            "min": 1000,
+            "max": 1000,
+            "price": 9000,
+            "unit": "1k comments",
+            "service_id": "24471",
+            "link_hint": "Instagram post link"
+        },
+            "🗨️ Random Comments": {
+            "name": "Insta Random Comments",
+            "quality": "No Refill",
+            "min": 100,
+            "max": 5000,
+            "price": 6000,
+            "unit": "1k comments",
+            "service_id": "24692",
+            "link_hint": "Instagram post link"
+        },
+            "🪪 Profile Visits": {
+            "name": "Insta Profile Visits",
+            "quality": "Instant",
+            "min": 200,
+            "max": 1000000,
+            "price": 400,
+            "unit": "1k visits",
+            "service_id": "12187",
+            "link_hint": "Instagram profile link"
+        },
+        "👥 Channel Memberss": {
+            "name": "Insta Channel Members",
+            "quality": "High Quality",
+            "min": 200,
+            "max": 1000000,
+            "price": 5000,
+            "unit": "1k members",
+            "service_id": "24320",
+            "link_hint": "Instagram channel link"
+        },
+            "🔄 Insta Shares": {
+            "name": "Insta post shares",
+            "quality": "Instant",
+            "min": 100,
+            "max": 1000000,
+            "price": 150,
+            "unit": "1k shares",
+            "service_id": "15569",
+            "link_hint": "Instagram post link"
+        },
+            "🔂 Insta Reposts": {
+            "name": "Insta Reposts",
+            "quality": "High Quality",
+            "min": 100,
+            "max": 1000000,
+            "price": 4000,
+            "unit": "1k reposts",
+            "service_id": "24382",
+            "link_hint": "Instagram post link"
+        },
     }
     
     service = services[message.text]
