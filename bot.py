@@ -178,7 +178,10 @@ tiktok_services_markup.row(
     KeyboardButton("👁️‍🗨️ Stream Views")
 )
 tiktok_services_markup.row(
-    KeyboardButton("❤️ Video Likes"),
+    KeyboardButton("💗 HQ Likes"),
+    KeyboardButton("💗 Cheap Likes")
+)
+tiktok_services_markup.row(
     KeyboardButton("💕 Stream Likes"),
     KeyboardButton("💕 Story Likes")
 )
@@ -1676,7 +1679,7 @@ def order_tiktok_menu(message):
     bot.reply_to(message, "🎵 TikTok Services:", reply_markup=tiktok_services_markup)
 
 
-@bot.message_handler(func=lambda message: message.text in ["👀 Tiktok Views", "👁️‍🗨️ Stream Views", "❤️ Video Likes", "💕 Stream Likes", "💕 Story Likes",
+@bot.message_handler(func=lambda message: message.text in ["👀 Tiktok Views", "👁️‍🗨️ Stream Views", "💗 HQ Likes", "💗 Cheap Likes", "💕 Stream Likes", "💕 Story Likes",
                                                             "👥 Cheap Followers", "👥 Real Followers", "💬 Video Comments", "💬 Stream Comments", 
                                                            "🔄 Video Shares", "🔄 Stream Shares", "💾 Add Favorites", "⚔️ PKBattle Points"])
 def handle_tiktok_order(message):
@@ -1689,11 +1692,11 @@ def handle_tiktok_order(message):
             "name": "TikTok Views",
             "quality": "Fast&NR",
             "link_hint": "Tiktok Post Link",
-            "min": 1000,
-            "max": 1000000,
+            "min": 500,
+            "max": 100000,
             "price": 150,
             "unit": "1k views",
-            "service_id": "24748"
+            "service_id": "23719"
         },
             "👁️‍🗨️ Stream Views": {
             "name": "Live Stream Views",
@@ -1705,15 +1708,25 @@ def handle_tiktok_order(message):
             "unit": "1k views",
             "service_id": "21428"
         },
-        "❤️ Video Likes": {
-            "name": "Video Likes",
+        "💗 HQ Likes": {
+            "name": "Non Drop Likes",
             "quality": "Refill 365D",
             "link_hint": "Tiktok Video Link",
-            "min": 100,
+            "min": 500,
             "max": 10000,
+            "price": 3000,
+            "unit": "1k likes",
+            "service_id": "24318"
+        },
+            "💗 Cheap Likes": {
+            "name": "Cheap Likes",
+            "quality": "Refill 365D",
+            "link_hint": "Tiktok Video Link",
+            "min": 500,
+            "max": 100000,
             "price": 500,
             "unit": "1k likes",
-            "service_id": "23890"
+            "service_id": "24730"
         },
             "💕 Stream Likes": {
             "name": "Live Stream Likes",
@@ -1762,8 +1775,8 @@ def handle_tiktok_order(message):
             "min": 1000,
             "max": 1000,
             "price": 3500,
-            "unit": "25 comments",
-            "service_id": "17497"
+            "unit": "1k comments",
+            "service_id": "23923"
         },
             "💬 Stream Comments": {
             "name": "Stream Emoji Comments",
@@ -5650,4 +5663,3 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         web_app.notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
-
