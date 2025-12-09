@@ -1692,9 +1692,9 @@ def handle_tiktok_order(message):
             "name": "TikTok Views",
             "quality": "Fast&NR",
             "link_hint": "Tiktok Post Link",
-            "min": 500,
+            "min": 1000,
             "max": 100000,
-            "price": 150,
+            "price": 200,
             "unit": "1k views",
             "service_id": "24748"
         },
@@ -5663,4 +5663,5 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         web_app.notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
+
 
