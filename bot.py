@@ -1696,7 +1696,7 @@ def handle_tiktok_order(message):
             "max": 100000,
             "price": 150,
             "unit": "1k views",
-            "service_id": "23719"
+            "service_id": "24748"
         },
             "👁️‍🗨️ Stream Views": {
             "name": "Live Stream Views",
@@ -5663,3 +5663,4 @@ if __name__ == '__main__':
         logger.critical(f"Fatal error in main execution: {e}")
         web_app.notify_admins(f"Bot crashed: {str(e)[:200]}")
         raise
+
