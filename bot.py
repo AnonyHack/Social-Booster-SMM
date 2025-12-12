@@ -1716,7 +1716,7 @@ def handle_tiktok_order(message):
             "max": 10000,
             "price": 3000,
             "unit": "1k likes",
-            "service_id": "24318"
+            "service_id": "26143"
         },
             "💗 Cheap Likes": {
             "name": "Cheap Likes",
